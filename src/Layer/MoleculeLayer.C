@@ -65,6 +65,7 @@
 #include "Util/Constants.h"
 #include "Util/Preferences.h"
 #include "Util/XtbProcess.h"
+#include "Util/XtbResultDialog.h"
 #include "Process/JobInfo.h" 
 #include "Parser/IQmolParser.h"
 #include "FileDialog.h"
@@ -2111,14 +2112,36 @@ bool Molecule::runXtb(QString const& methodName, bool optimize)
        input.coordinates << position.x << position.y << position.z;
    }
 
-   Calc::XtbProcess xtb(Preferences::XtbPath(), method);
+   // Only one xtb calculation at a time.  A second request (e.g. the automatic 
+   // energy update) while an optimization is running in the dialog is ignored.
+   static bool s_xtbBusy(false);
+   if (s_xtbBusy) return true;
+   s_xtbBusy = true;
 
-   QApplication::setOverrideCursor(Qt::WaitCursor);
-   postMessage("Running " + methodName + "...");
-   QApplication::processEvents();
+   Calc::XtbProcess xtb(Preferences::XtbPath(), method);
+   XtbResultDialog* dialog(0);
+   QMetaObject::Connection cancelConnection;
+
+   if (optimize) {
+      // Keep the GUI alive and show the progress in a window
+      QString subject(text().isEmpty() ? "the molecule" : text());
+      subject += " (" + QString::number(atoms.size()) + " atoms)";
+      dialog = XtbResultDialog::instance();
+      xtb.setInteractive(true);
+      xtb.setProgressCallback([dialog](QString const& chunk) { dialog->appendOutput(chunk); });
+      cancelConnection = QObject::connect(dialog, &XtbResultDialog::cancelRequested, 
+         [&xtb]() { xtb.cancel(); });
+      dialog->started(methodName, "geometry optimization", subject);
+   }
+
    Calc::Result result(optimize ? xtb.optimize(input) : xtb.energy(input));
-   QApplication::restoreOverrideCursor();
-   postMessage("");
+
+   if (dialog) {
+      QObject::disconnect(cancelConnection);
+      dialog->finished(result, methodName, optimize);
+   }
+   s_xtbBusy = false;
+
    QLOG_DEBUG() << "xtb" << methodName << "charge" << input.charge << "multiplicity" 
                 << input.multiplicity << "energy (Eh)" << result.energy 
                 << "success" << result.success << "converged" << result.converged;
@@ -2126,9 +2149,12 @@ bool Molecule::runXtb(QString const& methodName, bool optimize)
    if (!result.success || !result.converged) QLOG_DEBUG() << result.log;
 
    if (!result.success) {
-      QString msg(methodName + " calculation failed for " + text() + "\n\n");
-      msg += result.message;
-      QMsgBox::warning(0, "IQmol", msg);
+      // The dialog reports failures of an optimization
+      if (!dialog) {
+         QString msg(methodName + " calculation failed for " + text() + "\n\n");
+         msg += result.message;
+         QMsgBox::warning(0, "IQmol", msg);
+      }
       return true;
    }
 
@@ -2139,8 +2165,12 @@ bool Molecule::runXtb(QString const& methodName, bool optimize)
       return true;
    }
 
-   if (!result.converged) {
-      QMsgBox::warning(0, "IQmol", result.message);
+   // Guard against the molecule having been edited while xtb was running
+   if (findLayers<Atom>(Children) != atoms) {
+      QString msg("The molecule was modified while xtb was running.  "
+                  "The optimized structure has been discarded.");
+      QMsgBox::warning(0, "IQmol", msg);
+      return true;
    }
 
    // The command records the initial positions on construction

@@ -43,7 +43,18 @@ namespace Calc {
       QString         message;       // error description or program log tail
       QString         log;           // full program output and input (for debugging)
 
-      Result() : success(false), converged(false), energy(0.0) { }
+      // Optional details; negative / zero values mean the program did not report them
+      bool            cancelled;
+      double          initialEnergy; // Hartree, energy of the starting geometry
+      double          gradientNorm;  // Eh/a0
+      double          gapEV;         // HOMO-LUMO gap
+      double          dipoleDebye;
+      int             cycles;        // optimization cycles
+      double          seconds;       // wall time
+
+      Result() : success(false), converged(false), energy(0.0), cancelled(false),
+         initialEnergy(0.0), gradientNorm(-1.0), gapEV(-1.0), dipoleDebye(-1.0), 
+         cycles(0), seconds(0.0) { }
    };
 
    class Calculator {

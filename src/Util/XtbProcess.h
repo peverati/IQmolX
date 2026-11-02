@@ -12,6 +12,9 @@
 ********************************************************************************/
 
 #include "Calculator.h"
+#include <functional>
+
+class QProcess;
 
 /*!
  *  \file XtbProcess.h
@@ -36,6 +39,20 @@ namespace Calc {
          void setMethod(Method method) { m_method = method; }
          void setTimeoutSeconds(int seconds) { m_timeout = seconds; }
 
+         /// Called with each chunk of xtb output as it arrives.  This only has an effect
+         /// together with setInteractive(true).
+         void setProgressCallback(std::function<void(QString const&)> callback) 
+         { 
+            m_progress = callback; 
+         }
+
+         /// When true the Qt event loop keeps running while xtb does, so a GUI stays
+         /// responsive (and cancel() can be called).  The default is to block.
+         void setInteractive(bool interactive) { m_interactive = interactive; }
+
+         /// Kills a running calculation (interactive mode only)
+         void cancel();
+
          /// Looks for xtb: the given hint, then $XTB_PATH, then PATH.
          /// Returns an empty string if it cannot be found.
          static QString findExecutable(QString const& hint = QString());
@@ -50,6 +67,10 @@ namespace Calc {
          QString m_executable;
          Method  m_method;
          int     m_timeout;
+         bool    m_interactive;
+         bool    m_cancelled;
+         QProcess* m_process;
+         std::function<void(QString const&)> m_progress;
    };
 
 } } // end namespace IQmol::Calc

@@ -3,6 +3,9 @@
 
 #include "Util/XtbProcess.h"
 #include <QCoreApplication>
+#include <QFile>
+#include <QTemporaryDir>
+#include <QTimer>
 #include <QtMath>
 #include <cstdio>
 
@@ -62,6 +65,40 @@ int main(int argc, char** argv)
    bad.multiplicity = 2;   // 10 electrons cannot be a doublet
    Result fail(xtb.energy(bad));
    check(!fail.success && !fail.message.isEmpty(), "inconsistent spin is reported as failure");
+
+   // Details parsed from the xtb output
+   check(opt.success && opt.cycles > 0, "number of optimization cycles is parsed");
+   check(opt.success && opt.gradientNorm >= 0.0 && opt.gradientNorm < 0.01, "gradient norm is parsed");
+   check(opt.success && qAbs(opt.gapEV - 14.4) < 0.5, "HOMO-LUMO gap is parsed");
+   check(opt.success && qAbs(opt.dipoleDebye - 2.2) < 0.3, "dipole moment is parsed");
+   check(opt.success && opt.initialEnergy > opt.energy, "initial energy is parsed and above the final one");
+   check(opt.success && opt.seconds > 0.0, "wall time is recorded");
+
+   // Interactive mode: event loop running, output delivered as it arrives
+   QString streamed;
+   XtbProcess live(argc > 1 ? argv[1] : "");
+   live.setInteractive(true);
+   live.setProgressCallback([&streamed](QString const& chunk) { streamed += chunk; });
+   Result liveResult(live.optimize(water));
+   check(liveResult.success && liveResult.converged, "interactive optimization converges");
+   check(streamed.contains("GEOMETRY OPTIMIZATION CONVERGED"), "progress callback receives the output");
+   check(qAbs(liveResult.energy - opt.energy) < 1e-6, "interactive and blocking modes agree");
+
+   // Cancellation, using a stand-in for xtb that just sleeps
+   QTemporaryDir dir;
+   QString fake(dir.filePath("xtb"));
+   QFile script(fake);
+   if (script.open(QIODevice::WriteOnly)) {
+      script.write("#!/bin/sh\nsleep 30\n");
+      script.close();
+      script.setPermissions(QFile::permissions(fake) | QFile::ExeOwner);
+   }
+   XtbProcess slow(fake);
+   slow.setInteractive(true);
+   QTimer::singleShot(300, [&slow]() { slow.cancel(); });
+   Result cancelled(slow.optimize(water));
+   check(cancelled.cancelled && !cancelled.success, "cancel() stops a running calculation");
+   check(cancelled.seconds < 5.0, "cancellation returns promptly");
 
    std::printf("%d failure(s)\n", s_failures);
    return s_failures == 0 ? 0 : 1;

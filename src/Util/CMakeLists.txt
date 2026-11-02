@@ -9,6 +9,7 @@ set(HEADERS
    ProgressDialog.h
    Task.h
    Timer.h
+   XtbResultDialog.h
    Zip.h
 )
 
@@ -36,6 +37,7 @@ set( SOURCES
    WaitingSpinner.C
    WriteToTemporaryFile.C
    XtbProcess.C
+   XtbResultDialog.C
    Zip.C
 )
 

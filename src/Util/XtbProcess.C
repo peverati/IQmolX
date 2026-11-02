@@ -12,6 +12,9 @@
 
 #include "XtbProcess.h"
 #include <QDir>
+#include <QElapsedTimer>
+#include <QEventLoop>
+#include <QTimer>
 #include <QFile>
 #include <QFileInfo>
 #include <QProcess>
@@ -104,6 +107,40 @@ bool parseEnergy(QString const& output, double& energy)
 }
 
 
+// Returns the last match of the first capture group, or false if there is none
+bool lastNumber(QString const& output, QString const& pattern, double& value)
+{
+   QRegularExpression re(pattern, QRegularExpression::MultilineOption);
+   QRegularExpressionMatchIterator iter(re.globalMatch(output));
+   bool found(false);
+   while (iter.hasNext()) {
+      value = iter.next().captured(1).toDouble();
+      found = true;
+   }
+   return found;
+}
+
+
+// Fills in the optional details from the xtb output
+void parseDetails(QString const& output, Result& result)
+{
+   double x;
+   if (lastNumber(output, "GRADIENT NORM\\s+(-?\\d+\\.\\d+)", x)) result.gradientNorm = x;
+   if (lastNumber(output, "HOMO-LUMO GAP\\s+(-?\\d+\\.\\d+)\\s+eV", x)) result.gapEV = x;
+   if (lastNumber(output, "CONVERGED AFTER\\s+(\\d+)\\s+ITERATIONS", x)) result.cycles = int(x);
+
+   // The dipole line is the only 'full:' line with exactly four numbers, the last being the total
+   if (lastNumber(output, "^\\s*full:\\s+-?\\d+\\.\\d+\\s+-?\\d+\\.\\d+\\s+-?\\d+\\.\\d+\\s+(\\d+\\.\\d+)\\s*$", x)) {
+      result.dipoleDebye = x;
+   }
+
+   // The first summary block is the energy of the starting geometry
+   QRegularExpression re(":: total energy\\s+(-?\\d+\\.\\d+) Eh");
+   QRegularExpressionMatch match(re.match(output));
+   if (match.hasMatch()) result.initialEnergy = match.captured(1).toDouble();
+}
+
+
 QString tail(QString const& text, int lines = 15)
 {
    QStringList list(text.split('\n'));
@@ -115,8 +152,16 @@ QString tail(QString const& text, int lines = 15)
 
 
 XtbProcess::XtbProcess(QString const& executable, Method method)
- : m_executable(executable), m_method(method), m_timeout(600)
+ : m_executable(executable), m_method(method), m_timeout(600), m_interactive(false),
+   m_cancelled(false), m_process(0)
 {
+}
+
+
+void XtbProcess::cancel()
+{
+   m_cancelled = true;
+   if (m_process) m_process->kill();
 }
 
 
@@ -224,21 +269,75 @@ Result XtbProcess::run(Input const& input, bool optimize)
    QProcessEnvironment env(QProcessEnvironment::systemEnvironment());
    env.insert("OMP_STACKSIZE", "1G");
    process.setProcessEnvironment(env);
-   process.start(exe, args);
 
-   if (!process.waitForStarted()) {
-      result.message = "Failed to start " + exe;
+   QElapsedTimer clock;
+   clock.start();
+   QString output;
+   bool timedOut(false);
+   m_cancelled = false;
+
+   if (m_interactive) {
+      QEventLoop loop;
+      QTimer timer;
+      timer.setSingleShot(true);
+
+      QObject::connect(&process, &QProcess::readyRead, [&]() {
+         QString chunk(QString::fromLocal8Bit(process.readAll()));
+         output += chunk;
+         if (m_progress) m_progress(chunk);
+      });
+      QObject::connect(&process, 
+         static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
+         &loop, &QEventLoop::quit);
+      QObject::connect(&process, &QProcess::errorOccurred, [&](QProcess::ProcessError error) {
+         if (error == QProcess::FailedToStart) loop.quit();
+      });
+      QObject::connect(&timer, &QTimer::timeout, [&]() { timedOut = true; process.kill(); });
+
+      m_process = &process;
+      process.start(exe, args);
+      timer.start(m_timeout * 1000);
+      if (process.state() != QProcess::NotRunning || process.error() != QProcess::FailedToStart) {
+         loop.exec();
+      }
+      m_process = 0;
+
+      QString rest(QString::fromLocal8Bit(process.readAll()));
+      output += rest;
+      if (m_progress && !rest.isEmpty()) m_progress(rest);
+
+      if (process.error() == QProcess::FailedToStart) {
+         result.message = "Failed to start " + exe;
+         return result;
+      }
+   }else {
+      process.start(exe, args);
+
+      if (!process.waitForStarted()) {
+         result.message = "Failed to start " + exe;
+         return result;
+      }
+
+      if (!process.waitForFinished(m_timeout * 1000)) {
+         timedOut = true;
+         process.kill();
+         process.waitForFinished();
+      }
+      output = QString::fromLocal8Bit(process.readAll());
+   }
+
+   result.seconds = clock.elapsed() / 1000.0;
+
+   if (m_cancelled) {
+      result.cancelled = true;
+      result.message = "Calculation cancelled";
       return result;
    }
 
-   if (!process.waitForFinished(m_timeout * 1000)) {
-      process.kill();
-      process.waitForFinished();
+   if (timedOut) {
       result.message = "xtb timed out after " + QString::number(m_timeout) + " seconds";
       return result;
    }
-
-   QString output(QString::fromLocal8Bit(process.readAll()));
 
    QFile inputXyz(inputFile);
    QString inputText;
@@ -272,6 +371,7 @@ Result XtbProcess::run(Input const& input, bool optimize)
       result.converged = true;
    }
 
+   parseDetails(output, result);
    result.success = true;
    return result;
 }
