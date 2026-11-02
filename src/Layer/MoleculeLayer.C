@@ -2122,7 +2122,8 @@ bool Molecule::runXtb(QString const& methodName, bool optimize)
    QLOG_DEBUG() << "xtb" << methodName << "charge" << input.charge << "multiplicity" 
                 << input.multiplicity << "energy (Eh)" << result.energy 
                 << "success" << result.success << "converged" << result.converged;
-   QLOG_DEBUG() << result.log;
+   // The full xtb input and output is only worth keeping when something went wrong
+   if (!result.success || !result.converged) QLOG_DEBUG() << result.log;
 
    if (!result.success) {
       QString msg(methodName + " calculation failed for " + text() + "\n\n");
