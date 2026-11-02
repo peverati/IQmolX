@@ -240,6 +240,12 @@ Result XtbProcess::run(Input const& input, bool optimize)
 
    QString output(QString::fromLocal8Bit(process.readAll()));
 
+   QFile inputXyz(inputFile);
+   QString inputText;
+   if (inputXyz.open(QIODevice::ReadOnly)) inputText = QString::fromLocal8Bit(inputXyz.readAll());
+   result.log = exe + " " + args.join(" ") + "\n--- input.xyz ---\n" + inputText 
+              + "--- xtb output ---\n" + output;
+
    if (process.exitStatus() != QProcess::NormalExit) {
       result.message = "xtb crashed\n" + tail(output);
       return result;

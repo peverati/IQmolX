@@ -352,6 +352,11 @@ bool save(bool prompt = false);
             QString m_residueName;  // hack
 
             bool m_modified;
+
+            // Set while posting the undo command for an xtb optimization.  The command
+            // emits updated() before its animation moves the atoms, which would trigger
+            // an energy calculation on the old geometry and overwrite the result.
+            bool m_xtbSkipEnergy;
             bool m_reperceiveBondsForAnimation;
    
             Configurator::Molecule m_configurator;

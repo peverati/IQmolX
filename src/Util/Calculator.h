@@ -41,6 +41,7 @@ namespace Calc {
       double          energy;        // Hartree
       QVector<double> coordinates;   // final coordinates, Angstrom (same layout as Input)
       QString         message;       // error description or program log tail
+      QString         log;           // full program output and input (for debugging)
 
       Result() : success(false), converged(false), energy(0.0) { }
    };

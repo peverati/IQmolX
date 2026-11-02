@@ -116,6 +116,7 @@ Molecule::Molecule(QObject* parent) : Component(DefaultMoleculeName, parent),
    m_atomScale(1.0), m_bondScale(1.0), m_chargeScale(1.0), 
    m_smallerHydrogens(true), 
    m_modified(false),
+   m_xtbSkipEnergy(false),
    m_reperceiveBondsForAnimation(false),
    m_configurator(*this), 
    m_surfaceAnimator(0),
@@ -2093,6 +2094,9 @@ bool Molecule::runXtb(QString const& methodName, bool optimize)
       return false;
    }
 
+   // The energy was just set by the optimization, see m_xtbSkipEnergy
+   if (!optimize && m_xtbSkipEnergy) return true;
+
    AtomList atoms(findLayers<Atom>(Children));
    if (atoms.isEmpty()) return true;
 
@@ -2115,6 +2119,10 @@ bool Molecule::runXtb(QString const& methodName, bool optimize)
    Calc::Result result(optimize ? xtb.optimize(input) : xtb.energy(input));
    QApplication::restoreOverrideCursor();
    postMessage("");
+   QLOG_DEBUG() << "xtb" << methodName << "charge" << input.charge << "multiplicity" 
+                << input.multiplicity << "energy (Eh)" << result.energy 
+                << "success" << result.success << "converged" << result.converged;
+   QLOG_DEBUG() << result.log;
 
    if (!result.success) {
       QString msg(methodName + " calculation failed for " + text() + "\n\n");
@@ -2148,7 +2156,9 @@ bool Molecule::runXtb(QString const& methodName, bool optimize)
 
    m_modified = true;
    reindexAtomsAndBonds();
+   m_xtbSkipEnergy = true;
    postCommand(cmd);
+   m_xtbSkipEnergy = false;
 
    // As in minimizeEnergy these need to come after the command is posted
    centerOfNuclearChargeAvailable(centerOfNuclearCharge());
