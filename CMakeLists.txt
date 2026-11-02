@@ -14,6 +14,10 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wno-deprecated")
+if (APPLE)
+   # openbabel headers use std::binary_function, removed from recent libc++
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION")
+endif()
 set(BUILD_SHARED_LIBS OFF)
 
 if (UNIX AND NOT APPLE)
@@ -49,15 +53,7 @@ else ()
 endif()
 
 
-if (LINUX)
-   find_package(yaml-cpp REQUIRED)
-   include_directories(${YAML_INCLUDE_DIRS})
-else()
-   include_directories(modules/yaml-cpp/include)
-   add_subdirectory(modules/yaml-cpp  EXCLUDE_FROM_ALL)
-endif()
-
-
+# openbabel must precede yaml-cpp: both define an 'uninstall' target, only yaml-cpp's is guarded
 if (LINUX)
    find_package(OpenBabel3 REQUIRED)
    include_directories(/usr/include/openbabel3)
@@ -69,11 +65,20 @@ endif()
 
 
 if (LINUX)
+   find_package(yaml-cpp REQUIRED)
+   include_directories(${YAML_INCLUDE_DIRS})
+else()
+   include_directories(modules/yaml-cpp/include)
+   add_subdirectory(modules/yaml-cpp  EXCLUDE_FROM_ALL)
+endif()
+
+
+if (LINUX)
    set(LIBSSH2_LIBRARY ssh2)
 elseif (APPLE)
    include_directories(modules/libssh2/include)
    add_subdirectory(modules/libssh2  EXCLUDE_FROM_ALL)
-   set(LIBSSH2_LIBRARY ssh2)
+   set(LIBSSH2_LIBRARY libssh2_static)
 else (WIN32)
    include_directories(modules/libssh2/include)
    add_subdirectory(modules/libssh2  EXCLUDE_FROM_ALL)
@@ -132,8 +137,10 @@ set(CMAKE_AUTOMOC ON)
 
 add_subdirectory(src)
 
-enable_testing()
-add_subdirectory(tests)
+if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+   enable_testing()
+   add_subdirectory(tests)
+endif()
 
 if (${Qt5Core_VERSION_STRING} VERSION_GREATER_EQUAL 5.15 )
    qt_add_resources(IQmol_RESOURCES_RCC resources/IQmol.qrc)
