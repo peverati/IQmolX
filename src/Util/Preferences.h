@@ -109,6 +109,10 @@ namespace Preferences {
    QString FFmpegPath();
    void    FFmpegPath(QString const&);
 
+   // Location of the xtb executable.  Empty means search XTB_PATH and PATH.
+   QString XtbPath();
+   void    XtbPath(QString const&);
+
    double  SymmetryTolerance();
    void    SymmetryTolerance(double const);
    

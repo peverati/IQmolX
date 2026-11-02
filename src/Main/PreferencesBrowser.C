@@ -62,6 +62,7 @@ void Browser::init()
    m_preferencesBrowser.qchemDatabaseFileLineEdit->setText(QChemDatabaseFilePath());
    m_preferencesBrowser.logFileLineEdit->setText(LogFilePath());
    m_preferencesBrowser.ffmpegLineEdit->setText(FFmpegPath());
+   m_preferencesBrowser.xtbLineEdit->setText(XtbPath());
 
    if (LogFileHidden()) {
       m_preferencesBrowser.logFileHiddenCheckBox->setCheckState(Qt::Checked);
@@ -120,6 +121,8 @@ void Browser::on_buttonBox_accepted()
    newLocation = m_preferencesBrowser.ffmpegLineEdit->text();
    if (oldLocation != newLocation) FFmpegPath(newLocation);
 
+   XtbPath(m_preferencesBrowser.xtbLineEdit->text());
+
    DefaultForceField(m_preferencesBrowser.forceFieldCombo->currentText());
    UndoLimit(m_preferencesBrowser.undoLimit->value());
    LabelFontSize(m_preferencesBrowser.labelFontSize->value());
@@ -138,6 +141,13 @@ void Browser::on_browseFFmpegButton_clicked(bool)
 {
    bool mustExist(true);
    setFilePath(m_preferencesBrowser.ffmpegLineEdit, mustExist);
+}
+
+
+void Browser::on_browseXtbButton_clicked(bool) 
+{
+   bool mustExist(true);
+   setFilePath(m_preferencesBrowser.xtbLineEdit, mustExist);
 }
 
 

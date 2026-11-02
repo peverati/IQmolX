@@ -71,6 +71,7 @@ void ResetBrowserPreferences()
    // We only reset the preferences that show in the Preferences Browser
    QStringList options;
    options << "DefaultForceField"
+           << "XtbPath"
            << "UndoLimit"
            << "LabelFontSize"
            << "FragmentDirectory"
@@ -420,6 +421,18 @@ QString FFmpegPath()
 void FFmpegPath(QString const& filePath) 
 {
    Set("FFmpegPath", QVariant::fromValue(filePath));
+}
+
+
+QString XtbPath()
+{
+   QVariant value(Get("XtbPath"));
+   return value.isNull() ? QString() : value.value<QString>();
+}
+
+void XtbPath(QString const& filePath) 
+{
+   Set("XtbPath", QVariant::fromValue(filePath));
 }
 
 

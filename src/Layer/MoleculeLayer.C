@@ -64,6 +64,7 @@
 #include "Util/QMsgBox.h"
 #include "Util/Constants.h"
 #include "Util/Preferences.h"
+#include "Util/XtbProcess.h"
 #include "Process/JobInfo.h" 
 #include "Parser/IQmolParser.h"
 #include "FileDialog.h"
@@ -87,6 +88,7 @@
 
 #include <QDropEvent>
 #include <QProcess>
+#include <QApplication>
 #include <QElapsedTimer>
 #include <QMenu>
 #include <QUrl>
@@ -2075,8 +2077,92 @@ void Molecule::addHydrogens()
 }
 
 
+// Runs xtb on the molecule.  For a single-point energy the geometry is left
+// untouched, otherwise the atoms are moved to the optimized geometry in an 
+// undoable command.
+bool Molecule::runXtb(QString const& methodName, bool optimize)
+{
+   Calc::XtbProcess::Method method;
+   if (methodName == "GFN2-xTB") {
+      method = Calc::XtbProcess::GFN2;
+   }else if (methodName == "GFN1-xTB") {
+      method = Calc::XtbProcess::GFN1;
+   }else if (methodName == "GFN-FF") {
+      method = Calc::XtbProcess::GFNFF;
+   }else {
+      return false;
+   }
+
+   AtomList atoms(findLayers<Atom>(Children));
+   if (atoms.isEmpty()) return true;
+
+   Calc::Input input;
+   input.charge       = totalCharge();
+   input.multiplicity = multiplicity();
+
+   AtomList::iterator iter;
+   for (iter = atoms.begin(); iter != atoms.end(); ++iter) {
+       Vec position((*iter)->getPosition());
+       input.atomicNumbers.append((*iter)->getAtomicNumber());
+       input.coordinates << position.x << position.y << position.z;
+   }
+
+   Calc::XtbProcess xtb(Preferences::XtbPath(), method);
+
+   QApplication::setOverrideCursor(Qt::WaitCursor);
+   postMessage("Running " + methodName + "...");
+   QApplication::processEvents();
+   Calc::Result result(optimize ? xtb.optimize(input) : xtb.energy(input));
+   QApplication::restoreOverrideCursor();
+   postMessage("");
+
+   if (!result.success) {
+      QString msg(methodName + " calculation failed for " + text() + "\n\n");
+      msg += result.message;
+      QMsgBox::warning(0, "IQmol", msg);
+      return true;
+   }
+
+   QString mesg(methodName + " energy: ");
+
+   if (!optimize) {
+      energyAvailable(result.energy, Info::Hartree, mesg);
+      return true;
+   }
+
+   if (!result.converged) {
+      QMsgBox::warning(0, "IQmol", result.message);
+   }
+
+   // The command records the initial positions on construction
+   Command::MinimizeStructure* cmd(new Command::MinimizeStructure(this));
+
+   int i(0);
+   for (iter = atoms.begin(); iter != atoms.end(); ++iter, ++i) {
+       (*iter)->setPosition(Vec(result.coordinates[3*i], result.coordinates[3*i+1], 
+          result.coordinates[3*i+2]));
+   }
+
+   cmd->setMessage(mesg + QString::number(result.energy, 'f', 6) + " Eh");
+   energyAvailable(result.energy, Info::Hartree, mesg);
+
+   m_modified = true;
+   reindexAtomsAndBonds();
+   postCommand(cmd);
+
+   // As in minimizeEnergy these need to come after the command is posted
+   centerOfNuclearChargeAvailable(centerOfNuclearCharge());
+   setAtomicCharges(Data::Type::GasteigerCharge);
+   bool estimated(true);
+   dipoleAvailable(dipoleFromPointCharges(), estimated);
+   return true;
+}
+
+
 void Molecule::computeEnergy(QString const& forceFieldName)
 {
+   if (runXtb(forceFieldName, false)) return;
+
    QLOG_DEBUG() << "Computing energy with forcefield" << forceFieldName;
    QByteArray ff(forceFieldName.toLatin1());
    const char* obff(ff.data());
@@ -2133,6 +2219,8 @@ void Molecule::computeEnergy(QString const& forceFieldName)
 
 void Molecule::minimizeEnergy(QString const& forceFieldName)
 {
+   if (runXtb(forceFieldName, true)) return;
+
    QLOG_DEBUG() << "Minimizing energy with forcefield" << forceFieldName;
    OBPlugin::List("forcefields");
    QByteArray ff(forceFieldName.toLatin1());

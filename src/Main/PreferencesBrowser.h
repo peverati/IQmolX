@@ -47,6 +47,7 @@ namespace Preferences {
          void on_browseQChemDatabaseFileButton_clicked(bool);
          void on_browseLogFileButton_clicked(bool);
          void on_browseFFmpegButton_clicked(bool);
+         void on_browseXtbButton_clicked(bool);
          void on_resetButton_clicked(bool);
 
       private:

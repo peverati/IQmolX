@@ -685,6 +685,19 @@ void MainWindow::createMenus()
          connect(action, SIGNAL(triggered()), this, SLOT(setForceField()));
          if (Preferences::DefaultForceField() == ff) action->setChecked(true);
 
+         // Semi-empirical tight-binding methods provided by the external xtb program
+         subMenu->addSeparator();
+         QStringList xtbMethods;
+         xtbMethods << "GFN2-xTB" << "GFN1-xTB" << "GFN-FF";
+         for (QString const& method : xtbMethods) {
+             action = subMenu->addAction(method);
+             action->setCheckable(true);
+             action->setData(method);
+             forceFieldGroup->addAction(action);
+             connect(action, SIGNAL(triggered()), this, SLOT(setForceField()));
+             if (Preferences::DefaultForceField() == method) action->setChecked(true);
+         }
+
       menu->addSeparator();
 
       name = "Translate To Center";
