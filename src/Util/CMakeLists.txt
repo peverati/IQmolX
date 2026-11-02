@@ -35,6 +35,7 @@ set( SOURCES
    Timer.C
    WaitingSpinner.C
    WriteToTemporaryFile.C
+   XtbProcess.C
    Zip.C
 )
 
