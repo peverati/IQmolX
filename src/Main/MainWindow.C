@@ -73,7 +73,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent),
    m_viewer = new Viewer(m_viewerModel, this);
 
    setStatusBar(0);
-   setWindowTitle("IQmol");
+   setWindowTitle("IQMolX");
    setWindowModified(false);
    setAcceptDrops(false);
    setWindowIcon(QIcon(":/resources/icons/iqmol.png"));

@@ -189,7 +189,7 @@ if (APPLE)
    # automate applications, such as screen readers or test drivers) cannot tell it apart.
    set_target_properties(${targetName} PROPERTIES
       MACOSX_BUNDLE_GUI_IDENTIFIER       "org.iqmol.IQmol3"
-      MACOSX_BUNDLE_BUNDLE_NAME          "IQmol"
+      MACOSX_BUNDLE_BUNDLE_NAME          "IQMolX"
       MACOSX_BUNDLE_ICON_FILE            "IQmol.icns"
       MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
       MACOSX_BUNDLE_BUNDLE_VERSION       "${PROJECT_VERSION}"

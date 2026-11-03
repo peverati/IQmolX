@@ -17,7 +17,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>About IQmol</string>
+   <string>About IQMolX</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -86,7 +86,7 @@
         </font>
        </property>
        <property name="text">
-        <string>IQmol</string>
+        <string>IQMolX</string>
        </property>
       </widget>
      </item>
@@ -249,8 +249,9 @@
       </sizepolicy>
      </property>
      <property name="text">
-      <string>IQmol is a simple molecular builder and visualizer written using the Qt libraries.  The following were also 
-        used or incorporated into IQmol:
+      <string>IQMolX is a fork of IQmol, the molecular builder and visualizer by Andrew Gilbert, 
+        with added support for the xtb semiempirical programs.
+        It is written using the Qt libraries.  The following were also used or incorporated:
       &lt;ul&gt;
          &lt;li&gt; &lt;a href=&quot;http://www.libqglviewer.com/&quot;&gt;libQGLViewer&lt;/a&gt;
          &lt;li&gt; &lt;a href=&quot;http://openbabel.org/&quot;&gt;Open Babel&lt;/a&gt;
