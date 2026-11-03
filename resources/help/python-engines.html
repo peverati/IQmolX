@@ -1,0 +1,309 @@
+<html>
+<head>
+   <link href="style.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+
+   <center> <h1> Python Engines: Machine Learning Potentials and More <br> </h1> </center><p></p>
+
+   <p> Besides the xtb methods, IQMolX can calculate energies, optimize
+   geometries and find vibrational frequencies with methods written in Python:
+   neural network potentials such as ANI-2x, or any calculator of the
+   <a href="https://wiki.fysik.dtu.dk/ase/">Atomic Simulation Environment</a>
+   (ASE).  They run on the molecule in the Viewer like the xtb calculations, and
+   the results are added to it in the same way.
+
+   <p> The methods live in a Python environment, not in IQMolX.  The first time
+   you use them IQMolX can make that environment for you; this page explains how,
+   what is downloaded and where it is kept.  The window is opened with the menu
+   option Calculation&rarr;Python Engines.
+
+   <p><center><img src="images/PythonWindow.png" width="470" /></center></p>
+
+   <p> The window with the ANI-2x engine selected: the Python that runs the
+   engines at the top (the field shows the interpreter in use; here it is a
+   separate environment that has the packages of ANI-2x, and with the field empty
+   IQMolX uses its own environment), then the engine with its description, its
+   settings, the job and the charge and spin.
+
+
+   <br>
+   <h3><a name="setup"></a>Setting Up Python</h3>
+
+   <p> Nothing has to be installed on your computer beforehand, and no Python
+   either.  The first time the window is opened it says that there is no IQMolX
+   Python environment yet:
+
+   <p><center><img src="images/PythonSetup.png" width="470" /></center></p>
+
+   <p> Press <b>Set Up Environment</b>.  IQMolX then uses
+   <a href="https://github.com/astral-sh/uv">uv</a>, a tool that comes with the
+   application, to
+
+   <ol>
+      <li> download a Python (version 3.12, about 25 MB) that is used only by
+           IQMolX and does not change anything else on your computer, <br>
+      <li> make an environment with it, and <br>
+      <li> install the small helper program that connects IQMolX with the
+           engines (the iqmolx-engines package, which also comes with the
+           application).
+   </ol>
+
+   <p> The commands that are run are shown in the window as they start, together
+   with their output, and the step can be cancelled.  It takes about a minute and
+   needs an internet connection.  When it is finished the window uses the new
+   environment and lists the engines.  This is only done once.
+
+   <p> The environment is kept in the folder
+   <tt>~/Library/Application Support/IQmol/python</tt>.  See
+   <a href="#remove">Where Things Are Kept</a> to find out how to remove it.
+
+   <p> <i>If IQMolX was built from the source</i> it does not contain uv; install
+   it first, for example with <tt>brew install uv</tt>, and the button will work.
+   The window says when uv cannot be found.
+
+   <br>
+   <h4>Using your own Python</h4>
+
+   <p> If you already have a Python with the engines you want, for example a conda
+   environment, enter its location in the <i>Python</i> field (or press
+   <b>Browse...</b>) and press <b>Find Engines</b>.  That Python needs the
+   iqmolx-engines package: it is the file <tt>iqmolx_engines-*.whl</tt> in
+   <tt>IQMolX.app/Contents/Resources/python</tt>, which you install with
+   <tt>pip install</tt> and the path of the file.  The <b>Install</b> buttons
+   described below only work for environments made with Set Up Environment (or
+   another virtual environment) and need uv.  With the field empty IQMolX uses its
+   own environment.
+
+
+   <br>
+   <h3><a name="engines"></a>Engines</h3>
+
+   <p> The list of engines comes from the environment, so it can grow without
+   changing IQMolX.  An engine that needs packages which are not installed yet is
+   still listed, as <i>not available</i>.  The window says what is missing and
+   offers to install it:
+
+   <p><center><img src="images/PythonInstall.png" width="470" /></center></p>
+
+   <p> <b>Install</b> downloads the packages from the Python Package Index into
+   the environment, showing the output of uv as it goes.  When it is done the
+   engine can be used.
+
+   <p> These engines come with IQMolX:
+
+   <table border="0" cellpadding="4">
+      <tr><td valign="top"><b>Demo</b></td>
+          <td> A toy potential that does not describe real molecules.  It needs
+               nothing and is useful to try out the window. </td></tr>
+      <tr><td valign="top"><b>ANI-2x (TorchANI)</b></td>
+          <td> A neural network potential, see <a href="#ani">below</a>.  Needs
+               the packages <i>torch</i> and <i>torchani</i> (together about 1 GB
+               of disk space). </td></tr>
+      <tr><td valign="top"><b>ASE calculator</b></td>
+          <td> Uses any calculator of ASE, see <a href="#ase">below</a>.  Needs
+               the package <i>ase</i>. </td></tr>
+   </table>
+
+   <p> Others can be added by anybody who writes an engine plugin; the
+   developer guide <tt>PLUGINS.md</tt> in the <tt>python</tt> folder of the IQMolX
+   source describes how.
+
+
+   <br>
+   <h3><a name="running"></a>Running a Calculation</h3>
+
+   <p> Choose the engine and the job:
+
+   <ul>
+      <li> <i>Single point energy</i>, <br>
+      <li> <i>Geometry optimization</i>: the atoms move to the optimized
+           structure.  The move is listed in the History and can be undone. <br>
+      <li> <i>Vibrational frequencies</i>: the frequencies and normal modes are
+           added to the molecule as a Frequencies layer, as for
+           <a href="xtb.html#frequencies">xtb</a>.  The Python engines do not
+           provide infrared intensities. <br>
+      <li> <i>Optimization and frequencies</i>.
+   </ul>
+
+   <p> Below the engine are its settings, which are different for each engine
+   (they come from the engine itself).  <i>Use the charge and spin of the
+   molecule</i> is on unless you want other values for the calculation; engines
+   that cannot handle charged or open-shell molecules say so, and refuse them.
+   The settings are remembered from one session to the next.
+
+   <p> Press <b>Run</b>.  The window shows the progress and, when the calculation
+   has finished, a summary:
+
+   <p><center><img src="images/PythonResult.png" width="470" /></center></p>
+
+   <p> The energy is given in Hartree and in eV together with the dipole moment
+   and the time, and for an optimization the energy change and the number of
+   cycles.  <b>Save Output...</b> keeps the text of the progress.
+   <b>Cancel</b> stops the calculation; one evaluation of a neural network cannot
+   be interrupted, so it finishes first.  The first run of an engine takes longer
+   because the engine is loaded (and, the very first time, downloaded); it then
+   stays loaded for the following calculations.
+
+   <p> Only molecules that are shown in the Model View (the ones that are
+   checked) are calculated.
+
+
+   <br>
+   <h3><a name="ani"></a>ANI-2x</h3>
+
+   <p> ANI-2x is a neural network potential, an ensemble of eight networks trained
+   on energies and forces of the wB97X/6-31G(d) method.  It is much faster than
+   the method it learned from.  It is limited to
+
+   <ul>
+      <li> the elements <b>H, C, N, O, F, S and Cl</b>, and <br>
+      <li> <b>neutral, closed-shell</b> molecules.
+   </ul>
+
+   <p> Anything else is refused with a message, and the options for charge and
+   spin are not available.  It is run through the
+   <a href="https://github.com/aiqm/torchani">TorchANI</a> package; both the code
+   and the parameters are MIT licensed.
+
+   <p> <i>The first time ANI-2x is used</i> the parameters (55 MB) are downloaded
+   from Hugging Face and kept on your computer, so an internet connection is needed once.
+   No login is needed.  The settings of the engine are the <i>Network</i> (the
+   ensemble of all eight, or a single one, which is faster and a little less
+   accurate) and the <i>Precision</i> (float64, the default, gives smoother forces
+   for optimizations and frequencies than float32).  The frequencies use the
+   second derivatives of the network directly.
+
+   <p> Please cite
+   <ul>
+      <li> C. Devereux et al., J. Chem. Theory Comput. 16, 4192 (2020) (ANI-2x) <br>
+      <li> X. Gao et al., J. Chem. Inf. Model. 60, 3408 (2020) (TorchANI).
+   </ul>
+
+
+   <br>
+   <h3><a name="ase"></a>ASE Calculators</h3>
+
+   <p> The ASE engine runs any calculator of the Atomic Simulation Environment.
+   Give the calculator as <tt>module:Class</tt> in <i>Calculator class</i> and, if
+   it takes arguments, write them as a JSON object in <i>Constructor
+   arguments</i>.  For example, the effective-medium calculator for metal
+   clusters (it is part of ASE) is
+   <tt>ase.calculators.emt:EMT</tt> with the arguments <tt>{}</tt>.  The charge and the
+   spin multiplicity are passed to the calculator in the <tt>charge</tt> and
+   <tt>spin</tt> entries of the ASE atoms, as many calculators expect.
+
+   <p> Other calculators need their own Python packages, which you install into
+   the environment (for example with <tt>uv pip install</tt> and the name of the
+   package).  The calculator is responsible for the elements, the charge and the
+   spin it can handle; what it does not understand it reports as an error.
+
+   <p> Please cite A. H. Larsen et al., J. Phys.: Condens. Matter 29, 273002
+   (2017), and the paper of the calculator that you use.
+
+
+   <br>
+   <h3><a name="example"></a>Example</h3>
+
+   <ol>
+      <li> Click in the Viewer in build mode to place an oxygen atom, and use
+           Build&rarr;Fill Valencies With Hydrogens to add the hydrogens (water). <br>
+      <li> Open Calculation&rarr;Python Engines.  If there is no environment yet,
+           press <b>Set Up Environment</b> and wait until it is finished. <br>
+      <li> Choose <i>ANI-2x (TorchANI)</i>.  If it says that it is not available,
+           press <b>Install torch, torchani</b> and wait. <br>
+      <li> Leave the job on <i>Geometry optimization</i> and press <b>Run</b>.
+           The first time the parameters are downloaded. <br>
+      <li> The water molecule moves to the optimized structure (about -76.388
+           E<sub>h</sub> with ANI-2x) in a second or two. <br>
+      <li> Choose <i>Optimization and frequencies</i> and run again to see the
+           frequencies of the molecule; double click the new Frequencies layer to
+           animate them.
+   </ol>
+
+
+   <br>
+   <h3><a name="problems"></a>If Something Goes Wrong</h3>
+
+   <p> The window explains what happened in the message above the progress text.
+   The usual causes are:
+
+   <table border="0" cellpadding="4">
+      <tr><td valign="top"><i>Unable to start the Python interpreter</i></td>
+          <td> The Python in the <i>Python</i> field does not exist (for example
+               the environment was deleted).  Empty the field and press
+               <b>Set Up Environment</b>, or choose another Python. </td></tr>
+      <tr><td valign="top"><i>uv was not found</i></td>
+          <td> Only for IQMolX built from the source: install uv
+               (<tt>brew install uv</tt>). </td></tr>
+      <tr><td valign="top"><i>uv failed</i> while setting up or installing</td>
+          <td> The last lines of its output are shown.  Most often there is no
+               internet connection, or a network that needs a proxy: uv uses the
+               proxy settings of the environment IQMolX was started from, so
+               start IQMolX from a terminal in which they are set. </td></tr>
+      <tr><td valign="top"><i>Not available</i> next to an engine</td>
+          <td> Packages are missing: use the <b>Install</b> button, or install
+               them yourself if you use your own Python. </td></tr>
+      <tr><td valign="top"><i>Cannot load the ANI-2x model</i></td>
+          <td> The parameters could not be downloaded; check the internet
+               connection and try again. </td></tr>
+      <tr><td valign="top"><i>Unsupported element</i>, <i>Unsupported charge</i></td>
+          <td> The engine does not handle this molecule, see its description in
+               the window. </td></tr>
+      <tr><td valign="top"><i>The Python helper stopped</i></td>
+          <td> The program that runs the engines ended unexpectedly, for example
+               because the computer ran out of memory; the end of its error
+               output is shown.  Press <b>Run</b> again to start it again. </td></tr>
+      <tr><td valign="top"><i>Nothing was calculated</i></td>
+          <td> There is no molecule with atoms that is shown in the Model View. </td></tr>
+   </table>
+
+   <p> A change made to an engine plugin that was already loaded needs a restart of
+   IQMolX to take effect.
+
+
+   <br>
+   <h3><a name="remove"></a>Where Things Are Kept</h3>
+
+   <p> Setting up and using the engines downloads software.  All of it comes
+   from the sources that the tools themselves use:
+
+   <table border="0" cellpadding="4">
+      <tr><td valign="top"><b>Python</b></td>
+          <td> from the python-build-standalone project (through uv, from GitHub);
+               kept by uv in <tt>~/.local/share/uv/python</tt>. </td></tr>
+      <tr><td valign="top"><b>Packages</b> (torch, torchani, ase, numpy)</td>
+          <td> from the Python Package Index (PyPI); installed in the
+               environment, which is <tt>~/Library/Application
+               Support/IQmol/python</tt>; uv keeps downloaded files in
+               <tt>~/.cache/uv</tt>. </td></tr>
+      <tr><td valign="top"><b>Model parameters</b></td>
+          <td> ANI-2x from Hugging Face; kept in
+               <tt>~/.local/share/Torchani</tt>. </td></tr>
+   </table>
+
+   <p> To remove the Python environment of IQMolX, quit IQMolX and move the folder
+   <tt>~/Library/Application Support/IQmol/python</tt> to the Trash; the next time
+   the window is opened it offers to set it up again.  The folders of uv and of the
+   model parameters are only caches and can be removed too, but uv is shared with
+   anything else on your computer that uses it, so leave them if you do.
+
+
+   <br>
+   <h3>Notes</h3>
+
+   <ol>
+      <li> The engines are approximate methods.  Energies are not comparable with
+           those of other methods (including xtb), and an engine is only reliable
+           for the kind of molecules it was trained or made for. <br>
+      <li> Charge, spin and the engine settings are applied for the calculation
+           only; they are not stored in the molecule. <br>
+      <li> Weights and the Python packages are never part of IQMolX; they are
+           downloaded when you ask for them, and their licenses are those of their
+           authors (shown with each engine in the window).
+   </ol>
+
+</body>
+
+</html>

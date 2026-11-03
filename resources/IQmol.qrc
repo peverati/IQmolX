@@ -74,12 +74,17 @@
     <file>help/paths.html</file>
     <file>help/vibrations.html</file>
     <file>help/xtb.html</file>
+    <file>help/python-engines.html</file>
     <file>help/movies.html</file>
 
     <file>help/images/header.png</file>
     <file>help/images/ModelView.png</file>
     <file>help/images/VibrationsWindow.png</file>
     <file>help/images/XtbWindow.png</file>
+    <file>help/images/PythonWindow.png</file>
+    <file>help/images/PythonSetup.png</file>
+    <file>help/images/PythonInstall.png</file>
+    <file>help/images/PythonResult.png</file>
     <file>help/images/XtbResult.png</file>
     <file>help/images/XtbProgram.png</file>
     <file>help/images/XtbOrbitalsDialog.png</file>
