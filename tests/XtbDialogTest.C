@@ -1,3 +1,5 @@
+// Copyright (C) 2026 Roberto Peverati.  Part of IQmol, free software under the GNU General Public
+// License, version 3 or (at your option) any later version.
 // Tests the logic of the xtb window (settings, Run/Cancel, running and finished states)
 // on Qt's offscreen platform.  The settings are stored under a different name, so the
 // real IQmol preferences are not touched.

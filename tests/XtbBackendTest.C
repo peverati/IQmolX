@@ -1,3 +1,5 @@
+// Copyright (C) 2026 Roberto Peverati.  Part of IQmol, free software under the GNU General Public
+// License, version 3 or (at your option) any later version.
 // Compares the two xtb backends, the external program (XtbProcess) and libxtb with IQmol's
 // own optimizer (XtbLibrary), on a set of molecules in tests/data.
 //

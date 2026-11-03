@@ -1,3 +1,5 @@
+// Copyright (C) 2026 Roberto Peverati.  Part of IQmol, free software under the GNU General Public
+// License, version 3 or (at your option) any later version.
 // Standalone test for the xtb interface: optimizes water and checks the result.
 // Usage: XtbProcessTest [path/to/xtb]     (or set XTB_PATH)
 

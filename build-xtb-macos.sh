@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (C) 2026 Roberto Peverati.  Part of IQmol, free software under the GNU General
+# Public License, version 3 or (at your option) any later version.
 # Build and install xtb (Grimme group) from source on Apple Silicon macOS with Homebrew.
 # IQmol uses the resulting `xtb` program (set its path in IQmol > Preferences) and, later,
 # libxtb and xtb.h from the same install.
