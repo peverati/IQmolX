@@ -98,6 +98,7 @@ namespace IQmol {
          QSpinBox*       m_chargeSpin;
          QSpinBox*       m_multiplicitySpin;
          QDoubleSpinBox* m_temperatureSpin;
+   QCheckBox*      m_orbitalsCheck;
          double          m_temperature;    // used by the current / last calculation
          int             m_charge;         // used by the current / last calculation
          int             m_multiplicity;

@@ -1,0 +1,28 @@
+#pragma once
+/*******************************************************************************
+
+  This file is part of IQmol, a free molecular visualization program. See
+  <http://iqmol.org> for more details.
+
+  IQmol is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, either version 3 of the License, or (at your option) any later
+  version.
+
+********************************************************************************/
+
+#include "Data/CanonicalOrbitals.h"
+#include "Util/Calculator.h"
+#include "QGLViewer/vec.h"
+
+namespace IQmol {
+namespace Data {
+
+   /// Converts the orbitals of a Calc::Result (bohr exponents, one set of spatial orbitals)
+   /// to IQmol's canonical orbitals.  The positions of the atoms are in Angstrom.
+   /// Returns 0 if the data are inconsistent.
+   CanonicalOrbitals* makeCanonicalOrbitals(Calc::OrbitalData const&, 
+      QList<qglviewer::Vec> const& positions, unsigned nAlpha, unsigned nBeta, 
+      QString const& label);
+
+} } // end namespace IQmol::Data

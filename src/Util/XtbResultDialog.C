@@ -125,6 +125,11 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
       "xtb uses 300 K.  Below a few K, molecules with a (nearly) degenerate HOMO and LUMO cannot be calculated.");
    form->addRow("Electronic temperature:", m_temperatureSpin);
 
+   m_orbitalsCheck = new QCheckBox("Calculate the molecular orbitals", m_settings);
+   m_orbitalsCheck->setToolTip("Adds the orbitals to the molecule, where they can be plotted.\n"
+      "Not available for GFN-FF.  Switch this off for very large molecules.");
+   form->addRow("Orbitals:", m_orbitalsCheck);
+
    QObject::connect(m_moleculeValues, &QCheckBox::toggled, [this](bool useMolecule) {
       m_chargeSpin->setEnabled(!useMolecule);
       m_multiplicitySpin->setEnabled(!useMolecule);
@@ -200,6 +205,7 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
    connect(m_solventCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(saveSettings()));
    connect(m_backendCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(saveSettings()));
    connect(m_temperatureSpin, SIGNAL(valueChanged(double)), this, SLOT(saveSettings()));
+   connect(m_orbitalsCheck, SIGNAL(toggled(bool)), this, SLOT(saveSettings()));
    connect(m_runButton, SIGNAL(clicked()), this, SLOT(run()));
    connect(m_cancelButton, SIGNAL(clicked()), this, SIGNAL(cancelRequested()));
    connect(m_saveButton, SIGNAL(clicked()), this, SLOT(save()));
@@ -233,15 +239,18 @@ void XtbResultDialog::loadSettings()
    combos << m_jobCombo << m_methodCombo << m_solventCombo << m_backendCombo;
    for (QComboBox* combo : combos) combo->blockSignals(true);
    m_temperatureSpin->blockSignals(true);
+   m_orbitalsCheck->blockSignals(true);
 
    select(m_jobCombo, Preferences::XtbJob());
    select(m_methodCombo, Preferences::XtbMethod());
    select(m_solventCombo, Preferences::XtbSolvent());
    select(m_backendCombo, Preferences::XtbBackend());
    m_temperatureSpin->setValue(Preferences::XtbElectronicTemperature());
+   m_orbitalsCheck->setChecked(Preferences::XtbOrbitals());
 
    for (QComboBox* combo : combos) combo->blockSignals(false);
    m_temperatureSpin->blockSignals(false);
+   m_orbitalsCheck->blockSignals(false);
 }
 
 
@@ -252,6 +261,7 @@ void XtbResultDialog::saveSettings()
    Preferences::XtbSolvent(m_solventCombo->currentData().toString());
    Preferences::XtbBackend(m_backendCombo->currentData().toString());
    Preferences::XtbElectronicTemperature(m_temperatureSpin->value());
+   Preferences::XtbOrbitals(m_orbitalsCheck->isChecked());
 }
 
 

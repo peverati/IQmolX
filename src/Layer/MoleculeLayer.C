@@ -21,6 +21,10 @@
 // Data
 #include "Data/AtomicProperty.h"
 #include "Data/Bank.h"
+#include "Data/CalcOrbitals.h"
+#include "Data/CanonicalOrbitals.h"
+#include "Data/OrbitalsList.h"
+#include "Data/ShellList.h"
 #include "Data/DipoleMoment.h"
 #include "Data/Energy.h"
 #include "Data/File.h"
@@ -2190,6 +2194,11 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
       &XtbResultDialog::cancelRequested, [&xtb]() { xtb->cancel(); }));
    dialog->started(label, what, subject, input.charge, input.multiplicity);
 
+   // The orbitals belong to the final geometry: those of the frequency calculation if there
+   // is one, otherwise of the optimization or single point
+   bool const orbitals(Preferences::XtbOrbitals() && method != Calc::XtbProcess::GFNFF);
+   input.orbitals = orbitals && !frequencies;
+
    Calc::Result result;
    if (optimize) {
       result = xtb->optimize(input);
@@ -2200,6 +2209,7 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
    // The frequencies are those of the optimized geometry
    Calc::Result frequencyResult;
    if (frequencies && (!optimize || result.success)) {
+      input.orbitals = orbitals;
       if (optimize) {
          input.coordinates = result.coordinates;
          dialog->appendOutput("\n------------------------  vibrational frequencies  ------------------------\n\n");
@@ -2211,6 +2221,8 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
          result.vibrations   = frequencyResult.vibrations;
          result.hasVibrations = true;
          result.gradientNorm = frequencyResult.gradientNorm;
+         result.orbitals    = frequencyResult.orbitals;
+         result.hasOrbitals = frequencyResult.hasOrbitals;
          result.seconds     += frequencyResult.seconds;
       }
    }
@@ -2245,6 +2257,8 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
          setVibrations(result.vibrations, label);
       }
    }
+
+   if (result.hasOrbitals) setOrbitals(result.orbitals, input.charge, input.multiplicity, label);
 }
 
 
@@ -2399,6 +2413,57 @@ void Molecule::setVibrations(Calc::VibrationalData const& vibrations, QString co
    if (!layers.isEmpty()) {
       m_xtbFrequencies = layers.last();
       m_xtbFrequencies->setText("Frequencies (" + label + ")");
+   }
+}
+
+
+// Adds the orbitals of an xtb calculation to the molecule, for the orbital viewer.  They 
+// replace those of an earlier xtb calculation.
+void Molecule::setOrbitals(Calc::OrbitalData const& orbitals, int charge, int multiplicity,
+   QString const& label)
+{
+   AtomList atoms(findLayers<Atom>(Children));
+   int const nBasis(orbitals.nBasis());
+   int const nOrbitals(orbitals.coefficients.size());
+   if (nBasis == 0 || nOrbitals == 0) return;
+
+   QList<Vec> positions;
+   for (Atom* atom : atoms) positions.append(atom->getPosition());
+
+   // xtb uses the same spatial orbitals for both spins, with the occupations of the spins
+   // (charge and multiplicity) deciding how many of each are filled
+   int electrons(-charge);
+   for (Atom* atom : atoms) electrons += atom->getAtomicNumber();
+   int nBeta((electrons - (multiplicity - 1)) / 2);
+   int nAlpha(electrons - nBeta);
+
+   Data::CanonicalOrbitals* canonical(Data::makeCanonicalOrbitals(orbitals, positions, 
+      nAlpha, nBeta, "Canonical Orbitals"));
+   if (!canonical) {
+      QLOG_WARN() << "The xtb orbitals are inconsistent with their basis set";
+      return;
+   }
+
+   Data::OrbitalsList* list(new Data::OrbitalsList);
+   list->append(canonical);
+
+   if (m_xtbOrbitals) {
+      m_molecularSurfaces.removeLayer(m_xtbOrbitals);
+      m_xtbOrbitals->deleteLater();
+      m_xtbOrbitals = 0;
+   }
+
+   Data::Bank bank;
+   bank.append(list);
+   Factory& factory(Factory::instance());
+   Layer::List layerList(factory.toLayers(bank));
+   appendData(layerList);
+   m_bank.merge(bank);
+
+   QList<Orbitals*> layers(findLayers<Orbitals>());
+   if (!layers.isEmpty()) {
+      m_xtbOrbitals = layers.last();
+      m_xtbOrbitals->setText("Orbitals (" + label + ")");
    }
 }
 

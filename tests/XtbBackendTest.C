@@ -296,6 +296,26 @@ int main(int argc, char** argv)
       check(c.cancelled && !c.success, "cancel() stops the optimization");
    }
 
+   // Orbitals: libxtb does not report the basis, so the library backend gets them from the program
+   {
+      Input water;
+      readXyz(dataDir + "/water.xyz", water);
+      water.orbitals = true;
+      XtbLibrary library;
+      Result none(library.optimize(water));
+      check(none.success && !none.hasOrbitals, "library without the program: energy, no orbitals");
+
+      library.setExecutable(xtbPath);
+      Result r(library.optimize(water));
+      check(r.success && r.hasOrbitals && r.orbitals.nBasis() == 6, "library backend returns orbitals via the program");
+
+      XtbProcess program(xtbPath);
+      Result reference(program.energy([&]() { Input i(water); i.coordinates = r.coordinates; return i; }()));
+      check(r.hasOrbitals && reference.hasOrbitals 
+         && qAbs(r.orbitals.energies[0] - reference.orbitals.energies[0]) < 1e-9,
+         "the orbitals belong to the optimized geometry");
+   }
+
    std::printf("%d failure(s)\n", s_failures);
    return s_failures == 0 ? 0 : 1;
 }

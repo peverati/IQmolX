@@ -12,6 +12,7 @@ set( SOURCES
    AtomicProperty.C
    AtomicDensity.C
    Bank.C
+   CalcOrbitals.C
    CanonicalOrbitals.C
    ChargeMultiplicity.C
    ComplexOrbitals.C

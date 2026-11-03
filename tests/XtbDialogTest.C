@@ -123,7 +123,17 @@ int main(int argc, char** argv)
 
    // Charge and spin: the molecule's values by default, an override on request
    QCheckBox* useMolecule(0);
-   for (QCheckBox* c : d->findChildren<QCheckBox*>()) useMolecule = c;
+   QCheckBox* orbitals(0);
+   for (QCheckBox* c : d->findChildren<QCheckBox*>()) {
+       if (c->text().contains("orbitals")) orbitals = c; else useMolecule = c;
+   }
+   check(orbitals && orbitals->isChecked() == Preferences::XtbOrbitals() && Preferences::XtbOrbitals(),
+      "orbitals are calculated by default");
+   if (orbitals) {
+      orbitals->setChecked(false);
+      check(!Preferences::XtbOrbitals(), "the orbitals setting is stored");
+      orbitals->setChecked(true);
+   }
    QList<QSpinBox*> spins(d->findChildren<QSpinBox*>());
    check(useMolecule && useMolecule->isChecked(), "the molecule's charge and spin are used by default");
    check(spins.size() == 2 && !spins[0]->isEnabled() && !spins[1]->isEnabled(), 

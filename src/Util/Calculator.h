@@ -38,7 +38,33 @@ namespace Calc {
       /// choice to the program, which uses 300 K.  Only the xTB methods use it.
       double          electronicTemperature;
 
-      Input() : charge(0), multiplicity(1), electronicTemperature(-1.0) { }
+      /// Also return the molecular orbitals (at the geometry of the result)
+      bool            orbitals;
+
+      Input() : charge(0), multiplicity(1), electronicTemperature(-1.0), orbitals(false) { }
+   };
+
+   /// A contracted Gaussian shell of the basis the orbitals are expanded in
+   struct OrbitalShell {
+      int             atom;            // index of the atom the shell sits on
+      int             angularMomentum; // 0 (s), 1 (p) or 2 (d, six Cartesian functions)
+      QVector<double> exponents;       // bohr^-2
+      QVector<double> coefficients;    // of the normalized primitives
+
+      OrbitalShell() : atom(0), angularMomentum(0) { }
+   };
+
+   /// Molecular orbitals as read from a Molden file: the shells and the coefficients of the 
+   /// orbitals, in order of increasing energy.  The basis functions are ordered as in the
+   /// Molden format (px,py,pz; dxx,dyy,dzz,dxy,dxz,dyz).  The orbitals are spatial orbitals, 
+   /// the same for both spins.
+   struct OrbitalData {
+      QVector<OrbitalShell>     shells;
+      QVector<double>           energies;      // Hartree
+      QVector<double>           occupations;   // 0 to 2
+      QVector<QVector<double> > coefficients;  // per orbital, one number per basis function
+
+      int nBasis() const { return coefficients.isEmpty() ? 0 : coefficients.first().size(); }
    };
 
    /// The result of a vibrational analysis
@@ -79,10 +105,13 @@ namespace Calc {
       VibrationalData vibrations;
       bool            hasGsolv;      // a solvation free energy was reported
       double          gsolv;         // Hartree
+      bool            hasOrbitals;   // the orbitals below are available
+      OrbitalData     orbitals;
 
       Result() : success(false), converged(false), energy(0.0), cancelled(false),
          initialEnergy(0.0), gradientNorm(-1.0), gapEV(-1.0), dipoleDebye(-1.0), 
-         cycles(0), seconds(0.0), hasVibrations(false), hasGsolv(false), gsolv(0.0) { }
+         cycles(0), seconds(0.0), hasVibrations(false), hasGsolv(false), gsolv(0.0),
+         hasOrbitals(false) { }
    };
 
    class Calculator {

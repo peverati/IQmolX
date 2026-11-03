@@ -135,6 +135,10 @@ namespace Preferences {
    double XtbElectronicTemperature();
    void   XtbElectronicTemperature(double const);
 
+   // Whether the xtb window also gets the molecular orbitals of the xTB methods
+   bool XtbOrbitals();
+   void XtbOrbitals(bool const);
+
    // Implicit solvent (ALPB name, e.g. "water") for the xtb methods.  Empty is gas phase.
    QString XtbSolvent();
    void    XtbSolvent(QString const&);

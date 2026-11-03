@@ -63,3 +63,17 @@ add_executable(VibrationsTest EXCLUDE_FROM_ALL
 )
 target_include_directories(VibrationsTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
 add_test(NAME VibrationsTest COMMAND VibrationsTest)
+
+
+# Orbitals from xtb, checked on a grid with IQmol's own basis function code
+find_package(Qt5 COMPONENTS Xml OpenGL Gui REQUIRED)
+add_executable(XtbOrbitalsTest EXCLUDE_FROM_ALL
+   XtbOrbitalsTest.C
+   ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/XtbProcess.C
+   ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/XtbOutput.C
+   ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/Vibrations.C
+)
+target_include_directories(XtbOrbitalsTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+target_link_libraries(XtbOrbitalsTest PRIVATE Parser Data Util Math yaml-cpp openbabel ${OPENMESH_LIBRARIES}
+   Qt5::Widgets Qt5::Core Qt5::Xml Qt5::OpenGL Qt5::Gui Qt5::Sql Qt5::PrintSupport)
+add_test(NAME XtbOrbitalsTest COMMAND XtbOrbitalsTest ${XTB_ROOT}/bin/xtb)

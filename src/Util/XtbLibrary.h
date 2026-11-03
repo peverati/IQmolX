@@ -35,12 +35,16 @@ namespace Calc {
          QString name() const override;
 
          void setMethod(Method method) { m_method = method; }
+
+         /// libxtb does not provide the basis the orbitals are expanded in, so when orbitals
+         /// are requested the xtb program is run once more at the final geometry to get them.
+         void setExecutable(QString const& path) { m_executable = path; }
          void setProgressCallback(std::function<void(QString const&)> callback) override 
          { 
             m_progress = callback; 
          }
          void setInteractive(bool interactive) override { m_interactive = interactive; }
-         void cancel() override { m_cancelled = true; }
+         void cancel() override;
 
          Result energy(Input const&) override;
          Result optimize(Input const&) override;
@@ -48,7 +52,11 @@ namespace Calc {
 
       private:
          Result run(Input const&, bool optimize);
+         Result vibrations(Input const&);
+         Result withOrbitals(Input const&, Result);
 
+         QString m_executable;
+         XtbProcess* m_process;
          Method  m_method;
          bool    m_interactive;
          bool    m_cancelled;

@@ -468,6 +468,18 @@ void XtbElectronicTemperature(double const temperature)
 }
 
 
+bool XtbOrbitals()
+{
+   QVariant value(Get("XtbOrbitals"));
+   return value.isNull() ? true : value.toBool();
+}
+
+void XtbOrbitals(bool const orbitals)
+{
+   Set("XtbOrbitals", QVariant::fromValue(orbitals));
+}
+
+
 QString XtbMethod()
 {
    QVariant value(Get("XtbMethod"));

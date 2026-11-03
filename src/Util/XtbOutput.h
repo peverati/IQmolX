@@ -40,4 +40,10 @@ namespace Calc {
    /// converted to Cartesian displacements and normalized.
    bool parseG98(QString const& text, QVector<int> const& atomicNumbers, VibrationalData& data);
 
+   /// Reads the molecular orbitals from the molden.input file that xtb writes with --molden.
+   /// xtb gives the contraction coefficients for unnormalized primitives, they are converted
+   /// to those of normalized primitives here.  Only the first set of orbitals (alpha) is read;
+   /// xtb uses the same spatial orbitals for both spins.
+   bool parseMolden(QString const& text, OrbitalData& data);
+
 } } // end namespace IQmol::Calc

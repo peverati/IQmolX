@@ -226,6 +226,7 @@ Result XtbProcess::run(Input const& input, Task task)
       case Hessian:      args << "--hess"; break;
    }
    if (!input.solvent.isEmpty()) args << "--alpb" << input.solvent;
+   if (input.orbitals && m_method != GFNFF) args << "--molden";
    if (input.electronicTemperature >= 0.0 && m_method != GFNFF) {
       args << "--etemp" << QString::number(input.electronicTemperature, 'g', 10);
    }
@@ -352,6 +353,17 @@ Result XtbProcess::run(Input const& input, Task task)
       parseZeroPointEnergy(output, result.vibrations.zeroPointEnergy);
       result.hasVibrations = true;
       result.log += "--- g98.out ---\n" + g98Text;
+   }
+
+   if (input.orbitals && m_method != GFNFF) {
+      QFile molden(dir.filePath("molden.input"));
+      QString moldenText;
+      if (molden.open(QIODevice::ReadOnly)) moldenText = QString::fromLocal8Bit(molden.readAll());
+      if (parseMolden(moldenText, result.orbitals)) {
+         result.hasOrbitals = true;
+      }else {
+         result.log += "--- the orbitals could not be read from molden.input ---\n";
+      }
    }
    result.success = true;
    return result;

@@ -183,8 +183,55 @@ QString checkSpin(Input const& input)
 
 
 XtbLibrary::XtbLibrary(Method method) 
- : m_method(method), m_interactive(false), m_cancelled(false)
+ : m_process(0), m_method(method), m_interactive(false), m_cancelled(false)
 {
+}
+
+
+void XtbLibrary::cancel()
+{
+   m_cancelled = true;
+   if (m_process) m_process->cancel();
+}
+
+
+// The orbitals come from the xtb program (see setExecutable), as libxtb does not report the
+// basis set.  This is a single point at the geometry of the result with the same settings.
+Result XtbLibrary::withOrbitals(Input const& input, Result result)
+{
+   if (!input.orbitals || !result.success || m_method == XtbProcess::GFNFF) return result;
+
+   auto report = [&](QString const& text) {
+      result.log += text;
+      if (m_progress) m_progress(text);
+   };
+
+   if (XtbProcess::findExecutable(m_executable).isEmpty()) {
+      report("\nNo orbitals: they are calculated by the xtb program, which was not found.\n");
+      return result;
+   }
+
+   report("\n------------------------  orbitals (xtb program)  ------------------------\n\n");
+   Input orbitalInput(input);
+   orbitalInput.coordinates = result.coordinates;
+   XtbProcess process(m_executable, m_method);
+   process.setInteractive(m_interactive);
+   process.setProgressCallback(m_progress);
+   m_process = &process;
+   Result orbitals(process.energy(orbitalInput));
+   m_process = 0;
+
+   if (orbitals.success && orbitals.hasOrbitals) {
+      result.orbitals = orbitals.orbitals;
+      result.hasOrbitals = true;
+   }else if (orbitals.cancelled) {
+      result.cancelled = true;
+      result.success = false;
+      result.message = "Calculation cancelled";
+   }else {
+      report("\nNo orbitals: " + orbitals.message + "\n");
+   }
+   return result;
 }
 
 
@@ -201,17 +248,23 @@ QString XtbLibrary::name() const
 
 Result XtbLibrary::energy(Input const& input)
 {
-   return run(input, false);
+   return withOrbitals(input, run(input, false));
 }
 
 
 Result XtbLibrary::optimize(Input const& input)
 {
-   return run(input, true);
+   return withOrbitals(input, run(input, true));
 }
 
 
 Result XtbLibrary::frequencies(Input const& input)
+{
+   return withOrbitals(input, vibrations(input));
+}
+
+
+Result XtbLibrary::vibrations(Input const& input)
 {
    Result result;
    m_cancelled = false;

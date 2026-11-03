@@ -154,4 +154,109 @@ bool parseG98(QString const& text, QVector<int> const& atomicNumbers, Vibrationa
    return !data.frequencies.isEmpty();
 }
 
+
+bool parseMolden(QString const& text, OrbitalData& data)
+{
+   data = OrbitalData();
+
+   // Normalization of a primitive x^l exp(-a r^2) in the Cartesian s, p and dxy form used by
+   // IQmol (the same factors as Data::Shell)
+   static double const Ns(std::pow(2.0/M_PI, 0.75));
+   static double const prefactor[3] = { Ns, 2.0*Ns, 4.0*Ns };
+   static double const power[3]     = { 0.75, 1.25, 1.75 };
+   static int const nFunctions[3]   = { 1, 3, 6 };
+
+   enum Section { None, Atoms, Gto, Mo } section(None);
+   int atom(-1);
+   int primitivesLeft(0);
+   bool alpha(true);
+   bool haveOrbital(false);
+   int nBasis(0);
+
+   QStringList lines(text.split('\n'));
+   for (QString const& raw : lines) {
+       QString line(raw.trimmed());
+       if (line.isEmpty()) continue;
+
+       if (line.startsWith('[')) {
+          QString key(line.toLower());
+          if (key.startsWith("[atoms]"))   { section = Atoms; }
+          else if (key.startsWith("[gto]")) { section = Gto; atom = -1; primitivesLeft = 0; }
+          else if (key.startsWith("[mo]"))  { 
+             section = Mo; 
+             for (OrbitalShell const& shell : data.shells) nBasis += nFunctions[shell.angularMomentum];
+          }
+          else section = None;
+          continue;
+       }
+
+       QStringList tokens(line.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts));
+
+       if (section == Gto) {
+          bool ok(false);
+          if (tokens[0].size() == 1 && tokens[0][0].isLetter()) {
+             // shell header: "s 4 1.00"
+             int l(QString("spd").indexOf(tokens[0].toLower()));
+             if (l < 0 || tokens.size() < 2 || atom < 0) return false;
+             primitivesLeft = tokens[1].toInt(&ok);
+             if (!ok) return false;
+             OrbitalShell shell;
+             shell.atom = atom;
+             shell.angularMomentum = l;
+             data.shells.append(shell);
+          }else if (primitivesLeft > 0) {
+             if (tokens.size() < 2 || data.shells.isEmpty()) return false;
+             double exponent(tokens[0].toDouble(&ok));
+             double coefficient(tokens[1].toDouble(&ok));
+             if (!ok || exponent <= 0.0) return false;
+             OrbitalShell& shell(data.shells.last());
+             int l(shell.angularMomentum);
+             shell.exponents.append(exponent);
+             shell.coefficients.append(coefficient / (prefactor[l] * std::pow(exponent, power[l])));
+             --primitivesLeft;
+          }else {
+             // atom header: "1 0"
+             atom = tokens[0].toInt(&ok) - 1;
+             if (!ok || atom < 0) return false;
+          }
+       }else if (section == Mo) {
+          QString first(tokens[0].toLower());
+          if (first.startsWith("sym="))   { haveOrbital = false; continue; }
+          if (first.startsWith("ene=")) {
+             if (tokens.size() < 2) return false;
+             data.energies.append(tokens[1].toDouble());
+             data.occupations.append(0.0);
+             data.coefficients.append(QVector<double>());
+             haveOrbital = true;
+             continue;
+          }
+          if (first.startsWith("spin=")) {
+             alpha = line.contains("alpha", Qt::CaseInsensitive);
+             if (!alpha && haveOrbital) {   // not wanted, remove the orbital again
+                data.energies.removeLast();
+                data.occupations.removeLast();
+                data.coefficients.removeLast();
+                haveOrbital = false;
+             }
+             continue;
+          }
+          if (first.startsWith("occup=")) {
+             if (haveOrbital && tokens.size() > 1) data.occupations.last() = tokens[1].toDouble();
+             continue;
+          }
+          if (!haveOrbital || !alpha || tokens.size() < 2) continue;
+          bool ok(false);
+          double c(tokens[1].toDouble(&ok));
+          if (!ok) return false;
+          data.coefficients.last().append(c);
+       }
+   }
+
+   if (data.shells.isEmpty() || data.coefficients.isEmpty()) return false;
+   for (QVector<double> const& c : data.coefficients) {
+       if (c.size() != nBasis) return false;
+   }
+   return true;
+}
+
 } } // end namespace IQmol::Calc
