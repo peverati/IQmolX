@@ -63,6 +63,7 @@ int main(int argc, char** argv)
    Preferences::XtbMethod("GFN1-xTB");
    Preferences::XtbSolvent("acetonitrile");
    Preferences::XtbBackend("program");
+   Preferences::XtbElectronicTemperature(750.0);
 
    // With nothing stored the window starts with GFN2-xTB, a geometry optimization in the gas phase
    XtbResultDialog* d(XtbResultDialog::instance());

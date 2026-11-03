@@ -116,17 +116,6 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
    m_multiplicitySpin->setToolTip("Spin multiplicity 2S+1: 1 singlet, 2 doublet, 3 triplet, ...");
    form->addRow("Spin multiplicity:", m_multiplicitySpin);
 
-   // Fermi smearing of the orbital occupations.  It is a setting of the method, not of the
-   // molecule, so it is stored in the preferences.
-   m_temperatureSpin = new QDoubleSpinBox(m_settings);
-   m_temperatureSpin->setRange(0.0, 20000.0);
-   m_temperatureSpin->setDecimals(0);
-   m_temperatureSpin->setSingleStep(50.0);
-   m_temperatureSpin->setSuffix(" K");
-   m_temperatureSpin->setValue(300.0);
-   m_temperatureSpin->setToolTip("Electronic temperature of the Fermi smearing of the orbital occupations.\n"
-      "xtb uses 300 K.  Below a few K, molecules with a (nearly) degenerate HOMO and LUMO cannot be calculated.");
-   form->addRow("Electronic temperature:", m_temperatureSpin);
 
 
    QObject::connect(m_moleculeValues, &QCheckBox::toggled, [this](bool useMolecule) {
@@ -181,6 +170,18 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
       "Leave it empty to use a temporary directory that is removed afterwards.");
    m_workDirEdit->setPlaceholderText("empty: temporary directory");
    form->addRow("Working directory:", m_workDirRow);
+   // Fermi smearing of the orbital occupations.  It is a setting of the method, not of the
+   // molecule, so it is stored in the preferences.
+   m_temperatureSpin = new QDoubleSpinBox(m_settings);
+   m_temperatureSpin->setRange(0.0, 20000.0);
+   m_temperatureSpin->setDecimals(0);
+   m_temperatureSpin->setSingleStep(50.0);
+   m_temperatureSpin->setSuffix(" K");
+   m_temperatureSpin->setValue(300.0);
+   m_temperatureSpin->setToolTip("Electronic temperature of the Fermi smearing of the orbital occupations.\n"
+      "xtb uses 300 K.  Below a few K, molecules with a (nearly) degenerate HOMO and LUMO cannot be calculated.");
+   form->addRow("Electronic temperature:", m_temperatureSpin);
+
    m_orbitalsCheck = new QCheckBox("Calculate the molecular orbitals", m_settings);
    m_orbitalsCheck->setToolTip("Adds the orbitals to the molecule, where they can be plotted.\n"
       "Only with the xtb program (not the built-in library) and not for GFN-FF.\n"
@@ -249,6 +250,7 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
    Preferences::XtbJob("optimize");
    Preferences::XtbMethod("GFN2-xTB");
    Preferences::XtbSolvent(QString());
+   Preferences::XtbElectronicTemperature(300.0);
 #ifdef IQMOL_WITH_LIBXTB
    Preferences::XtbBackend("library");
 #else
@@ -273,6 +275,8 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
    connect(m_saveAllButton, SIGNAL(clicked()), this, SLOT(saveAll()));
    // temporary directories of the xtb program are not left behind
    connect(qApp, &QCoreApplication::aboutToQuit, this, &XtbResultDialog::forgetTemporaryDirectory);
+   // the electronic temperature goes back to the xtb default when IQmol is closed
+   connect(qApp, &QCoreApplication::aboutToQuit, []() { Preferences::XtbElectronicTemperature(300.0); });
    connect(m_closeButton, SIGNAL(clicked()), this, SLOT(close()));
 }
 
