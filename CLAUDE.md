@@ -84,8 +84,29 @@ Decisions already made with the user:
   **TorchANI / ANI-2x** (H,C,N,O,F,S,Cl, neutral only; verify its license and that the
   parameters ship with the package), 6) later engines: UMA (Meta fairchem, gated weights under the
   FAIR Chemistry License, needs a Hugging Face login), AIMNet2, MACE-OFF, Egret-1, AXEL.
-* Do not release the window to students before step 5; until then it stays on this branch.
+* Do not release the window to students before step 5 **and the user guide below**; until then it
+  stays on this branch.
 * Weights and PyTorch are never bundled in the app; the setup step downloads them.
+* **Two guides are part of the plan** (user's request), written *as* the helper and the plugin
+  discovery are built, not afterwards: a step is not finished until its part of the guides is.
+  Every new engine (step 6) adds its section to both.
+  1. **User guide, setting up Python** (for students): an in-app Help page like `xtb.html`
+     (`resources/help/python-engines.html`, registered in `resources/IQmol.qrc`, linked from
+     `resources/help/index.html` and `toolbar.html`, with screenshots of the window).  It covers
+     the Python Engines window, Set Up Environment (what uv downloads, where the environment lives,
+     how to remove it), the Install buttons, using your own Python or conda environment, the first
+     use of an engine (weights downloaded: sizes, internet needed, proxies), the ASE adapter with a
+     worked example, licences and citations of each engine, and troubleshooting (uv missing, helper
+     stopped, engine not available, out of memory).
+  2. **Developer guide, writing engine plugins** (`python/iqmolx-engines/PLUGINS.md`, next to
+     `PROTOCOL.md`): the `Engine` base class and what each attribute does (elements, charge,
+     multiplicity, properties, options, requirements, requires_download and requires_login), the
+     `load` and `compute` contract and units, the error codes, progress and cancel through
+     `Context`, plugin discovery through the `iqmolx_engines` entry-point group with a complete
+     `pyproject.toml`, testing a plugin (`--describe`, a protocol session, the helper tests),
+     licences and weights (declared, never bundled), and a checklist.  The examples are real code:
+     a small sample plugin package under `python/examples/` that the helper tests install and run,
+     so the guide cannot drift from the code.
 
 Open questions to settle early: exact protocol fields and versioning, cancel semantics while a
 model is computing, how a crashed helper is reported, where the Python environment lives (the
@@ -105,6 +126,10 @@ changes themselves have not run yet.  Not done: updating the helper in an existi
 after an app update (the environment keeps the version it was made with).  TorchANI/ANI-2x was run for real (torch 2.13, TorchANI 2.9; its weights
 are downloaded from Hugging Face on first use, MIT), not frequencies in the app window.  The
 ASE adapter and the "Install ..." button were checked with real uv outside the window's click.
+**Guides: neither is written yet.**  What can be documented now: the window, Set Up Environment and
+Install (user guide); the base class, the demo, ASE and TorchANI engines and `PROTOCOL.md`
+(developer guide).  The entry-point discovery in `registry.py` has not yet been tried with a real
+third-party plugin; the sample plugin of the developer guide is where that gets tested.
 Tests: `PythonEngineTest`, `PythonSetupTest`, `PythonDialogTest` (C++), `pytest` in the helper
 (`IQMOLX_TEST_DOWNLOADS=1` runs the TorchANI model tests).  Never run `XtbProcessTest` in a
 folder with content: it removes its working directory when xtb is not found.
