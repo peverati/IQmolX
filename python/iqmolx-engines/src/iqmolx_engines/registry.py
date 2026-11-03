@@ -23,8 +23,8 @@ def _builtin():
         classes.append(AseEngine)
     except ImportError:
         pass
-    from .engines.torchani_engine import TorchAniEngine
-    classes.append(TorchAniEngine)
+    from .engines.torchani_engine import ALL_ENGINES
+    classes.extend(ALL_ENGINES)
     return classes
 
 
