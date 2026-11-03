@@ -530,6 +530,30 @@ void XtbPath(QString const& filePath)
 }
 
 
+QString XtbOptions()
+{
+   QVariant value(Get("XtbOptions"));
+   return value.isNull() ? QString() : value.value<QString>();
+}
+
+void XtbOptions(QString const& options)
+{
+   Set("XtbOptions", QVariant::fromValue(options));
+}
+
+
+QString XtbWorkDir()
+{
+   QVariant value(Get("XtbWorkDir"));
+   return value.isNull() ? QString() : value.value<QString>();
+}
+
+void XtbWorkDir(QString const& directory)
+{
+   Set("XtbWorkDir", QVariant::fromValue(directory));
+}
+
+
 // ---------
 
 QString DefaultForceField()

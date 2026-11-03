@@ -101,6 +101,47 @@ QString tail(QString const& text, int lines = 15)
    return list.mid(qMax(0, list.size()-lines)).join('\n');
 }
 
+
+// xtb uses the first of a repeated option, so an option given by the user has to replace the
+// one IQmol sets rather than follow it.  Only the options that the xtb window itself sets
+// (method, charge, spin, solvent, electronic temperature) are replaced; the kind of job
+// is left alone, as the results are read according to it.
+void applyUserOptions(QStringList& args, QStringList const& user)
+{
+   struct Option { QStringList names; bool hasValue; };
+   static QList<Option> const options = {
+      { { "--gfn", "--gfn0", "--gfn1", "--gfn2" }, true },  // "--gfn 2" and "--gfn2" 
+      { { "--gfnff" },                             false },
+      { { "--chrg", "-c" },                        true },
+      { { "--uhf", "-u" },                         true },
+      { { "--alpb", "--gbsa" },                    true },
+      { { "--etemp" },                             true }
+   };
+
+   // the method: "--gfn 2", "--gfn2" and "--gfnff" all select one
+   auto isMethod = [](QString const& name) { return name.startsWith("--gfn"); };
+
+   for (QString const& token : user) {
+       if (!token.startsWith('-')) continue;
+       for (Option const& option : options) {
+           if (!option.names.contains(token)) continue;
+           // remove ours
+           for (Option const& ours : options) {
+               bool same(isMethod(token) ? isMethod(ours.names.first()) 
+                                         : ours.names.contains(token) || 
+                                           (token == "--gbsa" && ours.names.contains("--alpb")));
+               if (!same) continue;
+               for (QString const& name : ours.names) {
+                   int i(args.indexOf(name));
+                   if (i >= 0) args.removeAt(i);
+                   if (i >= 0 && ours.hasValue && i < args.size()) args.removeAt(i);
+               }
+           }
+       }
+   }
+   args << user;
+}
+
 } // end anonymous namespace
 
 
@@ -203,11 +244,29 @@ Result XtbProcess::run(Input const& input, Task task)
       return result;
    }
 
-   QTemporaryDir dir;
-   if (!dir.isValid()) {
-      result.message = "Failed to create a temporary directory";
-      return result;
+   // Either the directory chosen by the user, which keeps all the files, or a temporary one
+   QTemporaryDir tempDir;
+   QString workPath;
+   if (m_workingDirectory.isEmpty()) {
+      if (!tempDir.isValid()) {
+         result.message = "Failed to create a temporary directory";
+         return result;
+      }
+      workPath = tempDir.path();
+   }else {
+      workPath = QDir(m_workingDirectory).absolutePath();
+      if (!QDir().mkpath(workPath)) {
+         result.message = "Unable to create the working directory " + workPath;
+         return result;
+      }
+      // Results of an earlier run must not be mistaken for those of this one
+      QStringList stale;
+      stale << "xtbopt.xyz" << "xtbopt.log" << "molden.input" << "g98.out" << "xtb.out";
+      for (QString const& name : stale) {
+          QFile::remove(QDir(workPath).filePath(name));
+      }
    }
+   QDir dir(workPath);
 
    QString inputFile(dir.filePath("input.xyz"));
    if (!writeXyz(inputFile, input)) {
@@ -230,9 +289,10 @@ Result XtbProcess::run(Input const& input, Task task)
    if (input.electronicTemperature >= 0.0 && m_method != GFNFF) {
       args << "--etemp" << QString::number(input.electronicTemperature, 'g', 10);
    }
+   applyUserOptions(args, m_extraArguments);
 
    QProcess process;
-   process.setWorkingDirectory(dir.path());
+   process.setWorkingDirectory(workPath);
    process.setProcessChannelMode(QProcess::MergedChannels);
    QProcessEnvironment env(QProcessEnvironment::systemEnvironment());
    env.insert("OMP_STACKSIZE", "1G");
@@ -305,6 +365,12 @@ Result XtbProcess::run(Input const& input, Task task)
    if (timedOut) {
       result.message = "xtb timed out after " + QString::number(m_timeout) + " seconds";
       return result;
+   }
+
+   // The complete output is kept next to the other files
+   if (!m_workingDirectory.isEmpty()) {
+      QFile outFile(dir.filePath("xtb.out"));
+      if (outFile.open(QIODevice::WriteOnly)) outFile.write(output.toLocal8Bit());
    }
 
    QFile inputXyz(inputFile);

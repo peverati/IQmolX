@@ -20,6 +20,7 @@ class QComboBox;
 class QDoubleSpinBox;
 class QGroupBox;
 class QLabel;
+class QLineEdit;
 class QPlainTextEdit;
 class QProgressBar;
 class QSpinBox;
@@ -74,6 +75,9 @@ namespace IQmol {
          void save();
          void run();
          void saveSettings();
+      void updateProgramFields();
+      void browseForProgram();
+      void browseForWorkDir();
 
       protected:
          void moveEvent(QMoveEvent*);
@@ -99,6 +103,12 @@ namespace IQmol {
          QSpinBox*       m_multiplicitySpin;
          QDoubleSpinBox* m_temperatureSpin;
    QCheckBox*      m_orbitalsCheck;
+   QWidget*        m_programRow;     // the fields that only apply to the xtb program
+   QWidget*        m_optionsRow;
+   QWidget*        m_workDirRow;
+   QLineEdit*      m_programEdit;
+   QLineEdit*      m_optionsEdit;
+   QLineEdit*      m_workDirEdit;
          double          m_temperature;    // used by the current / last calculation
          int             m_charge;         // used by the current / last calculation
          int             m_multiplicity;

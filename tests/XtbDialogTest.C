@@ -7,6 +7,7 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QDoubleSpinBox>
+#include <QLineEdit>
 #include <QSpinBox>
 #include <QComboBox>
 #include <QDir>
@@ -284,6 +285,39 @@ int main(int argc, char** argv)
    d->showWindow();
    check(d->isVisible() && solvent->currentData() == "", "reopening shows the current settings");
    check(temperature->value() == 120.0, "reopening shows the stored electronic temperature");
+
+   // The settings of the xtb program: path, options and working directory
+   {
+      QLineEdit* programEdit(0); QLineEdit* optionsEdit(0); QLineEdit* workEdit(0);
+      for (QLineEdit* e : d->findChildren<QLineEdit*>()) {
+          if (e->placeholderText().startsWith("path")) programEdit = e;
+          else if (e->placeholderText().startsWith("e.g.")) optionsEdit = e;
+          else if (e->placeholderText().startsWith("empty")) workEdit = e;
+      }
+      check(programEdit && optionsEdit && workEdit, "the program, options and directory fields exist");
+      if (programEdit && optionsEdit && workEdit) {
+         d->show();
+         QComboBox* backend(comboWith(d, "program"));
+         check(programEdit->isVisible() && optionsEdit->isVisible() && workEdit->isVisible(),
+            "the fields are shown for the xtb program");
+         optionsEdit->setText("--etemp 500 --verbose");
+         optionsEdit->editingFinished();
+         workEdit->setText("/tmp/xtb-work");
+         workEdit->editingFinished();
+         programEdit->setText("/opt/xtb/bin/xtb");
+         programEdit->editingFinished();
+         check(Preferences::XtbOptions() == "--etemp 500 --verbose", "the options are stored");
+         check(Preferences::XtbWorkDir() == "/tmp/xtb-work", "the working directory is stored");
+         check(Preferences::XtbPath() == "/opt/xtb/bin/xtb", "the program path is stored");
+         if (backend && backend->count() > 1) {
+            backend->setCurrentIndex(1);   // library
+            check(!programEdit->isVisible() && !optionsEdit->isVisible() && !workEdit->isVisible(),
+               "the fields are hidden for the library");
+            backend->setCurrentIndex(0);
+         }
+         Preferences::XtbOptions(QString()); Preferences::XtbWorkDir(QString()); Preferences::XtbPath(QString());
+      }
+   }
 
    // Remove the settings file of this test
    {

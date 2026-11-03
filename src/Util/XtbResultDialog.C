@@ -25,6 +25,8 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QFileDialog>
+#include <QLineEdit>
 #include <QFontDatabase>
 #include <QMessageBox>
 #include <QTextStream>
@@ -148,6 +150,44 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
    m_backendCombo->hide();   // IQmol was built without libxtb
 #endif
 
+   // Settings of the xtb program, only shown when it is the selected backend
+   auto fileRow = [this](QLineEdit*& edit, char const* slot, QString const& tip) {
+      QWidget* row(new QWidget(m_settings));
+      QHBoxLayout* rowLayout(new QHBoxLayout(row));
+      rowLayout->setContentsMargins(0, 0, 0, 0);
+      edit = new QLineEdit(row);
+      edit->setToolTip(tip);
+      QPushButton* browse(new QPushButton("Browse...", row));
+      rowLayout->addWidget(edit, 1);
+      rowLayout->addWidget(browse);
+      connect(browse, SIGNAL(clicked()), this, slot);
+      return row;
+   };
+   m_programRow = fileRow(m_programEdit, SLOT(browseForProgram()),
+      "The xtb executable.  If empty, xtb is looked for in $XTB_PATH and the PATH.");
+   m_programEdit->setPlaceholderText("path of the xtb executable");
+   form->addRow("xtb program:", m_programRow);
+
+   m_optionsRow = new QWidget(m_settings);
+   QHBoxLayout* optionsLayout(new QHBoxLayout(m_optionsRow));
+   optionsLayout->setContentsMargins(0, 0, 0, 0);
+   m_optionsEdit = new QLineEdit(m_optionsRow);
+   m_optionsEdit->setPlaceholderText("e.g.  --etemp 500 --verbose");
+   m_optionsEdit->setToolTip("Further command line options for xtb.  Quote values that contain spaces.\n"
+      "The method, charge (--chrg), spin (--uhf), solvent and electronic temperature (--etemp)\n"
+      "given here replace those chosen in this window.");
+   optionsLayout->addWidget(m_optionsEdit);
+   form->addRow("xtb options:", m_optionsRow);
+
+   m_workDirRow = fileRow(m_workDirEdit, SLOT(browseForWorkDir()),
+      "xtb runs in this directory and the input and output files are left there.\n"
+      "Leave it empty to use a temporary directory that is removed afterwards.");
+   m_workDirEdit->setPlaceholderText("empty: temporary directory");
+   form->addRow("Working directory:", m_workDirRow);
+   for (QWidget* row : QList<QWidget*>({ m_programRow, m_optionsRow, m_workDirRow })) {
+       row->setMinimumWidth(440);   // paths are long; the form would keep the fields small
+   }
+
    m_title = new QLabel(this);
    QFont font(m_title->font());
    font.setBold(true);
@@ -206,6 +246,11 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
    connect(m_backendCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(saveSettings()));
    connect(m_temperatureSpin, SIGNAL(valueChanged(double)), this, SLOT(saveSettings()));
    connect(m_orbitalsCheck, SIGNAL(toggled(bool)), this, SLOT(saveSettings()));
+   connect(m_programEdit, SIGNAL(editingFinished()), this, SLOT(saveSettings()));
+   connect(m_optionsEdit, SIGNAL(editingFinished()), this, SLOT(saveSettings()));
+   connect(m_workDirEdit, SIGNAL(editingFinished()), this, SLOT(saveSettings()));
+   connect(m_backendCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(updateProgramFields()));
+   updateProgramFields();
    connect(m_runButton, SIGNAL(clicked()), this, SLOT(run()));
    connect(m_cancelButton, SIGNAL(clicked()), this, SIGNAL(cancelRequested()));
    connect(m_saveButton, SIGNAL(clicked()), this, SLOT(save()));
@@ -245,6 +290,9 @@ void XtbResultDialog::loadSettings()
    select(m_methodCombo, Preferences::XtbMethod());
    select(m_solventCombo, Preferences::XtbSolvent());
    select(m_backendCombo, Preferences::XtbBackend());
+   m_programEdit->setText(Preferences::XtbPath());
+   m_optionsEdit->setText(Preferences::XtbOptions());
+   m_workDirEdit->setText(Preferences::XtbWorkDir());
    m_temperatureSpin->setValue(Preferences::XtbElectronicTemperature());
    m_orbitalsCheck->setChecked(Preferences::XtbOrbitals());
 
@@ -262,6 +310,46 @@ void XtbResultDialog::saveSettings()
    Preferences::XtbBackend(m_backendCombo->currentData().toString());
    Preferences::XtbElectronicTemperature(m_temperatureSpin->value());
    Preferences::XtbOrbitals(m_orbitalsCheck->isChecked());
+   Preferences::XtbPath(m_programEdit->text().trimmed());
+   Preferences::XtbOptions(m_optionsEdit->text().trimmed());
+   Preferences::XtbWorkDir(m_workDirEdit->text().trimmed());
+}
+
+
+// The program, its options and its directory only matter when the program is the backend
+void XtbResultDialog::updateProgramFields()
+{
+   bool program(m_backendCombo->currentData().toString() != "library");
+   QFormLayout* form(qobject_cast<QFormLayout*>(m_settings->layout()));
+   if (!form) return;
+   QList<QWidget*> rows;
+   rows << m_programRow << m_optionsRow << m_workDirRow;
+   for (QWidget* row : rows) {
+       row->setVisible(program);
+       if (QWidget* label = form->labelForField(row)) label->setVisible(program);
+   }
+}
+
+
+void XtbResultDialog::browseForProgram()
+{
+   QString start(m_programEdit->text().isEmpty() ? QDir::homePath() : m_programEdit->text());
+   QString path(QFileDialog::getOpenFileName(this, "Select the xtb executable", start));
+   if (!path.isEmpty()) {
+      m_programEdit->setText(path);
+      saveSettings();
+   }
+}
+
+
+void XtbResultDialog::browseForWorkDir()
+{
+   QString start(m_workDirEdit->text().isEmpty() ? QDir::homePath() : m_workDirEdit->text());
+   QString path(QFileDialog::getExistingDirectory(this, "Select the working directory", start));
+   if (!path.isEmpty()) {
+      m_workDirEdit->setText(path);
+      saveSettings();
+   }
 }
 
 

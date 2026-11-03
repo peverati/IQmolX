@@ -2173,7 +2173,12 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
       useLibrary = true;
    }
 #endif
-   if (!xtb) xtb.reset(new Calc::XtbProcess(Preferences::XtbPath(), method));
+   if (!xtb) {
+      Calc::XtbProcess* program(new Calc::XtbProcess(Preferences::XtbPath(), method));
+      program->setExtraArguments(QProcess::splitCommand(Preferences::XtbOptions()));
+      program->setWorkingDirectory(Preferences::XtbWorkDir());
+      xtb.reset(program);
+   }
 
    QString what("single point");
    if (optimize && frequencies) {

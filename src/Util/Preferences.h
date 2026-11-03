@@ -147,6 +147,15 @@ namespace Preferences {
    QString XtbPath();
    void    XtbPath(QString const&);
 
+   // Extra command line options passed to the xtb program (e.g. "--etemp 500 --verbose")
+   QString XtbOptions();
+   void    XtbOptions(QString const&);
+
+   // Directory where the xtb program runs, so that its input and output files stay there.
+   // Empty means a temporary directory that is removed afterwards.
+   QString XtbWorkDir();
+   void    XtbWorkDir(QString const&);
+
    double  SymmetryTolerance();
    void    SymmetryTolerance(double const);
    

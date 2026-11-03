@@ -12,6 +12,7 @@
 ********************************************************************************/
 
 #include "Calculator.h"
+#include <QStringList>
 #include <functional>
 
 class QProcess;
@@ -38,6 +39,14 @@ namespace Calc {
          void setExecutable(QString const& path) { m_executable = path; }
          void setMethod(Method method) { m_method = method; }
          void setTimeoutSeconds(int seconds) { m_timeout = seconds; }
+
+         /// Further command line options, added after those IQmol sets so they can override them
+         void setExtraArguments(QStringList const& arguments) { m_extraArguments = arguments; }
+
+         /// Directory to run in.  The input and output files stay there (an existing
+         /// xtbopt.xyz, molden.input etc. is removed first).  By default a temporary
+         /// directory is used and removed afterwards.
+         void setWorkingDirectory(QString const& path) { m_workingDirectory = path; }
 
          /// Called with each chunk of xtb output as it arrives.  This only has an effect
          /// together with setInteractive(true).
@@ -67,6 +76,8 @@ namespace Calc {
          QStringList methodArguments() const;
 
          QString m_executable;
+         QStringList m_extraArguments;
+         QString m_workingDirectory;
          Method  m_method;
          int     m_timeout;
          bool    m_interactive;

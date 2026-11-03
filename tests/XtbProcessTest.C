@@ -148,6 +148,30 @@ int main(int argc, char** argv)
    Result optWater(xtb.optimize(inWater));
    check(optWater.success && optWater.converged && optWater.hasGsolv, "optimization in ALPB(water) converges");
 
+   // Working directory and extra options
+   {
+      QTemporaryDir parent;
+      QString work(parent.filePath("run/xtb files"));    // does not exist yet
+      XtbProcess custom(argc > 1 ? argv[1] : "");
+      custom.setWorkingDirectory(work);
+      custom.setExtraArguments(QStringList() << "--etemp" << "5000" << "--chrg" << "1" << "--uhf" << "1");
+      Result r(custom.optimize(water));
+      check(r.success && r.converged, "working directory: optimization runs");
+      check(QFile::exists(work + "/input.xyz") && QFile::exists(work + "/xtbopt.xyz"),
+         "working directory: the input and output files are left there");
+      QFile out(work + "/xtb.out");
+      QString text;
+      if (out.open(QIODevice::ReadOnly)) text = QString::fromLocal8Bit(out.readAll());
+      check(text.contains("TOTAL ENERGY"), "working directory: the output is saved as xtb.out");
+      check(text.contains("5000"), "extra options are passed to xtb (--etemp 5000)");
+      check(r.success && r.energy > opt.energy + 0.1, "the extra options come last and override (water cation)");
+
+      // a second run in the same directory must not pick up the first run's files
+      QFile::copy(work + "/xtbopt.xyz", work + "/keep.xyz");
+      Result again(custom.energy(water));
+      check(again.success && !QFile::exists(work + "/xtbopt.xyz"), "stale results are removed before a run");
+   }
+
    std::printf("%d failure(s)\n", s_failures);
    return s_failures == 0 ? 0 : 1;
 }
