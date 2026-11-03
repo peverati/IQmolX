@@ -1198,6 +1198,14 @@ void ViewerModel::computeEnergy()
 }
 
 
+void ViewerModel::singlePointEnergy()
+{
+   forAllMolecules(
+      std::bind(&Layer::Molecule::singlePointEnergy, std::placeholders::_1, m_forceField)
+   );
+}
+
+
 void ViewerModel::minimizeEnergy()
 {
    forAllMolecules(

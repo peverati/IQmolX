@@ -2086,7 +2086,7 @@ void Molecule::addHydrogens()
 // Runs xtb on the molecule.  For a single-point energy the geometry is left
 // untouched, otherwise the atoms are moved to the optimized geometry in an 
 // undoable command.
-bool Molecule::runXtb(QString const& methodName, bool optimize)
+bool Molecule::runXtb(QString const& methodName, bool optimize, bool showDialog)
 {
    Calc::XtbProcess::Method method;
    if (methodName == "GFN2-xTB") {
@@ -2100,7 +2100,7 @@ bool Molecule::runXtb(QString const& methodName, bool optimize)
    }
 
    // The energy was just set by the optimization, see m_xtbSkipEnergy
-   if (!optimize && m_xtbSkipEnergy) return true;
+   if (!optimize && !showDialog && m_xtbSkipEnergy) return true;
 
    AtomList atoms(findLayers<Atom>(Children));
    if (atoms.isEmpty()) return true;
@@ -2126,7 +2126,7 @@ bool Molecule::runXtb(QString const& methodName, bool optimize)
    XtbResultDialog* dialog(0);
    QMetaObject::Connection cancelConnection;
 
-   if (optimize) {
+   if (showDialog) {
       // Keep the GUI alive and show the progress in a window
       QString subject(text().isEmpty() ? "the molecule" : text());
       subject += " (" + QString::number(atoms.size()) + " atoms)";
@@ -2135,7 +2135,7 @@ bool Molecule::runXtb(QString const& methodName, bool optimize)
       xtb.setProgressCallback([dialog](QString const& chunk) { dialog->appendOutput(chunk); });
       cancelConnection = QObject::connect(dialog, &XtbResultDialog::cancelRequested, 
          [&xtb]() { xtb.cancel(); });
-      dialog->started(methodName, "geometry optimization", subject);
+      dialog->started(methodName, optimize ? "geometry optimization" : "single point", subject);
    }
 
    Calc::Result result(optimize ? xtb.optimize(input) : xtb.energy(input));
@@ -2201,6 +2201,13 @@ bool Molecule::runXtb(QString const& methodName, bool optimize)
    bool estimated(true);
    dipoleAvailable(dipoleFromPointCharges(), estimated);
    return true;
+}
+
+
+void Molecule::singlePointEnergy(QString const& forceFieldName)
+{
+   if (runXtb(forceFieldName, false, true)) return;
+   computeEnergy(forceFieldName);
 }
 
 
@@ -2271,7 +2278,7 @@ void Molecule::computeEnergy(QString const& forceFieldName)
 
 void Molecule::minimizeEnergy(QString const& forceFieldName)
 {
-   if (runXtb(forceFieldName, true)) return;
+   if (runXtb(forceFieldName, true, true)) return;
 
    QLOG_DEBUG() << "Minimizing energy with forcefield" << forceFieldName;
    OBPlugin::List("forcefields");

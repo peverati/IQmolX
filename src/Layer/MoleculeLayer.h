@@ -119,7 +119,11 @@ bool save(bool prompt = false);
 
             // Runs the external xtb program for the 'GFN2-xTB', 'GFN1-xTB' and
             // 'GFN-FF' methods.  Returns false if method is not an xtb method.
-            bool runXtb(QString const& method, bool optimize);
+            bool runXtb(QString const& method, bool optimize, bool showDialog = false);
+
+            // Explicit single-point energy: for the xtb methods this reports the result
+            // in the xtb window, otherwise it is the same as computeEnergy.
+            void singlePointEnergy(QString const& forcefield);
 
             void symmetrize(double tolerance, bool updateCoordinates = true);
 

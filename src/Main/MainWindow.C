@@ -641,6 +641,11 @@ void MainWindow::createMenus()
       connect(action, SIGNAL(triggered()), &m_viewerModel, SLOT(minimizeEnergy()));
       action->setShortcut(Qt::CTRL | Qt::Key_M);
 
+      name = "Single Point Energy";
+      action = menu->addAction(name);
+      connect(action, SIGNAL(triggered()), &m_viewerModel, SLOT(singlePointEnergy()));
+      action->setShortcut(Qt::CTRL | Qt::Key_E);
+
       name = "Select Force Field";
 
       QActionGroup* forceFieldGroup = new QActionGroup(this);
