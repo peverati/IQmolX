@@ -11,6 +11,9 @@
 #   build-dir   default: build-clean (the folder build-macos.sh made)
 #   version     default: from git
 #   XTB_ROOT=<xtb install dir>   where xtb and libxtb come from (the one used for the build)
+#   UV_BIN=<path to uv>          uv, bundled to make the Python environment of the Python
+#                                engines (default: uv from the PATH; pip install uv gives one)
+#   UV_LICENSE_DIR=<folder>      its license files (default: those of the pip package of uv)
 #
 # The result is   dist/IQMolX-<version>-macOS-arm64.dmg
 #
@@ -44,6 +47,38 @@ if [ -x "$XTB_ROOT/bin/xtb" ]; then
    cp "$XTB_ROOT/bin/xtb" "$APP/Contents/MacOS/xtb"
 else
    echo "Warning: no xtb program in $XTB_ROOT/bin, it will not be part of the app"
+fi
+
+# The Python engines (Calculation > Python Engines): the helper as a wheel, and uv, which
+# makes the Python environment for it when the user asks for that.  Weights and PyTorch are
+# never part of the app.  Building the wheel needs the internet (setuptools from PyPI).
+UV_BIN=${UV_BIN:-$(command -v uv || true)}
+if [ -n "$UV_BIN" ] && [ -x "$UV_BIN" ]; then
+   RES="$APP/Contents/Resources"
+   mkdir -p "$RES/bin" "$RES/python" "$RES/licenses"
+   cp "$UV_BIN" "$RES/bin/uv"
+   chmod 755 "$RES/bin/uv"
+
+   # Built from a copy: building writes build/ and *.egg-info next to the sources
+   HELPER="$WORK/helper-src"
+   rsync -a --exclude build --exclude '*.egg-info' --exclude __pycache__ --exclude .pytest_cache \
+      --exclude tests "$TOPDIR/python/iqmolx-engines/" "$HELPER/"
+   "$UV_BIN" build --wheel --out-dir "$RES/python" "$HELPER"
+   rm -f "$RES/python/.gitignore"        # uv build leaves one in the output folder
+   ls "$RES"/python/iqmolx_engines-*.whl > /dev/null
+
+   # uv is MIT or Apache-2.0 licensed: its license texts travel with it
+   UV_LICENSES=${UV_LICENSE_DIR:-$(ls -d "$(dirname "$UV_BIN")"/../lib/python*/site-packages/uv-*.dist-info/licenses 2>/dev/null | head -1)}
+   if [ -z "$UV_LICENSES" ] || [ ! -d "$UV_LICENSES" ]; then
+      echo "uv is bundled but its license files were not found; set UV_LICENSE_DIR to a folder with them"
+      exit 1
+   fi
+   mkdir -p "$RES/licenses/uv"
+   cp -R "$UV_LICENSES"/. "$RES/licenses/uv/"
+   echo "uv $("$UV_BIN" --version | awk '{print $2}') from https://github.com/astral-sh/uv" > "$RES/licenses/uv/SOURCE.txt"
+   cp "$TOPDIR/LICENSE" "$RES/licenses/iqmolx-engines-LICENSE"
+else
+   echo "Warning: no uv (set UV_BIN, or pip install uv), the app will ask users to install it for Python engines"
 fi
 
 # Qt frameworks and plugins

@@ -45,6 +45,13 @@ jobs:
           "$RUNNER_TEMP/cmake3/bin/pip" install "cmake==3.31.*"
           echo "CMAKE3=$RUNNER_TEMP/cmake3/bin/cmake" >> "$GITHUB_ENV"
 
+      - name: uv (bundled in the app, makes the Python environment of the Python engines)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/uv"
+          "$RUNNER_TEMP/uv/bin/pip" install "uv==0.13.7" numpy pytest
+          echo "UV_BIN=$RUNNER_TEMP/uv/bin/uv" >> "$GITHUB_ENV"
+          echo "PY_ENGINES=$RUNNER_TEMP/uv/bin/python" >> "$GITHUB_ENV"
+
       - name: Cache xtb
         id: xtb-cache
         uses: actions/cache@v4
@@ -63,7 +70,8 @@ jobs:
         continue-on-error: true      # reported, but does not stop the release (yet)
         run: |
           cd build-clean
-          make -j4 OptimizerTest VibrationsTest XtbProcessTest XtbBackendTest XtbDialogTest XtbOrbitalsTest
+          make -j4 OptimizerTest VibrationsTest XtbProcessTest XtbBackendTest XtbDialogTest XtbOrbitalsTest \
+             PythonSetupTest PythonEngineTest PythonDialogTest
           XTB="$GITHUB_WORKSPACE/../xtb-install/bin/xtb"
           bin/OptimizerTest
           bin/VibrationsTest
@@ -71,6 +79,10 @@ jobs:
           bin/XtbBackendTest "$XTB" ../tests/data
           bin/XtbOrbitalsTest "$XTB"
           QT_QPA_PLATFORM=offscreen bin/XtbDialogTest
+          bin/PythonSetupTest
+          bin/PythonEngineTest "$PY_ENGINES" ../python/iqmolx-engines/src
+          QT_QPA_PLATFORM=offscreen bin/PythonDialogTest "$PY_ENGINES" ../python/iqmolx-engines/src
+          "$PY_ENGINES" -m pytest -q ../python/iqmolx-engines
 
       - name: Package
         run: |
