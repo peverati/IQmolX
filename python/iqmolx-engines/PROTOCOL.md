@@ -12,8 +12,10 @@ runs as a child process that stays alive, so a model is loaded once and reused.
 * Messages are UTF-8 JSON objects, **one per line**, terminated by `\n`. A message never
   contains a raw newline (the helper writes compact JSON).
 * IQMolX writes requests to the helper's **stdin**; the helper writes responses and events to
-  its **stdout**. Nothing else is ever written to stdout (the helper redirects `print` from
-  engine code to stderr). **stderr** carries free-form logs; IQMolX shows its tail on errors.
+  its **stdout**. Nothing else is ever written to stdout: the helper keeps a private copy of
+  the real stdout for the protocol and points the process's own stdout (file descriptor 1) at stderr,
+  so `print` in engine code and the output of native C or Fortran libraries both end up on
+  stderr. **stderr** carries free-form logs; IQMolX shows its tail on errors.
 * Numbers must be finite. `NaN` and `Infinity` are not valid JSON and are never sent.
 * End of input (stdin closed) makes the helper exit with status 0.
 

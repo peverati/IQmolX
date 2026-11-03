@@ -185,24 +185,131 @@
    <br>
    <h3><a name="ase"></a>ASE Calculators</h3>
 
-   <p> The ASE engine runs any calculator of the Atomic Simulation Environment.
-   Give the calculator as <tt>module:Class</tt> in <i>Calculator class</i>, which
-   has to be filled in (the field shows an example, and <b>Run</b> stays off, with
-   the reason next to it, until there is a value) and, if
-   it takes arguments, write them as a JSON object in <i>Constructor
-   arguments</i>.  For example, the effective-medium calculator for metal
-   clusters (it is part of ASE) is
-   <tt>ase.calculators.emt:EMT</tt> with the arguments <tt>{}</tt>.  The charge and the
-   spin multiplicity are passed to the calculator in the <tt>charge</tt> and
-   <tt>spin</tt> entries of the ASE atoms, as many calculators expect.
+   <p> The ASE engine runs any calculator of the
+   <a href="https://wiki.fysik.dtu.dk/ase/">Atomic Simulation Environment</a>,
+   and ASE has calculators for most methods used in chemistry: tight-binding
+   and semiempirical methods, quantum chemistry programs and machine learning
+   potentials.  The engine gives IQMolX the energy and the forces; for
+   vibrational frequencies the Hessian is built from forces at displaced
+   geometries (six calculations per atom), which is slow with a quantum
+   chemistry program.
 
-   <p> Other calculators need their own Python packages, which you install into
-   the environment (for example with <tt>uv pip install</tt> and the name of the
-   package).  The calculator is responsible for the elements, the charge and the
-   spin it can handle; what it does not understand it reports as an error.
+   <p> There are two fields to fill in:
+
+   <ul>
+      <li> <i>Calculator class</i>, which must be filled in (the field shows an
+           example, and <b>Run</b> stays off, with the reason next to it, until
+           there is a value): the Python name of the calculator as
+           <tt>module:Name</tt>.  Anything that makes a calculator can be used,
+           also a function such as <tt>mace_off</tt>. <br>
+      <li> <i>Constructor arguments</i>: the arguments of the calculator as a
+           JSON object, with double quotes around names and text:
+           <tt>{"method": "GFN2-xTB", "verbosity": 0}</tt>.  Use <tt>{}</tt> for
+           none.  A pair is written as a list: <tt>["alpb", "water"]</tt>.
+   </ul>
+
+   <p> <b>Charge and spin.</b>  The charge and the spin multiplicity of the
+   window (the ones of the molecule, unless you changed them) are passed to the
+   calculator for every calculation, so a cation is a cation.  They reach
+   calculators that have <tt>charge</tt>, <tt>multiplicity</tt> or
+   <tt>mult</tt> as arguments (TBLite, MOPAC and Q-Chem list them), and
+   calculators that read them from the atoms (AIMNet2).  A calculator that
+   takes them as arguments but does not list them (ORCA, Gaussian, NWChem, Psi4)
+   needs them in the <i>Constructor arguments</i>, with any value, for example
+   <tt>"charge": 0, "mult": 1</tt>; the values of the window then replace
+   them.  Without that such a calculator uses a neutral singlet, so check the
+   energy of a charged molecule.
+
+   <p> The tables list calculators that are useful in chemistry.  The last column
+   says how far each was checked here, because not everything could be run:
+   <i>run</i> means it was run through IQMolX's helper, with the result given;
+   <i>checked</i> means the class and its arguments were read from the installed
+   ASE, but the program it needs is not installed here; <i>from the source</i>
+   means the names come from the source of the package, which was not installed
+   or run.  Please check the documentation of each package for the full set of
+   arguments.
+
+   <h4>Built into ASE (nothing to install)</h4>
+
+   <p> These are toy potentials, not chemistry, but they run anywhere and are
+   good for trying out the window.
+
+   <table border="1" cellpadding="5" cellspacing="0" width="100%">
+      <tr><th width="52%">Calculator</th><th>What to fill in</th></tr>
+      <tr><td valign="top"><b>EMT</b><br>Effective-medium theory for the metals Al, Cu, Ag, Au, Ni, Pd, Pt (and H, C, N, O on them).<br><i>Checked here:</i> run: Cu<sub>2</sub> at 2.5 &Aring;, 3.7614 eV</td>
+          <td valign="top">Calculator class:<br><tt>ase.calculators.emt:EMT</tt><br>Constructor arguments:<br><tt>{}</tt></td></tr>
+      <tr><td valign="top"><b>Lennard-Jones</b><br>A 12-6 pair potential in eV and &Aring;; the values given are about those of argon.<br><i>Checked here:</i> run: Ar<sub>2</sub> at 3.8 &Aring;, &minus;0.0102 eV</td>
+          <td valign="top">Calculator class:<br><tt>ase.calculators.lj:LennardJones</tt><br>Constructor arguments:<br><tt>{"epsilon": 0.0103, "sigma": 3.4}</tt></td></tr>
+      <tr><td valign="top"><b>Morse potential</b><br>A Morse pair potential with ASE's default parameters.<br><i>Checked here:</i> run: H<sub>2</sub> at 0.8 &Aring;, 4.3829 eV</td>
+          <td valign="top">Calculator class:<br><tt>ase.calculators.morse:MorsePotential</tt><br>Constructor arguments:<br><tt>{}</tt></td></tr>
+   </table>
+
+   <h4>Tight-binding and semiempirical methods</h4>
+
+   <table border="1" cellpadding="5" cellspacing="0" width="100%">
+      <tr><th width="52%">Calculator</th><th>What to fill in</th></tr>
+      <tr><td valign="top"><b>xTB methods (tblite)</b><br>The xTB tight-binding methods of the tblite library, the family of the <a href="xtb.html">xtb</a> window. <tt>"method"</tt> is <tt>"GFN2-xTB"</tt>, <tt>"GFN1-xTB"</tt> or <tt>"IPEA1-xTB"</tt>. Also <tt>"solvation": ["alpb", "water"]</tt> for an implicit solvent and <tt>"electronic_temperature": 300.0</tt> (K). <tt>"verbosity": 0</tt> silences the printout of every calculation.<br><i>Needs:</i> the package <i>tblite</i><br><i>Checked here:</i> run: water, GFN2-xTB &minus;137.9681 eV, GFN1-xTB &minus;156.9679 eV, IPEA1-xTB &minus;158.5395 eV, GFN2-xTB with ALPB water &minus;138.3647 eV; the cation is 18.3 eV higher, so the charge is passed on</td>
+          <td valign="top">Calculator class:<br><tt>tblite.ase:TBLite</tt><br>Constructor arguments:<br><tt>{"method": "GFN2-xTB", "verbosity": 0}</tt></td></tr>
+      <tr><td valign="top"><b>MOPAC</b><br>The semiempirical methods of the MOPAC program (PM7 is the default of the calculator).<br><i>Needs:</i> the MOPAC program; ASE finds it through the variable <tt>ASE_MOPAC_COMMAND</tt><br><i>Checked here:</i> the class and its arguments were read from ASE; the program is not installed here</td>
+          <td valign="top">Calculator class:<br><tt>ase.calculators.mopac:MOPAC</tt><br>Constructor arguments:<br><tt>{"method": "PM7"}</tt></td></tr>
+      <tr><td valign="top"><b>DFTB+</b><br>Density functional tight binding with the DFTB+ program.<br><i>Needs:</i> the DFTB+ program and its Slater-Koster parameter files<br><i>Checked here:</i> the class and its arguments were read from ASE; the program is not installed here</td>
+          <td valign="top">Calculator class:<br><tt>ase.calculators.dftb:Dftb</tt><br>Constructor arguments:<br><tt>see the ASE documentation</tt></td></tr>
+   </table>
+
+   <h4>Quantum chemistry programs</h4>
+
+   <p> These calculators write the input for a program, run it and read the
+   result, so <b>the program has to be installed on your computer</b> (and,
+   for most, ASE has to be told where it is, in
+   <tt>~/.config/ase/config.ini</tt> or with an environment variable; see the ASE
+   documentation of the calculator).  Each calculation starts the program, which
+   is slow compared with the methods above.  The programs have their own
+   licenses.
+
+   <table border="1" cellpadding="5" cellspacing="0" width="100%">
+      <tr><th width="52%">Calculator</th><th>What to fill in</th></tr>
+      <tr><td valign="top"><b>Psi4</b><br>Open source quantum chemistry. The defaults of the calculator are HF and aug-cc-pVTZ.<br><i>Needs:</i> the Psi4 program<br><i>Checked here:</i> the class and its arguments were read from ASE; the program is not installed here</td>
+          <td valign="top">Calculator class:<br><tt>ase.calculators.psi4:Psi4</tt><br>Constructor arguments:<br><tt>{"method": "b3lyp", "basis": "cc-pvdz", "charge": 0, "multiplicity": 1}</tt></td></tr>
+      <tr><td valign="top"><b>ORCA</b><br>The first line of the input as in an ORCA input file; further blocks in <tt>"orcablocks"</tt>.<br><i>Needs:</i> the ORCA program<br><i>Checked here:</i> the class and its arguments were read from ASE; the program is not installed here</td>
+          <td valign="top">Calculator class:<br><tt>ase.calculators.orca:ORCA</tt><br>Constructor arguments:<br><tt>{"charge": 0, "mult": 1, "orcasimpleinput": "B3LYP def2-SVP"}</tt></td></tr>
+      <tr><td valign="top"><b>Q-Chem</b><br>The defaults of the calculator are HF and 6-31G*.<br><i>Needs:</i> the Q-Chem program<br><i>Checked here:</i> the class and its arguments were read from ASE; the program is not installed here</td>
+          <td valign="top">Calculator class:<br><tt>ase.calculators.qchem:QChem</tt><br>Constructor arguments:<br><tt>{"method": "b3lyp", "basis": "6-31G*", "charge": 0, "multiplicity": 1}</tt></td></tr>
+      <tr><td valign="top"><b>NWChem</b><br>Plane-wave and Gaussian-basis quantum chemistry.<br><i>Needs:</i> the NWChem program<br><i>Checked here:</i> checked (the class); the argument names are from the ASE documentation</td>
+          <td valign="top">Calculator class:<br><tt>ase.calculators.nwchem:NWChem</tt><br>Constructor arguments:<br><tt>{"xc": "B3LYP", "basis": "6-31G*", "charge": 0, "mult": 1}</tt></td></tr>
+      <tr><td valign="top"><b>Gaussian</b><br>The Gaussian program.<br><i>Needs:</i> the Gaussian program<br><i>Checked here:</i> checked (the class); the argument names are from the ASE documentation</td>
+          <td valign="top">Calculator class:<br><tt>ase.calculators.gaussian:Gaussian</tt><br>Constructor arguments:<br><tt>{"method": "b3lyp", "basis": "6-31g*", "charge": 0, "mult": 1}</tt></td></tr>
+      <tr><td valign="top"><b>GAMESS-US and TURBOMOLE</b><br>Two more quantum chemistry programs.<br><i>Needs:</i> the program<br><i>Checked here:</i> checked (the classes)</td>
+          <td valign="top">Calculator class:<br><tt>ase.calculators.gamess_us:GAMESSUS<br>ase.calculators.turbomole:Turbomole</tt><br>Constructor arguments:<br><tt>see the ASE documentation</tt></td></tr>
+   </table>
+
+   <h4>Machine learning potentials</h4>
+
+   <p> These need PyTorch, which is large (about 1 GB), and download their model
+   the first time.  ANI-2x has an engine of its own, <a href="#ani">above</a>, which
+   is the quickest way to start.
+
+   <table border="1" cellpadding="5" cellspacing="0" width="100%">
+      <tr><th width="52%">Calculator</th><th>What to fill in</th></tr>
+      <tr><td valign="top"><b>MACE-OFF</b><br>The MACE-OFF23 force fields for organic molecules; <tt>"model"</tt> is <tt>"small"</tt>, <tt>"medium"</tt> or <tt>"large"</tt>. <b>The model is under the Academic Software License, which does not permit commercial use.</b> Please cite Kovacs et al., arXiv:2312.15211.<br><i>Needs:</i> <tt>pip install mace-torch</tt><br><i>Checked here:</i> from the source</td>
+          <td valign="top">Calculator class:<br><tt>mace.calculators:mace_off</tt><br>Constructor arguments:<br><tt>{"model": "medium", "device": "cpu"}</tt></td></tr>
+      <tr><td valign="top"><b>AIMNet2</b><br>A neural network potential from the Isayev group for neutral and charged organic molecules (see its documentation for the elements). It takes the charge of the window.<br><i>Needs:</i> <tt>pip install "aimnet[ase]"</tt><br><i>Checked here:</i> from the source</td>
+          <td valign="top">Calculator class:<br><tt>aimnet.calculators:AIMNet2ASE</tt><br>Constructor arguments:<br><tt>{"base_calc": "aimnet2"}</tt></td></tr>
+   </table>
+
+   <p> <b>What does not work through this engine:</b> a calculator whose
+   arguments are Python objects and not text.  The UMA models of fairchem are an
+   example: their calculator is made from a model that has been loaded in
+   advance.  They need an engine of their own (an engine plugin, see the
+   developer guide <tt>PLUGINS.md</tt>).
+
+   <p> The electronic structure of the result is not part of the ASE engine:
+   there are no orbitals and no infrared intensities.  For orbitals use the
+   <a href="xtb.html">xtb</a> window.
 
    <p> Please cite A. H. Larsen et al., J. Phys.: Condens. Matter 29, 273002
-   (2017), and the paper of the calculator that you use.
+   (2017), and the paper of the calculator that you use.  Weights and programs
+   have their own licenses; the ones named above are not a complete list, so
+   check the license of anything that you use.
 
 
    <br>

@@ -76,6 +76,14 @@ a charge, a spin or a property you did not declare is refused with `unsupported_
 `unsupported_charge`, `unsupported_multiplicity` or `unsupported_property`, so `compute` can
 assume a valid request. (This is `Engine.validate_system`, you can call it in tests.)
 
+### Charge and spin
+
+`charge` and `multiplicity` reach `compute` as plain integers; passing them on is the engine's job.
+If you wrap a library whose calculator takes them as arguments, set them there on every call, and
+reset anything the library caches (the ASE adapter, `engines/ase_adapter.py`, shows both). Engines
+that cannot handle them declare `charge = False` and `multiplicity = False`, and the helper refuses
+such requests for you, so a charged molecule is never silently calculated as a neutral one.
+
 ### Properties and what IQMolX does with them
 
 * `forces` drive the geometry optimization (IQMolX's own L-BFGS) and, if there is no Hessian,
@@ -156,9 +164,11 @@ Errors:
   `detail`. **The helper stays alive**: an engine that fails does not take the program down.
 * A crash of native code (a segfault, running out of memory) does kill the helper process;
   IQMolX then reports the exit status and the end of stderr.
-* **Never write to stdout.** It carries the protocol. The helper redirects `print` to stderr
-  for you, and stderr is shown to the user when something goes wrong, but use `ctx.progress` for
-  anything the user should read.
+* **Never write to stdout.** It carries the protocol. The helper points both Python's `print` and
+  the file descriptor that native libraries write to (a C or Fortran library printing its own
+  progress) at stderr for you, and stderr is shown to the user when something goes wrong, but use
+  `ctx.progress` for anything the user should read. A library that prints a lot can usually be
+  silenced with an option (TBLite has `verbosity`).
 
 ### An engine whose packages may be missing
 
