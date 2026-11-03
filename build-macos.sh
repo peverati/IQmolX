@@ -8,6 +8,7 @@
 #   and point CMAKE3 at its cmake, e.g. CMAKE3=$HOME/.../.venv-cmake3/bin/cmake
 #
 # Usage:  ./build-macos.sh [build-dir]      (default: build-clean)
+#         XTB_ROOT=<xtb install dir> ./build-macos.sh   also enables the libxtb tests
 
 set -e
 
@@ -30,6 +31,7 @@ rm -f CMakeCache.txt
    -DCMAKE_IGNORE_PREFIX_PATH=/opt/anaconda3 \
    -DOPENSSL_ROOT_DIR=$BREW/openssl@3 \
    -DPTHREAD_LIBRARY=pthread \
+   ${XTB_ROOT:+-DXTB_ROOT="$XTB_ROOT"} \
    "$TOPDIR"
 
 make -j"$(sysctl -n hw.ncpu)" IQmol
