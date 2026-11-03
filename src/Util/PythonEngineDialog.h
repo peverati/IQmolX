@@ -111,6 +111,7 @@ namespace IQmol {
          void browseForPython();
          void setUpEnvironment();
          void installPackages();
+         void updateRunButton();
          void save();
 
       protected:
@@ -158,6 +159,7 @@ namespace IQmol {
          QLabel*        m_summary;
          QProgressBar*  m_progress;
          QPlainTextEdit* m_output;
+         QLabel*        m_runHint;       // why Run is off, when it is
          QPushButton*   m_runButton;
          QPushButton*   m_cancelButton;
          QPushButton*   m_saveButton;

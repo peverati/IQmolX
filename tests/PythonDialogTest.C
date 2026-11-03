@@ -138,6 +138,36 @@ int main(int argc, char** argv)
    check(!button(d, "Run")->isEnabled(), "Run is disabled when the helper cannot start");
    check(!d->prepare(problem) && problem.contains("Python"), "prepare explains: " + problem);
 
+   // --- a required option: Run stays off until it is filled in (needs the ASE engine) ---
+   {
+      if (pythonEdit) pythonEdit->setText(argv[1]);
+      Preferences::PythonEnginePath(argv[1]);
+      d->refreshEngines();
+      QComboBox* combo(0);
+      for (QComboBox* c : d->findChildren<QComboBox*>()) if (c->findData("ase") >= 0) combo = c;
+      int index(combo ? combo->findData("ase") : -1);
+      if (index < 0 || combo->itemText(index).contains("not available")) {
+         std::printf("SKIP: required option (the ASE engine is not available in this Python)\n");
+      }else {
+         combo->setCurrentIndex(index);
+         QLineEdit* calculator(0);
+         for (QLineEdit* e : d->findChildren<QLineEdit*>()) if (e->placeholderText() == "ase.calculators.emt:EMT") calculator = e;
+         check(calculator != 0, "the placeholder of the option is shown in its field");
+         check(button(d, "Run") && !button(d, "Run")->isEnabled(), "Run is off while a required field is empty");
+         QString hint;
+         for (QLabel* l : d->findChildren<QLabel*>()) if (l->text().contains("Fill in")) hint = l->text();
+         check(hint.contains("Calculator class"), "the window says what to fill in: " + hint);
+         if (calculator) {
+            calculator->setText("ase.calculators.emt:EMT");
+            check(button(d, "Run")->isEnabled(), "Run is on once the field is filled in");
+            calculator->setText("   ");
+            check(!button(d, "Run")->isEnabled(), "blank is empty again");
+            calculator->setText(QString());
+         }
+         combo->setCurrentIndex(combo->findData("demo"));      // leave things as they were
+      }
+   }
+
    // --- the Python environment, made with a fake uv that links the interpreter of this test ---
    {
       QTemporaryDir tmp;

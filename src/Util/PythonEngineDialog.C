@@ -204,8 +204,11 @@ PythonEngineDialog::PythonEngineDialog(QWidget* parent) : QDialog(parent),
    m_closeButton  = new QPushButton("Close", this);
    m_runButton->setDefault(true);
 
+   m_runHint = new QLabel(this);
+   m_runHint->setWordWrap(true);
+
    QHBoxLayout* buttons(new QHBoxLayout());
-   buttons->addStretch();
+   buttons->addWidget(m_runHint, 1);
    buttons->addWidget(m_runButton);
    buttons->addWidget(m_cancelButton);
    buttons->addWidget(m_saveButton);
@@ -354,8 +357,8 @@ void PythonEngineDialog::showEngine()
    bool const known(!m_descriptor.isEmpty());
    bool const available(known && m_descriptor.value("available").toBool(true));
    m_engineInfo->setVisible(known);
-   m_runButton->setEnabled(available);
    buildOptions(m_descriptor);
+   updateRunButton();
 
    QStringList requirements;
    for (QJsonValue const& r : m_descriptor.value("requirements").toArray()) requirements << r.toString();
@@ -453,7 +456,9 @@ void PythonEngineDialog::buildOptions(QJsonObject const& descriptor)
           QLineEdit* edit(new QLineEdit(this));
           edit->setText(current.toString());
           edit->setMinimumWidth(300);
+          edit->setPlaceholderText(spec.value("placeholder").toString());
           connect(edit, SIGNAL(editingFinished()), this, SLOT(saveSettings()));
+          connect(edit, SIGNAL(textChanged(QString const&)), this, SLOT(updateRunButton()));
           widget = edit;
        }
 
@@ -523,6 +528,34 @@ bool PythonEngineDialog::prepare(QString& problem)
    m_engine.setLoadOptions(optionValues("load"));
    m_engine.setComputeOptions(optionValues("compute"));
    return true;
+}
+
+
+/// Run is on when the engine can run and every required text field is filled in; when it is off
+/// the window says why, next to the button
+void PythonEngineDialog::updateRunButton()
+{
+   bool const known(!m_descriptor.isEmpty());
+   bool const available(known && m_descriptor.value("available").toBool(true));
+
+   QStringList missing;
+   for (OptionWidget const& o : m_options) {
+       if (!o.spec.value("required").toBool() || o.spec.value("type").toString() != "string") continue;
+       if (static_cast<QLineEdit*>(o.widget)->text().trimmed().isEmpty()) {
+          missing << o.spec.value("title").toString(o.spec.value("name").toString());
+       }
+   }
+
+   m_runButton->setEnabled(available && missing.isEmpty());
+   if (!known) {
+      m_runHint->clear();
+   }else if (!available) {
+      m_runHint->setText("<small>This engine is not available: see above.</small>");
+   }else if (!missing.isEmpty()) {
+      m_runHint->setText("<small>Fill in: <b>" + plain(missing.join(", ")) + "</b></small>");
+   }else {
+      m_runHint->clear();
+   }
 }
 
 
@@ -737,6 +770,7 @@ void PythonEngineDialog::finished(Calc::Result const& result, QString const& met
    if (!result.success) {
       m_title->setText(method + " " + what + " failed");
       m_summary->setText(plain(result.message));
+      appendOutput("\nFailed: " + result.message + "\n");   // not only above, where it is easy to miss
       return;
    }
 

@@ -48,7 +48,7 @@ jobs:
       - name: uv (bundled in the app, makes the Python environment of the Python engines)
         run: |
           python3 -m venv "$RUNNER_TEMP/uv"
-          "$RUNNER_TEMP/uv/bin/pip" install "uv==0.13.7" numpy pytest
+          "$RUNNER_TEMP/uv/bin/pip" install "uv==0.13.7" numpy pytest ase
           echo "UV_BIN=$RUNNER_TEMP/uv/bin/uv" >> "$GITHUB_ENV"
           echo "PY_ENGINES=$RUNNER_TEMP/uv/bin/python" >> "$GITHUB_ENV"
 

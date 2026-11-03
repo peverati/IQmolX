@@ -186,7 +186,9 @@
    <h3><a name="ase"></a>ASE Calculators</h3>
 
    <p> The ASE engine runs any calculator of the Atomic Simulation Environment.
-   Give the calculator as <tt>module:Class</tt> in <i>Calculator class</i> and, if
+   Give the calculator as <tt>module:Class</tt> in <i>Calculator class</i>, which
+   has to be filled in (the field shows an example, and <b>Run</b> stays off, with
+   the reason next to it, until there is a value) and, if
    it takes arguments, write them as a JSON object in <i>Constructor
    arguments</i>.  For example, the effective-medium calculator for metal
    clusters (it is part of ASE) is
@@ -242,6 +244,9 @@
                internet connection, or a network that needs a proxy: uv uses the
                proxy settings of the environment IQMolX was started from, so
                start IQMolX from a terminal in which they are set. </td></tr>
+      <tr><td valign="top"><i>Fill in: ...</i> next to the Run button</td>
+          <td> An engine setting that has no default is still empty (for the ASE
+               engine, the calculator class).  Run works once it is filled in. </td></tr>
       <tr><td valign="top"><i>Not available</i> next to an engine</td>
           <td> Packages are missing: use the <b>Install</b> button, or install
                them yourself if you use your own Python. </td></tr>
