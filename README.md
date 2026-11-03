@@ -11,7 +11,7 @@ Q-Chem jobs, surfaces, orbitals, vibrations, ...).  IQMolX adds semiempirical
 calculations with [xtb](https://github.com/grimme-lab/xtb) (Grimme group), run
 from inside the program:
 
-* **xtb window** (Calculation → xtb Setup..., or the xtb button on the tool bar) to set
+* **xtb window** (Calculation → xtb Setup, or the xtb button on the tool bar) to set
   up and run GFN2-xTB and GFN1-xTB calculations: single point energies, geometry
   optimizations, vibrational frequencies and optimization plus frequencies.  Charge and
   spin multiplicity, the ALPB implicit solvents and the electronic temperature can be
@@ -36,6 +36,22 @@ from inside the program:
 The xtb help page is part of the built-in help (Help → Show Help).  The changes are on
 top of IQmol 3.2.x; internally the program, its settings and its source folders keep the
 name IQmol.
+
+## Download (macOS, Apple Silicon)
+
+Ready-made apps are on the [Releases page](https://github.com/peverati/IQmolX/releases).
+They need a Mac with Apple Silicon (M1 or later) and macOS 14 or newer.  Intel Macs, Windows
+and Linux have no download yet: build from source (below).
+
+1. Download the `IQMolX-...-macOS-arm64.dmg` file of the latest release, open it and drag
+   IQMolX to the Applications folder.  Everything it needs is inside, including xtb.
+2. The first time, macOS will say it cannot check the app, because it is not notarized by
+   Apple.  Right-click (or Control-click) IQMolX in Applications, choose **Open**, and
+   confirm with **Open**.  If that does not work, run this once in a terminal:
+   `xattr -dr com.apple.quarantine /Applications/IQMolX.app`
+3. Start with Calculation → xtb Setup, or the xtb button on the tool bar.
+
+Problems and questions are welcome as [issues](https://github.com/peverati/IQmolX/issues).
 
 ## How IQMolX was developed
 

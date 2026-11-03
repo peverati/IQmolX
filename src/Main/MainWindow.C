@@ -731,7 +731,7 @@ void MainWindow::createMenus()
       action->setShortcut(Qt::CTRL | Qt::Key_U );
       m_qchemSetupAction = action;
 
-      name = "xtb Setup...";
+      name = "xtb Setup";
       action = menu->addAction(name);
       action->setToolTip("Set up and run xtb calculations (GFN-xTB methods, solvents)");
       action->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_X);
