@@ -2184,7 +2184,7 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
 
    // The orbitals belong to the final geometry: those of the frequency calculation if there
    // is one, otherwise of the optimization or single point
-   bool const orbitals(Preferences::XtbOrbitals() && method != Calc::XtbProcess::GFNFF);
+   bool const orbitals(Preferences::XtbOrbitals() && program && method != Calc::XtbProcess::GFNFF);
    input.orbitals = orbitals && !frequencies;
 
    // The input of the xtb program can be reviewed and edited before it is submitted

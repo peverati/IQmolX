@@ -365,7 +365,7 @@ int main(int argc, char** argv)
          check(Preferences::XtbPath() == "/opt/xtb/bin/xtb", "the program path is stored");
          if (backend && backend->count() > 1) {
             backend->setCurrentIndex(1);   // library
-            check(!programEdit->isVisible() && !optionsEdit->isVisible() && !workEdit->isVisible(),
+            check(!programEdit->isVisible() && !optionsEdit->isVisible() && !workEdit->isVisible() && !orbitals->isVisible(),
                "the fields are hidden for the library");
             backend->setCurrentIndex(0);
          }

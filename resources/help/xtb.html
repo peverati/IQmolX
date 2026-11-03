@@ -41,9 +41,8 @@
    <p> Both give the same energies and frequencies (the frequencies differ by
    about 0.05%).  The program is the more flexible of the two, as it offers the
    options described under <a href="#program">xtb Program</a>.  The library
-   cannot write the orbital basis set, so when orbitals are requested IQmol
-   runs one extra single point with the xtb program to obtain them; without the
-   program no orbitals are produced.
+   does not provide the basis set of the orbitals, so orbitals are only
+   available with the xtb program.
 
 
    <br>
@@ -81,8 +80,8 @@
 
       <tr><td valign="top"><b>Orbitals</b></td>
           <td> Also calculate the molecular orbitals, see
-          <a href="#orbitals">Molecular Orbitals</a>.  Switch this off for
-          very large molecules.</td></tr>
+          <a href="#orbitals">Molecular Orbitals</a>.  Only shown for the xtb
+          program.  Switch this off for very large molecules.</td></tr>
    </table>
 
    <p> Pressing <b>Run</b> starts the calculation.  The window shows the output
@@ -165,7 +164,7 @@
    energies, densities and Mulliken densities are available also.  The orbitals
    are those of the minimal valence basis of the xTB methods; the same spatial
    orbitals are used for both spins.  The orbitals of an earlier run are
-   replaced.  They are not available for GFN-FF.
+   replaced.  They are only available with the xtb program and not for GFN-FF.
 
 
    <br>

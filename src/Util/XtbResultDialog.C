@@ -131,7 +131,8 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
 
    m_orbitalsCheck = new QCheckBox("Calculate the molecular orbitals", m_settings);
    m_orbitalsCheck->setToolTip("Adds the orbitals to the molecule, where they can be plotted.\n"
-      "Not available for GFN-FF.  Switch this off for very large molecules.");
+      "Only with the xtb program (not the built-in library) and not for GFN-FF.\n"
+      "Switch this off for very large molecules.");
    form->addRow("Orbitals:", m_orbitalsCheck);
 
    QObject::connect(m_moleculeValues, &QCheckBox::toggled, [this](bool useMolecule) {
@@ -363,7 +364,7 @@ void XtbResultDialog::updateProgramFields()
    QFormLayout* form(qobject_cast<QFormLayout*>(m_settings->layout()));
    if (!form) return;
    QList<QWidget*> rows;
-   rows << m_programRow << m_optionsRow << m_workDirRow << m_reviewRow;
+   rows << m_programRow << m_optionsRow << m_workDirRow << m_reviewRow << m_orbitalsCheck;
    for (QWidget* row : rows) {
        row->setVisible(program);
        if (QWidget* label = form->labelForField(row)) label->setVisible(program);
