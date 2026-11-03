@@ -24,10 +24,12 @@
 ********************************************************************************/
 
 #include "PythonEngine.h"
+#include "PythonSetup.h"
 #include <QDialog>
 #include <QJsonObject>
 #include <QPointer>
 #include <QVector>
+#include <functional>
 
 class QCheckBox;
 class QComboBox;
@@ -106,6 +108,8 @@ namespace IQmol {
          void saveSettings();
          void engineChanged();
          void browseForPython();
+         void setUpEnvironment();
+         void installPackages();
          void save();
 
       protected:
@@ -121,6 +125,10 @@ namespace IQmol {
          explicit PythonEngineDialog(QWidget* parent = 0);
 
          void setRunning(bool running);
+         QString effectivePython() const;
+         void updateEnvironmentRow();
+         bool runSetup(QString const& title, 
+            std::function<bool(Calc::PythonSetup&, QString&)> job);
          void showEngine();
          void buildOptions(QJsonObject const& descriptor);
          QJsonObject optionValues(QString const& scope) const;
@@ -134,6 +142,9 @@ namespace IQmol {
 
          QGroupBox*     m_settings;
          QLineEdit*     m_pythonEdit;
+         QLabel*        m_environmentInfo;
+         QPushButton*   m_setupButton;
+         QPushButton*   m_installButton;
          QComboBox*     m_engineCombo;
          QLabel*        m_engineInfo;
          QGroupBox*     m_optionsBox;

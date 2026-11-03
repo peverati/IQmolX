@@ -29,6 +29,7 @@
 #include <QDir>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
+#include <QFile>
 #include <QFileInfo>
 #include <QFontDatabase>
 #include <QFormLayout>
@@ -100,8 +101,26 @@ PythonEngineDialog::PythonEngineDialog(QWidget* parent) : QDialog(parent),
    pythonRow->addWidget(refresh);
    form->addRow("Python:", pythonRow);
 
+   m_environmentInfo = new QLabel(this);
+   m_environmentInfo->setWordWrap(true);
+   m_environmentInfo->setTextFormat(Qt::RichText);
+   m_setupButton = new QPushButton("Set Up Environment", this);
+   m_setupButton->setToolTip("Make a Python environment for the engines with uv.  uv downloads a "
+      "Python of its own,\nso none has to be installed.  Nothing is installed anywhere else.");
+   QHBoxLayout* environmentRow(new QHBoxLayout());
+   environmentRow->setContentsMargins(0, 0, 0, 0);
+   environmentRow->addWidget(m_environmentInfo, 1);
+   environmentRow->addWidget(m_setupButton);
+   form->addRow(QString(), environmentRow);
+
    m_engineCombo = new QComboBox(this);
-   form->addRow("Engine:", m_engineCombo);
+   m_installButton = new QPushButton("Install", this);
+   m_installButton->hide();
+   QHBoxLayout* engineRow(new QHBoxLayout());
+   engineRow->setContentsMargins(0, 0, 0, 0);
+   engineRow->addWidget(m_engineCombo, 1);
+   engineRow->addWidget(m_installButton);
+   form->addRow("Engine:", engineRow);
 
    m_engineInfo = new QLabel(this);
    m_engineInfo->setWordWrap(true);
@@ -191,7 +210,10 @@ PythonEngineDialog::PythonEngineDialog(QWidget* parent) : QDialog(parent),
 
    connect(browse, SIGNAL(clicked()), this, SLOT(browseForPython()));
    connect(refresh, SIGNAL(clicked()), this, SLOT(refreshEngines()));
+   connect(m_setupButton, SIGNAL(clicked()), this, SLOT(setUpEnvironment()));
+   connect(m_installButton, SIGNAL(clicked()), this, SLOT(installPackages()));
    connect(m_pythonEdit, SIGNAL(editingFinished()), this, SLOT(saveSettings()));
+   connect(m_pythonEdit, &QLineEdit::editingFinished, [this]() { updateEnvironmentRow(); engineChanged(); });
    connect(m_engineCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(engineChanged()));
    connect(m_jobCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(saveSettings()));
    connect(m_runButton, SIGNAL(clicked()), this, SLOT(run()));
@@ -201,6 +223,7 @@ PythonEngineDialog::PythonEngineDialog(QWidget* parent) : QDialog(parent),
    // the helper and its model go when IQmol is closed
    connect(qApp, &QCoreApplication::aboutToQuit, [this]() { m_engine.shutdown(); });
 
+   updateEnvironmentRow();
    showEngine();
 }
 
@@ -245,9 +268,10 @@ void PythonEngineDialog::refreshEngines()
 {
    m_listed = true;
    saveSettings();
+   updateEnvironmentRow();
    QString wanted(Preferences::PythonEngineName());
 
-   m_engine.setPython(m_pythonEdit->text().trimmed());
+   m_engine.setPython(effectivePython());
    m_engine.setPythonPath(qEnvironmentVariable("IQMOLX_ENGINES_PATH"));
    m_engine.setEngine(wanted);
 
@@ -266,15 +290,11 @@ void PythonEngineDialog::refreshEngines()
        m_engineCombo->addItem(available ? title : title + " (not available)", 
           d.value("name").toString());
        int index(m_engineCombo->count() - 1);
-       if (!available) {
-          // an item that cannot be chosen, with the reason as its tooltip
-          m_engineCombo->setItemData(index, d.value("unavailable_reason").toString(), 
-             Qt::ToolTipRole);
-          QStandardItem* item(qobject_cast<QStandardItemModel*>(m_engineCombo->model())->item(index));
-          if (item) item->setFlags(item->flags() & ~Qt::ItemIsEnabled);
-       }else if (select < 0 || d.value("name").toString() == wanted) {
-          select = index;
-       }
+       // An engine that is not available can be selected: the window then says what is
+       // missing and offers to install it.  An available one is preferred as the default.
+       if (!available) m_engineCombo->setItemData(index, d.value("unavailable_reason").toString(), 
+          Qt::ToolTipRole);
+       if (d.value("name").toString() == wanted || (select < 0 && available)) select = index;
    }
    if (select >= 0) m_engineCombo->setCurrentIndex(select);
    m_engineCombo->blockSignals(false);
@@ -312,12 +332,30 @@ QString PythonEngineDialog::describeElements(QJsonValue const& value)
 void PythonEngineDialog::showEngine()
 {
    bool const known(!m_descriptor.isEmpty());
+   bool const available(known && m_descriptor.value("available").toBool(true));
    m_engineInfo->setVisible(known);
-   m_runButton->setEnabled(known);
+   m_runButton->setEnabled(available);
    buildOptions(m_descriptor);
+
+   QStringList requirements;
+   for (QJsonValue const& r : m_descriptor.value("requirements").toArray()) requirements << r.toString();
+   m_installButton->setVisible(known && !available && !requirements.isEmpty());
+   m_installButton->setText("Install " + requirements.join(", "));
+   QString python(effectivePython());
+   bool const canInstall(!python.isEmpty() && QFile::exists(QFileInfo(python).absolutePath() + "/../pyvenv.cfg")
+      && !Calc::PythonSetup::findUv().isEmpty());
+   m_installButton->setEnabled(canInstall);
+   m_installButton->setToolTip(canInstall 
+      ? "Install " + requirements.join(", ") + " into the Python environment with uv"
+      : "Packages can be installed into an environment made with uv (Set Up Environment).\n"
+        "Otherwise install " + requirements.join(", ") + " in the Python you chose, or install uv.");
    if (!known) return;
 
    QString s("<small>" + plain(m_descriptor.value("description").toString()));
+   if (!available) {
+      s = "<small><b>Not available:</b> " + plain(m_descriptor.value("unavailable_reason").toString()) 
+        + "<br>" + plain(m_descriptor.value("description").toString());
+   }
    QStringList properties;
    for (QJsonValue const& p : m_descriptor.value("properties").toArray()) properties << p.toString();
    s += "<br>Elements: " + describeElements(m_descriptor.value("elements"));
@@ -460,11 +498,116 @@ bool PythonEngineDialog::prepare(QString& problem)
       return false;
    }
    saveSettings();
-   m_engine.setPython(m_pythonEdit->text().trimmed());
+   m_engine.setPython(effectivePython());
    m_engine.setEngine(m_descriptor.value("name").toString());
    m_engine.setLoadOptions(optionValues("load"));
    m_engine.setComputeOptions(optionValues("compute"));
    return true;
+}
+
+
+// ----- the Python environment -----
+
+/// The interpreter that runs the helper: the one in the field, else the IQMolX environment if 
+/// there is one, else (empty) python3 from the PATH
+QString PythonEngineDialog::effectivePython() const
+{
+   QString python(m_pythonEdit->text().trimmed());
+   if (!python.isEmpty()) return python;
+   return Calc::PythonSetup::pythonIn(Calc::PythonSetup::defaultEnvironment());
+}
+
+
+void PythonEngineDialog::updateEnvironmentRow()
+{
+   QString environment(Calc::PythonSetup::defaultEnvironment());
+   bool const have(!Calc::PythonSetup::pythonIn(environment).isEmpty());
+   bool const uv(!Calc::PythonSetup::findUv().isEmpty());
+
+   m_pythonEdit->setPlaceholderText(have ? "the IQMolX environment" 
+      : "python3 (the first one on the PATH)");
+   m_setupButton->setVisible(!have);
+   m_setupButton->setEnabled(uv);
+   if (have) {
+      m_environmentInfo->setText("<small>IQMolX Python environment: " + plain(environment) + "</small>");
+   }else if (uv) {
+      m_environmentInfo->setText("<small>There is no IQMolX Python environment yet.  Set Up Environment "
+         "makes one with uv: it downloads a Python of its own (about 25 MB) and installs the "
+         "helper.  Or choose a Python that has iqmolx-engines.</small>");
+   }else {
+      m_environmentInfo->setText("<small>There is no IQMolX Python environment, and uv, which makes "
+         "it, was not found.  Install uv (for example <tt>brew install uv</tt>) or choose a Python "
+         "that has iqmolx-engines.</small>");
+   }
+}
+
+
+/// Runs a job of PythonSetup with its output in the window and Cancel working.  The helper is
+/// stopped first, as the job changes what it can import.
+bool PythonEngineDialog::runSetup(QString const& title, 
+   std::function<bool(Calc::PythonSetup&, QString&)> job)
+{
+   m_engine.shutdown();
+   m_title->setText(title);
+   m_summary->setText("This can take a minute.  The output of uv is shown below.");
+   m_output->clear();
+   setRunning(true);
+   QApplication::processEvents();
+
+   Calc::PythonSetup setup;
+   setup.setInteractive(true);
+   setup.setProgressCallback([this](QString const& text) { appendOutput(text); });
+   QMetaObject::Connection cancelConnection(connect(this, &PythonEngineDialog::cancelRequested, 
+      [&setup]() { setup.cancel(); }));
+
+   QString error;
+   bool ok(job(setup, error));
+   disconnect(cancelConnection);
+   setRunning(false);
+
+   if (ok) {
+      m_title->setText(title + " finished");
+      m_summary->setText("Done.");
+   }else if (setup.cancelled()) {
+      m_title->setText(title + " cancelled");
+      m_summary->setText("Cancelled.  What was already downloaded is kept.");
+   }else {
+      m_title->setText(title + " failed");
+      m_summary->setText(plain(error));
+   }
+   return ok;
+}
+
+
+void PythonEngineDialog::setUpEnvironment()
+{
+   QString environment(Calc::PythonSetup::defaultEnvironment());
+   bool ok(runSetup("Python environment", [environment](Calc::PythonSetup& setup, QString& error) {
+      return setup.createEnvironment(environment, error);
+   }));
+   updateEnvironmentRow();
+   if (!ok) return;
+
+   // The environment that was just made is what the window uses from now on
+   m_pythonEdit->setText(Calc::PythonSetup::pythonIn(environment));
+   saveSettings();
+   updateEnvironmentRow();
+   refreshEngines();
+}
+
+
+void PythonEngineDialog::installPackages()
+{
+   QStringList requirements;
+   for (QJsonValue const& r : m_descriptor.value("requirements").toArray()) requirements << r.toString();
+   QString python(effectivePython());
+   if (requirements.isEmpty() || python.isEmpty()) return;
+
+   QString title("Installing " + requirements.join(", "));
+   bool ok(runSetup(title, [python, requirements](Calc::PythonSetup& setup, QString& error) {
+      return setup.install(python, requirements, error);
+   }));
+   if (ok) refreshEngines();
 }
 
 
@@ -533,6 +676,7 @@ void PythonEngineDialog::showWindow()
       return;
    }
    setRunning(false);
+   updateEnvironmentRow();
    setWindowState(windowState() & ~Qt::WindowMinimized);
    showNormal();
    raise();

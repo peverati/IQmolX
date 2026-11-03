@@ -9,6 +9,7 @@
 
 #include "Util/Preferences.h"
 #include "Util/PythonEngineDialog.h"
+#include "Util/PythonSetup.h"
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
@@ -20,6 +21,10 @@
 #include <QPushButton>
 #include <QSettings>
 #include <QSpinBox>
+#include <QStandardPaths>
+#include <QTemporaryDir>
+#include <QDir>
+#include <QFile>
 #include <cstdio>
 
 using namespace IQmol;
@@ -54,6 +59,7 @@ int main(int argc, char** argv)
    qputenv("QT_QPA_PLATFORM", "offscreen");
    if (argc < 3) { std::printf("usage: PythonDialogTest <python> <helper src dir>\n"); return 2; }
    qputenv("IQMOLX_ENGINES_PATH", argv[2]);
+   QStandardPaths::setTestModeEnabled(true);   // the application data folder is not the real one
    QApplication app(argc, argv);
 
    QString const organization("iqmol-test.invalid");
@@ -122,13 +128,84 @@ int main(int argc, char** argv)
 
    // A wrong interpreter is reported in the window
    Preferences::PythonEnginePath("/nonexistent/python");
-   for (QLineEdit* e : d->findChildren<QLineEdit*>()) if (e->placeholderText().startsWith("python3")) {
-      e->setText("/nonexistent/python");
-      e->editingFinished();
+   QLineEdit* pythonEdit(0);
+   for (QLineEdit* e : d->findChildren<QLineEdit*>()) if (e->placeholderText().startsWith("python3")) pythonEdit = e;
+   if (pythonEdit) {
+      pythonEdit->setText("/nonexistent/python");
+      pythonEdit->editingFinished();   // rebuilds the settings, so no loop over the line edits
    }
    d->refreshEngines();
    check(!button(d, "Run")->isEnabled(), "Run is disabled when the helper cannot start");
    check(!d->prepare(problem) && problem.contains("Python"), "prepare explains: " + problem);
+
+   // --- the Python environment, made with a fake uv that links the interpreter of this test ---
+   {
+      QTemporaryDir tmp;
+      QString fake(tmp.path() + "/uv"), uvLog(tmp.path() + "/uv.log");
+      QFile script(fake);
+      script.open(QIODevice::WriteOnly);
+      script.write(QString(
+         "#!/bin/sh\n"
+         "echo \"$@\" >> \"%1\"\n"
+         "if [ \"$1\" = venv ]; then\n"
+         "   for last; do :; done\n"
+         "   mkdir -p \"$last/bin\" && touch \"$last/pyvenv.cfg\" && ln -sf \"%2\" \"$last/bin/python\"\n"
+         "fi\n"
+         "echo fake-uv-output\n").arg(uvLog, argv[1]).toLocal8Bit());
+      script.close();
+      script.setPermissions(script.permissions() | QFileDevice::ExeOwner);
+      qputenv("IQMOLX_UV", fake.toLocal8Bit());
+
+      QString environment(Calc::PythonSetup::defaultEnvironment());
+      check(environment.contains(".qttest") && !QFile::exists(environment), 
+         "the test environment folder is a test one and does not exist yet: " + environment);
+
+      // Nothing configured: the window offers to make an environment
+      Preferences::PythonEnginePath(QString());
+      if (pythonEdit) pythonEdit->setText(QString());
+      d->refreshEngines();
+      QPushButton* setup(button(d, "Set Up Environment"));
+      check(setup && !setup->isHidden() && setup->isEnabled(), "Set Up Environment is offered, as uv is there");
+
+      if (!setup) { std::printf("FAILED: no setup button, the rest is skipped\n"); return 1; }
+      setup->click();
+      QFile logFile(uvLog);
+      logFile.open(QIODevice::ReadOnly);
+      QString uvCalls(QString::fromLocal8Bit(logFile.readAll()));
+      check(uvCalls.contains("venv --python 3.12 --python-preference only-managed") 
+         && uvCalls.contains("pip install --python " + environment + "/bin/python"), "uv was asked for the environment and the helper");
+      check(!Calc::PythonSetup::pythonIn(environment).isEmpty(), "the environment has an interpreter");
+      check(setup->isHidden(), "the button goes away once there is an environment");
+      QString shown;
+      for (QPlainTextEdit* t : d->findChildren<QPlainTextEdit*>()) shown += t->toPlainText();
+      check(shown.contains("$ uv venv") && shown.contains("fake-uv-output"), "the commands and the output of uv are shown");
+      check(Preferences::PythonEnginePath() == Calc::PythonSetup::pythonIn(environment), 
+         "the new environment is the Python of the window");
+      check(button(d, "Run") && button(d, "Run")->isEnabled(), "the engines are found in the new environment");
+      if (!button(d, "Run")) return 1;
+
+      // An engine whose packages are missing: selectable, with an install button
+      QComboBox* combo(0);
+      for (QComboBox* c : d->findChildren<QComboBox*>()) if (c->findData("ase") >= 0) combo = c;
+      check(combo != 0, "the engine list has the ASE adapter");
+      if (combo) combo->setCurrentIndex(combo->findData("ase"));
+      check(!button(d, "Run")->isEnabled(), "Run is off for an engine that is not available");
+      QPushButton* install(button(d, "Install ase"));
+      check(install && !install->isHidden() && install->isEnabled(), "Install ase is offered");
+      if (install) install->click();
+      logFile.close();
+      logFile.open(QIODevice::ReadOnly);
+      uvCalls = QString::fromLocal8Bit(logFile.readAll());
+      check(uvCalls.contains("pip install --python " + environment + "/bin/python ase"), 
+         "uv was asked to install the requirements of the engine");
+      if (combo) combo->setCurrentIndex(combo->findData("demo"));
+      QPushButton* installAfter(button(d, "Install ase"));
+      check(button(d, "Run")->isEnabled() && (!installAfter || !installAfter->isVisible()), 
+         "a working engine has Run and no install button");
+
+      // The folder was made by this test, in Qt's test location
+      if (environment.contains(".qttest") && environment.endsWith("/python")) QDir(environment).removeRecursively();
+   }
 
    std::printf("\n%s\n", s_failures ? "FAILED" : "all tests passed");
    return s_failures ? 1 : 0;
