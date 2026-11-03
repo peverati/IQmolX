@@ -2096,6 +2096,12 @@ namespace {
 }
 
 
+bool Molecule::hasAtoms()
+{
+   return !findLayers<Atom>(Children).isEmpty();
+}
+
+
 // Runs the calculation chosen in the xtb window (method, solvent, backend and job)
 // on this molecule
 void Molecule::runXtbJob()
@@ -2123,10 +2129,7 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
    }
 
    AtomList atoms(findLayers<Atom>(Children));
-   if (atoms.isEmpty()) {
-      QMsgBox::information(0, "IQmol", "There are no atoms to run xtb on");
-      return;
-   }
+   if (atoms.isEmpty()) return;   // ViewerModel::runXtb tells the user if there is nothing at all
 
    Calc::Input input;
    input.charge       = totalCharge();
@@ -2283,10 +2286,7 @@ void Molecule::runPythonJob()
    bool const frequencies(job == "frequencies" || job == "optfreq");
 
    AtomList atoms(findLayers<Atom>(Children));
-   if (atoms.isEmpty()) {
-      QMsgBox::information(0, "IQmol", "There are no atoms to run a Python engine on");
-      return;
-   }
+   if (atoms.isEmpty()) return;   // ViewerModel::runPython tells the user if there is nothing at all
 
    QString problem;
    if (!dialog->prepare(problem)) {

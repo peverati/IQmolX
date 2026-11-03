@@ -180,6 +180,10 @@ namespace IQmol {
          Layer::Molecule* newMolecule();
          void forAllMolecules(std::function<void(Layer::Molecule&)> function);
 
+         // Like forAllMolecules, but skips molecules without atoms.  Returns false if there 
+         // was no molecule with atoms to run the function on.
+         bool forMoleculesWithAtoms(std::function<void(Layer::Molecule&)> function);
+
          Layer::System* newSystem();
          void forAllSystems(std::function<void(Layer::System&)> function);
 

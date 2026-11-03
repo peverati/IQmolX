@@ -458,6 +458,21 @@ void ViewerModel::forAllMolecules(std::function<void(Layer::Molecule&)> function
 }
 
 
+bool ViewerModel::forMoleculesWithAtoms(std::function<void(Layer::Molecule&)> function)
+{
+   bool visibleOnly(true);
+   MoleculeList molecules(moleculeList(visibleOnly));
+   bool any(false);
+   MoleculeList::iterator iter;
+   for (iter = molecules.begin(); iter != molecules.end(); ++iter) {
+       if (!(*iter)->hasAtoms()) continue;
+       any = true;
+       function(*(*iter));
+   }
+   return any;
+}
+
+
 // - - - - - System - - - - - 
 Layer::System* ViewerModel::newSystem()
 {
@@ -1201,14 +1216,19 @@ void ViewerModel::computeEnergy()
 // Runs the calculation that is selected in the xtb window
 void ViewerModel::runXtb()
 {
-   forAllMolecules(std::bind(&Layer::Molecule::runXtbJob, std::placeholders::_1));
+   // An empty molecule next to the real one is skipped without a message
+   if (!forMoleculesWithAtoms(std::bind(&Layer::Molecule::runXtbJob, std::placeholders::_1))) {
+      QMsgBox::information(0, "IQmol", "There are no atoms to run xtb on");
+   }
 }
 
 
 // Runs the calculation that is selected in the Python engines window
 void ViewerModel::runPython()
 {
-   forAllMolecules(std::bind(&Layer::Molecule::runPythonJob, std::placeholders::_1));
+   if (!forMoleculesWithAtoms(std::bind(&Layer::Molecule::runPythonJob, std::placeholders::_1))) {
+      QMsgBox::information(0, "IQmol", "There are no atoms to run a Python engine on");
+   }
 }
 
 
