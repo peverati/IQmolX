@@ -2114,6 +2114,10 @@ void Molecule::runXtb(QString const& methodName, bool optimize)
    input.multiplicity = multiplicity();
    input.solvent      = Preferences::XtbSolvent();
 
+   // The xtb window can override the charge and spin of the molecule
+   XtbResultDialog* dialog(XtbResultDialog::instance());
+   dialog->chargeAndSpin(input.charge, input.multiplicity);
+
    // Used in the window title and the energy label
    QString label(methodName);
    if (!input.solvent.isEmpty()) label += "/ALPB(" + input.solvent + ")";
@@ -2123,6 +2127,20 @@ void Molecule::runXtb(QString const& methodName, bool optimize)
        Vec position((*iter)->getPosition());
        input.atomicNumbers.append((*iter)->getAtomicNumber());
        input.coordinates << position.x << position.y << position.z;
+   }
+
+   // The multiplicity has to agree with the number of electrons
+   int electrons(-input.charge);
+   for (int i = 0; i < input.atomicNumbers.size(); ++i) electrons += input.atomicNumbers[i];
+   int unpaired(input.multiplicity - 1);
+   if (electrons < 0 || unpaired > electrons || (electrons - unpaired) % 2 != 0) {
+      QString msg("A charge of " + QString::number(input.charge) + " and a spin multiplicity of "
+         + QString::number(input.multiplicity) + " are not possible for " + text() 
+         + ", which then has " + QString::number(electrons) + " electrons.\n\n"
+         "An even number of electrons needs an odd multiplicity (singlet, triplet, ...) "
+         "and an odd number of electrons an even one (doublet, quartet, ...).");
+      QMsgBox::warning(0, "IQmol", msg);
+      return;
    }
 
    // Only one xtb calculation at a time
@@ -2145,12 +2163,12 @@ void Molecule::runXtb(QString const& methodName, bool optimize)
    QString subject(text().isEmpty() ? "the molecule" : text());
    subject += " (" + QString::number(atoms.size()) + " atoms)";
    subject += useLibrary ? " using libxtb" : " using the xtb program";
-   XtbResultDialog* dialog(XtbResultDialog::instance());
    xtb->setInteractive(true);
    xtb->setProgressCallback([dialog](QString const& chunk) { dialog->appendOutput(chunk); });
    QMetaObject::Connection cancelConnection(QObject::connect(dialog, 
       &XtbResultDialog::cancelRequested, [&xtb]() { xtb->cancel(); }));
-   dialog->started(label, optimize ? "geometry optimization" : "single point", subject);
+   dialog->started(label, optimize ? "geometry optimization" : "single point", subject,
+      input.charge, input.multiplicity);
 
    Calc::Result result(optimize ? xtb->optimize(input) : xtb->energy(input));
 

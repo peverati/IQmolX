@@ -14,6 +14,7 @@
 #include "FileDialog.h"
 #include "Preferences.h"
 #include <QApplication>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QFormLayout>
 #include <QGroupBox>
@@ -33,6 +34,7 @@
 #include <QPushButton>
 #include <QRegularExpression>
 #include <QScrollBar>
+#include <QSpinBox>
 #include <QVBoxLayout>
 
 
@@ -45,7 +47,7 @@ XtbResultDialog* XtbResultDialog::instance()
 }
 
 
-XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_running(false), m_started(false), m_placed(false)
+XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0), m_multiplicity(1), m_running(false), m_started(false), m_placed(false)
 {
    // An ordinary window (not Qt::Tool): tool windows on macOS cannot be restored
    // from the Dock once they have been minimized.
@@ -89,6 +91,30 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_running(f
    };
    for (auto const& solvent : solvents) m_solventCombo->addItem(solvent[1], solvent[0]);
    form->addRow("Solvent:", m_solventCombo);
+
+   // By default the charge and spin of the molecule are used.  Entering other values
+   // is only meant for the molecule that is open, so they are not stored.
+   m_moleculeValues = new QCheckBox("Use the charge and spin of the molecule", m_settings);
+   m_moleculeValues->setChecked(true);
+   form->addRow(m_moleculeValues);
+
+   m_chargeSpin = new QSpinBox(m_settings);
+   m_chargeSpin->setRange(-10, 10);
+   m_chargeSpin->setValue(0);
+   m_chargeSpin->setEnabled(false);
+   form->addRow("Charge:", m_chargeSpin);
+
+   m_multiplicitySpin = new QSpinBox(m_settings);
+   m_multiplicitySpin->setRange(1, 11);
+   m_multiplicitySpin->setValue(1);
+   m_multiplicitySpin->setEnabled(false);
+   m_multiplicitySpin->setToolTip("Spin multiplicity 2S+1: 1 singlet, 2 doublet, 3 triplet, ...");
+   form->addRow("Spin multiplicity:", m_multiplicitySpin);
+
+   QObject::connect(m_moleculeValues, &QCheckBox::toggled, [this](bool useMolecule) {
+      m_chargeSpin->setEnabled(!useMolecule);
+      m_multiplicitySpin->setEnabled(!useMolecule);
+   });
 
    m_backendCombo = new QComboBox(m_settings);
    m_backendCombo->addItem("xtb program", "program");
@@ -218,14 +244,32 @@ void XtbResultDialog::run()
 }
 
 
-void XtbResultDialog::started(QString const& method, QString const& what,
-   QString const& subject)
+bool XtbResultDialog::chargeAndSpin(int& charge, int& multiplicity) const
 {
+   if (m_moleculeValues->isChecked()) return false;
+   charge = m_chargeSpin->value();
+   multiplicity = m_multiplicitySpin->value();
+   return true;
+}
+
+
+void XtbResultDialog::started(QString const& method, QString const& what,
+   QString const& subject, int charge, int multiplicity)
+{
+   // Show the values in use, so that unchecking the box starts from the molecule's values
+   m_charge = charge;
+   m_multiplicity = multiplicity;
+   if (m_moleculeValues->isChecked()) {
+      m_chargeSpin->setValue(charge);
+      m_multiplicitySpin->setValue(multiplicity);
+   }
+
    m_started = true;
    m_fileName = method + (what.contains("optim") ? "_opt" : "_sp") + ".out";
    m_fileName.replace(QRegularExpression("[^A-Za-z0-9._-]"), "_");
    m_title->setText(method + " " + what);
-   m_summary->setText("Running on " + subject + "...");
+   m_summary->setText("Running on " + subject + ", charge " + QString::number(charge) 
+      + ", spin multiplicity " + QString::number(multiplicity) + "...");
    m_output->clear();
    setRunning(true);
    // Remember the active window so that it can be reactivated when we close 
@@ -356,6 +400,9 @@ void XtbResultDialog::finished(Calc::Result const& result, QString const& method
    };
 
    s = "<table>";
+   s += row("Charge, spin multiplicity", QString::number(m_charge) + ", " 
+      + QString::number(m_multiplicity) + (m_moleculeValues->isChecked() ? "" 
+      : " (entered in this window)"));
    s += row("Energy", QString::number(result.energy, 'f', 6) + " E<sub>h</sub>");
    if (optimization && result.initialEnergy != 0.0) {
       double dE((result.energy - result.initialEnergy) * hartreeToKcal);

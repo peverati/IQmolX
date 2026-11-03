@@ -15,11 +15,13 @@
 #include <QDialog>
 #include <QPointer>
 
+class QCheckBox;
 class QComboBox;
 class QGroupBox;
 class QLabel;
 class QPlainTextEdit;
 class QProgressBar;
+class QSpinBox;
 class QPushButton;
 
 /*!
@@ -42,7 +44,14 @@ namespace IQmol {
 
          /// Clears the window and shows it in its 'running' state.  The dialog is
          /// modal while the calculation runs so the molecule cannot be edited.
-         void started(QString const& method, QString const& what, QString const& subject);
+         /// charge and multiplicity are the values the calculation uses
+         void started(QString const& method, QString const& what, QString const& subject,
+            int charge, int multiplicity);
+
+         /// True if the charge and spin entered in this window are to be used instead of
+         /// the values of the molecule.  They are not stored in the preferences, as they 
+         /// belong to one molecule.
+         bool chargeAndSpin(int& charge, int& multiplicity) const;
 
          /// Brings the window to the front without starting anything, so the output of 
          /// the last calculation can be viewed again
@@ -82,6 +91,11 @@ namespace IQmol {
          QComboBox*      m_methodCombo;
          QComboBox*      m_solventCombo;
          QComboBox*      m_backendCombo;
+         QCheckBox*      m_moleculeValues;
+         QSpinBox*       m_chargeSpin;
+         QSpinBox*       m_multiplicitySpin;
+         int             m_charge;         // used by the current / last calculation
+         int             m_multiplicity;
          QPushButton*    m_runButton;
          QLabel*         m_title;
          QLabel*         m_summary;
