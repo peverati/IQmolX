@@ -9,6 +9,7 @@ set(HEADERS
    ProgressDialog.h
    Task.h
    Timer.h
+   PythonEngineDialog.h
    XtbResultDialog.h
    Zip.h
 )
@@ -36,6 +37,8 @@ set( SOURCES
    Timer.C
    WaitingSpinner.C
    WriteToTemporaryFile.C
+   PythonEngine.C
+   PythonEngineDialog.C
    Vibrations.C
    XtbOutput.C
    XtbProcess.C

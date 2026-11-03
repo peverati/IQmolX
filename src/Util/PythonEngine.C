@@ -288,6 +288,9 @@ void PythonEngine::setEngine(QString const& name)
    if (name == m_engine) return;
    m_engine = name;
    m_descriptor = QJsonObject();
+   for (QJsonValue const& value : m_engines) {
+      if (value.toObject().value("name").toString() == m_engine) m_descriptor = value.toObject();
+   }
 }
 
 

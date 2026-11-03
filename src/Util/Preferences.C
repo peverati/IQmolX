@@ -558,6 +558,54 @@ void XtbWorkDir(QString const& directory)
 }
 
 
+QString PythonEnginePath()
+{
+   QVariant value(Get("PythonEnginePath"));
+   return value.isNull() ? QString() : value.value<QString>();
+}
+
+void PythonEnginePath(QString const& path)
+{
+   Set("PythonEnginePath", QVariant::fromValue(path));
+}
+
+
+QString PythonEngineName()
+{
+   QVariant value(Get("PythonEngineName"));
+   return value.isNull() ? QString() : value.value<QString>();
+}
+
+void PythonEngineName(QString const& name)
+{
+   Set("PythonEngineName", QVariant::fromValue(name));
+}
+
+
+QString PythonEngineJob()
+{
+   QVariant value(Get("PythonEngineJob"));
+   return value.isNull() ? QString("optimize") : value.value<QString>();
+}
+
+void PythonEngineJob(QString const& job)
+{
+   Set("PythonEngineJob", QVariant::fromValue(job));
+}
+
+
+QString PythonEngineOptions()
+{
+   QVariant value(Get("PythonEngineOptions"));
+   return value.isNull() ? QString("{}") : value.value<QString>();
+}
+
+void PythonEngineOptions(QString const& json)
+{
+   Set("PythonEngineOptions", QVariant::fromValue(json));
+}
+
+
 // ---------
 
 QString DefaultForceField()

@@ -156,6 +156,18 @@ namespace Preferences {
    QString XtbWorkDir();
    void    XtbWorkDir(QString const&);
 
+   // The Python engines window (iqmolx-engines helper): the interpreter that runs it
+   // (empty: python3 from the PATH), the engine and job last used, and the settings of the
+   // engines as JSON, an object of engine name to an object of option name to value.
+   QString PythonEnginePath();
+   void    PythonEnginePath(QString const&);
+   QString PythonEngineName();
+   void    PythonEngineName(QString const&);
+   QString PythonEngineJob();
+   void    PythonEngineJob(QString const&);
+   QString PythonEngineOptions();
+   void    PythonEngineOptions(QString const&);
+
    double  SymmetryTolerance();
    void    SymmetryTolerance(double const);
    

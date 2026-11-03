@@ -58,6 +58,16 @@ if (Python3_EXECUTABLE)
 endif()
 
 
+# The Python engines window, against the demo engine (offscreen Qt)
+add_executable(PythonDialogTest EXCLUDE_FROM_ALL PythonDialogTest.C)
+target_include_directories(PythonDialogTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+target_link_libraries(PythonDialogTest PRIVATE Util Qt5::Widgets Qt5::Gui Qt5::Core)
+if (Python3_EXECUTABLE)
+   add_test(NAME PythonDialogTest COMMAND PythonDialogTest ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/../python/iqmolx-engines/src)
+endif()
+
+
 # Optimizer: no dependencies
 add_executable(OptimizerTest EXCLUDE_FROM_ALL OptimizerTest.C)
 target_include_directories(OptimizerTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
