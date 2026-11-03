@@ -20,6 +20,7 @@
 
 ********************************************************************************/
 
+#include "Util/XtbResultDialog.h"
 #include "MainWindow.h"
 #include "ServerConfigurationListDialog.h"
 #include "JobMonitor.h"
@@ -697,6 +698,10 @@ void MainWindow::createMenus()
              connect(action, SIGNAL(triggered()), this, SLOT(setForceField()));
              if (Preferences::DefaultForceField() == method) action->setChecked(true);
          }
+
+      name = "Show xtb Output";
+      action = menu->addAction(name);
+      connect(action, &QAction::triggered, []() { XtbResultDialog::instance()->showWindow(); });
 
       menu->addSeparator();
 

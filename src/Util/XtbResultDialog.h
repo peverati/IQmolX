@@ -41,6 +41,10 @@ namespace IQmol {
          /// modal while the calculation runs so the molecule cannot be edited.
          void started(QString const& method, QString const& what, QString const& subject);
 
+         /// Brings the window to the front without starting anything, so the output of 
+         /// the last calculation can be viewed again
+         void showWindow();
+
          void appendOutput(QString const& text);
 
          /// Switches to the 'finished' state and shows the summary of the result

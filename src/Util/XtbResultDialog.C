@@ -174,6 +174,28 @@ void XtbResultDialog::resizeEvent(QResizeEvent* event)
 }
 
 
+void XtbResultDialog::showWindow()
+{
+   if (m_running) {
+      raise();
+      activateWindow();
+      return;
+   }
+
+   if (m_output->document()->isEmpty() && m_title->text().isEmpty()) {
+      m_title->setText("xtb");
+      m_summary->setText("No xtb calculation has been run yet in this session.");
+   }
+
+   setRunning(false);
+   placeWindow();
+   setWindowState(windowState() & ~Qt::WindowMinimized);
+   showNormal();
+   raise();
+   activateWindow();
+}
+
+
 void XtbResultDialog::appendOutput(QString const& text)
 {
    // appendPlainText adds a paragraph break, so insert at the end instead
