@@ -2096,12 +2096,6 @@ namespace {
 }
 
 
-bool Molecule::hasAtoms()
-{
-   return !findLayers<Atom>(Children).isEmpty();
-}
-
-
 // Runs the calculation chosen in the xtb window (method, solvent, backend and job)
 // on this molecule
 void Molecule::runXtbJob()
@@ -2129,7 +2123,9 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
    }
 
    AtomList atoms(findLayers<Atom>(Children));
-   if (atoms.isEmpty()) return;   // ViewerModel::runXtb tells the user if there is nothing at all
+   // Every viewer window runs its own molecules, so an empty one is skipped quietly.  The
+   // xtb window says so when nothing at all was calculated.
+   if (atoms.isEmpty()) return;
 
    Calc::Input input;
    input.charge       = totalCharge();
@@ -2286,7 +2282,8 @@ void Molecule::runPythonJob()
    bool const frequencies(job == "frequencies" || job == "optfreq");
 
    AtomList atoms(findLayers<Atom>(Children));
-   if (atoms.isEmpty()) return;   // ViewerModel::runPython tells the user if there is nothing at all
+   // As for xtb: an empty molecule is skipped quietly, the window says when nothing ran
+   if (atoms.isEmpty()) return;
 
    QString problem;
    if (!dialog->prepare(problem)) {

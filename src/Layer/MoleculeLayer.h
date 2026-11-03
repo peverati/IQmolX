@@ -123,10 +123,6 @@ bool save(bool prompt = false);
             // optimization) that is selected in the xtb window.
             void runXtbJob();
 
-            /// False for a molecule without atoms, such as a new empty one.  The calculations
-            /// skip those quietly.
-            bool hasAtoms();
-
             // Runs the job (single point, optimization, frequencies) that is selected in the
             // Python engines window with the engine selected there.
             void runPythonJob();
