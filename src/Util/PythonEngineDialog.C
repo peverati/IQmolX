@@ -391,7 +391,7 @@ void PythonEngineDialog::showEngine()
    }
    QString citation(m_descriptor.value("citation").toString());
    if (!citation.isEmpty()) s += "<br>Please cite: " + plain(citation);
-   setInfo(m_engineInfo, s + "</small>", 450);
+   setInfo(m_engineInfo, s + "</small>", 415);
 
    // what the engine cannot handle is not offered
    bool charge(m_descriptor.value("charge").toBool(true));
@@ -549,15 +549,15 @@ void PythonEngineDialog::updateEnvironmentRow()
    m_setupButton->setVisible(!have);
    m_setupButton->setEnabled(uv);
    if (have) {
-      setInfo(m_environmentInfo, "<small>IQMolX Python environment: " + plain(environment) + "</small>", 450);
+      setInfo(m_environmentInfo, "<small>IQMolX Python environment: " + plain(environment) + "</small>", 415);
    }else if (uv) {
       setInfo(m_environmentInfo, "<small>There is no IQMolX Python environment yet.  Set Up Environment "
          "makes one with uv: it downloads a Python of its own (about 25 MB) and installs the "
-         "helper.  Or choose a Python that has iqmolx-engines.</small>", 330);
+         "helper.  Or choose a Python that has iqmolx-engines.</small>", 255);
    }else {
       setInfo(m_environmentInfo, "<small>There is no IQMolX Python environment, and uv, which makes "
          "it, was not found.  Install uv (for example <tt>brew install uv</tt>) or choose a Python "
-         "that has iqmolx-engines.</small>", 330);
+         "that has iqmolx-engines.</small>", 255);
    }
 }
 
