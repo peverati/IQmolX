@@ -87,14 +87,6 @@ jobs:
              -DOPENSSL_ROOT_DIR="$MSYSTEM_PREFIX" \
              -DXTB_ROOT="$GITHUB_WORKSPACE/xtb-install"
 
-      - name: Qt generated files (moc and uic)
-        # Some targets include the headers that uic makes for others without saying so; Make
-        # happens to order that right, Ninja's parallel build does not, so make them first
-        run: |
-          TARGETS=$(ninja -C build -t targets all | sed -n 's/^\(.*_autogen\): .*/\1/p')
-          echo "$TARGETS" | wc -l
-          ninja -C build $TARGETS
-
       - name: Build IQMolX
         # Some parts include files that other parts generate without saying so (for example
         # Layer needs the header that Grid makes).  Make orders that right by luck, Ninja's
