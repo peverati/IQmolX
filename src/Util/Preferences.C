@@ -447,7 +447,11 @@ void XtbWindowGeometry(QByteArray const& geometry)
 QString XtbBackend()
 {
    QVariant value(Get("XtbBackend"));
+#ifdef IQMOL_WITH_LIBXTB
+   return value.isNull() ? QString("library") : value.value<QString>();
+#else
    return value.isNull() ? QString("program") : value.value<QString>();
+#endif
 }
 
 void XtbBackend(QString const& backend)

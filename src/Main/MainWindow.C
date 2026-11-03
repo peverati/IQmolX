@@ -698,12 +698,6 @@ void MainWindow::createMenus()
          connect(action, SIGNAL(triggered()), this, SLOT(setForceField()));
          if (Preferences::DefaultForceField() == ff) action->setChecked(true);
 
-      name = "xtb Setup...";
-      action = menu->addAction(name);
-      action->setToolTip("Set up and run xtb calculations (GFN-xTB methods, solvents)");
-      action->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_X);
-      connect(action, &QAction::triggered, []() { XtbResultDialog::instance()->showWindow(); });
-
       menu->addSeparator();
 
       name = "Translate To Center";
@@ -736,6 +730,12 @@ void MainWindow::createMenus()
       connect(action, SIGNAL(triggered()), this, SLOT(showQChemUI()));
       action->setShortcut(Qt::CTRL | Qt::Key_U );
       m_qchemSetupAction = action;
+
+      name = "xtb Setup...";
+      action = menu->addAction(name);
+      action->setToolTip("Set up and run xtb calculations (GFN-xTB methods, solvents)");
+      action->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_X);
+      connect(action, &QAction::triggered, []() { XtbResultDialog::instance()->showWindow(); });
 
       name = "Job Monitor";
       action = menu->addAction(name);

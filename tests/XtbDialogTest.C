@@ -60,6 +60,9 @@ int main(int argc, char** argv)
 
    // Whatever job was used last time, the window starts with a geometry optimization
    Preferences::XtbJob("optfreq");
+   Preferences::XtbMethod("GFN1-xTB");
+   Preferences::XtbSolvent("acetonitrile");
+   Preferences::XtbBackend("program");
 
    // With nothing stored the window starts with GFN2-xTB, a geometry optimization in the gas phase
    XtbResultDialog* d(XtbResultDialog::instance());
@@ -86,7 +89,20 @@ int main(int argc, char** argv)
       check(defaultJob && defaultJob->currentData() == "optimize", "the window starts with a geometry optimization");
       QComboBox* defaultSolvent(comboWith(d, "water"));
       check(defaultSolvent && defaultSolvent->currentData() == "", "the window starts in the gas phase");
+      check(Preferences::XtbMethod() == "GFN2-xTB" && Preferences::XtbSolvent().isEmpty(),
+         "method and solvent of an earlier session are replaced by the defaults");
+      QComboBox* defaultBackend(comboWith(d, "program"));
+      check(defaultBackend && defaultBackend->currentData() == (defaultBackend->count() > 1 ? "library" : "program"),
+         "the window starts with the built-in library when there is one");
+      QCheckBox* molecule(0);
+      for (QCheckBox* c : d->findChildren<QCheckBox*>()) if (c->text().contains("charge and spin")) molecule = c;
+      check(molecule && molecule->isChecked(), "the charge and spin of the molecule are used by default");
+      QDoubleSpinBox* temp(d->findChild<QDoubleSpinBox*>());
+      d->show();
+      check(temp && (defaultBackend->count() > 1) == !temp->isVisible(),
+         "the electronic temperature is only shown for the xtb program");
    }
+   Preferences::XtbBackend("program");
 
    // Stored settings are shown when the window opens
    Preferences::XtbMethod("GFN1-xTB");

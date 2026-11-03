@@ -19,7 +19,7 @@
    <p> All settings are collected in the xtb window, which is opened with the
    <img src="images/buttons/Xtb.png"> button on the
    <a href="toolbar.html">Tool Bar</a> or with the menu option
-   Build&rarr;xtb Setup... (Ctrl+Shift+X).
+   Calculation&rarr;xtb Setup... (Ctrl+Shift+X).
 
    <p><center><img src="images/XtbWindow.png" width="470" /></center></p>
 
@@ -48,8 +48,10 @@
    <br>
    <h3><a name="settings"></a>Calculation Settings</h3>
 
-   <p> The settings are remembered between sessions, except for the job, which
-   always starts as a geometry optimization.
+   <p> Each session starts with the defaults: a geometry optimization with
+   GFN2-xTB in the gas phase, the charge and spin of the molecule, and the
+   built-in library (the xtb program if IQmol was built without it).  Changes are
+   kept until IQmol is closed.
 
    <table>
       <tr><td valign="top"><b>Job</b></td>
@@ -74,7 +76,8 @@
 
       <tr><td valign="top"><b>Electronic temperature</b></td>
           <td> The temperature of the Fermi smearing of the orbital occupations
-          in K (default 300 K, as in xtb).  Very low values cannot be used when
+          in K (default 300 K, as in xtb).  Only shown for the xtb program; the library
+          always uses 300 K.  Very low values cannot be used when
           the highest occupied and lowest unoccupied orbitals are (nearly)
           degenerate.</td></tr>
 

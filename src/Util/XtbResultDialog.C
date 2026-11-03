@@ -243,9 +243,17 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
    m_progress->hide();
    m_cancelButton->hide();
 
-   // The window always starts with a geometry optimization: the heavier jobs (frequencies)
-   // are not remembered from an earlier session.  The other settings are.
+   // Each session starts from the same defaults: a geometry optimization with GFN2-xTB in the
+   // gas phase, using the built-in library if there is one.  The choices made during the
+   // session are kept until IQmol is closed.
    Preferences::XtbJob("optimize");
+   Preferences::XtbMethod("GFN2-xTB");
+   Preferences::XtbSolvent(QString());
+#ifdef IQMOL_WITH_LIBXTB
+   Preferences::XtbBackend("library");
+#else
+   Preferences::XtbBackend("program");
+#endif
    loadSettings();
 
    connect(m_jobCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(saveSettings()));
@@ -311,6 +319,7 @@ void XtbResultDialog::loadSettings()
    for (QComboBox* combo : combos) combo->blockSignals(false);
    m_temperatureSpin->blockSignals(false);
    m_orbitalsCheck->blockSignals(false);
+   updateProgramFields();   // the backend may have changed without a signal
 }
 
 
@@ -335,7 +344,7 @@ void XtbResultDialog::updateProgramFields()
    QFormLayout* form(qobject_cast<QFormLayout*>(m_settings->layout()));
    if (!form) return;
    QList<QWidget*> rows;
-   rows << m_programRow << m_optionsRow << m_workDirRow << m_orbitalsCheck;
+   rows << m_programRow << m_optionsRow << m_workDirRow << m_orbitalsCheck << m_temperatureSpin;
    for (QWidget* row : rows) {
        row->setVisible(program);
        if (QWidget* label = form->labelForField(row)) label->setVisible(program);
@@ -392,7 +401,9 @@ void XtbResultDialog::started(QString const& method, QString const& what,
    // Show the values in use, so that unchecking the box starts from the molecule's values
    m_charge = charge;
    m_multiplicity = multiplicity;
-   m_temperature = m_temperatureSpin->value();
+   // the electronic temperature is only used by the xtb program
+   m_temperature = (m_backendCombo->currentData().toString() == "library") ? -1.0 
+      : m_temperatureSpin->value();
    if (m_moleculeValues->isChecked()) {
       m_chargeSpin->setValue(charge);
       m_multiplicitySpin->setValue(multiplicity);
@@ -404,7 +415,8 @@ void XtbResultDialog::started(QString const& method, QString const& what,
    m_title->setText(method + " " + what);
    m_summary->setText("Running on " + subject + ", charge " + QString::number(charge) 
       + ", spin multiplicity " + QString::number(multiplicity)
-      + ", electronic temperature " + QString::number(m_temperature, 'f', 0) + " K...");
+      + (m_temperature >= 0.0 ? ", electronic temperature " + QString::number(m_temperature, 'f', 0) + " K" : QString())
+      + "...");
    m_output->clear();
    setRunning(true);
    // Remember the active window so that it can be reactivated when we close 
@@ -596,7 +608,7 @@ void XtbResultDialog::finished(Calc::Result const& result, QString const& method
    s += row("Charge, spin multiplicity", QString::number(m_charge) + ", " 
       + QString::number(m_multiplicity) + (m_moleculeValues->isChecked() ? "" 
       : " (entered in this window)"));
-   s += row("Electronic temperature", QString::number(m_temperature, 'f', 0) + " K");
+   if (m_temperature >= 0.0) s += row("Electronic temperature", QString::number(m_temperature, 'f', 0) + " K");
    s += row("Energy", QString::number(result.energy, 'f', 6) + " E<sub>h</sub>");
    if (optimization && result.initialEnergy != 0.0) {
       double dE((result.energy - result.initialEnergy) * hartreeToKcal);

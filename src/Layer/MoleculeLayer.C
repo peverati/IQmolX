@@ -2174,6 +2174,7 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
    }
 #endif
    Calc::XtbProcess* program(0);
+   if (useLibrary) input.electronicTemperature = -1.0;   // not used by libxtb: its default
    if (!xtb) {
       program = new Calc::XtbProcess(Preferences::XtbPath(), method);
       program->setExtraArguments(QProcess::splitCommand(Preferences::XtbOptions()));
@@ -2235,7 +2236,7 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
    }
 
    QObject::disconnect(cancelConnection);
-   if (!result.success && !result.cancelled && input.electronicTemperature < 50.0 
+   if (!result.success && !result.cancelled && input.electronicTemperature >= 0.0 && input.electronicTemperature < 50.0 
        && method != Calc::XtbProcess::GFNFF) {
       result.message += "\n\nThe electronic temperature is only " 
          + QString::number(input.electronicTemperature, 'f', 0) + " K.  A low temperature cannot be "
