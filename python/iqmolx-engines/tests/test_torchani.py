@@ -135,6 +135,11 @@ def test_the_special_models():
     assert by["anir2s"]().model_arguments({"solvent": "water"}) == {"solvent": "water"}
 
 
+# Where the energy of water lies, for the models that do not use the all-electron scale: ANI-1xnr's
+# reference energies are valence-scale (oxygen -15.97 Hartree), so water is -17.2 Hartree = -468 eV
+ENERGY_OF_WATER = {"ani1xnr": (-480, -455)}
+
+
 # The models themselves need torch, torchani and their parameters (10 to 55 MB each, downloaded the
 # first time).  IQMOLX_TEST_MODELS names the engines to run, e.g. IQMOLX_TEST_MODELS=torchani,ani1x
 # (or "all"); it needs IQMOLX_TEST_DOWNLOADS=1 as well.
@@ -163,7 +168,8 @@ def test_each_model_gives_sensible_water(cls):
         assert res["forces"][a, k] == pytest.approx(-(ep - em) / (2 * h), abs=2e-4)
     assert res["hessian"].shape == (9, 9) and np.allclose(res["hessian"], res["hessian"].T, atol=1e-6)
     assert np.allclose(res["forces"].sum(axis=0), 0.0, atol=2e-3)
-    assert -2300 < res["energy"] < -2000                 # water, in eV (about -76 Hartree)
+    low, high = ENERGY_OF_WATER.get(cls.name, (-2300, -2000))      # in eV (about -76 Hartree)
+    assert low < res["energy"] < high
     if "charges" in res:
         assert res["charges"].sum() == pytest.approx(0.0, abs=0.15) and res["charges"][0] < 0
         assert res["dipole"].shape == (3,)

@@ -154,8 +154,9 @@ class Ani1xnrEngine(TorchAniBase):
     name = "ani1xnr"
     title = "ANI-1xnr (TorchANI)"
     description = ("ANI-1xnr, a reactive neural network potential trained to BLYP/TZV2P. "
-                   "Neutral closed-shell molecules of H, C, N and O only. "
-                   "Downloads about 21 MB the first time.")
+                   "Neutral closed-shell molecules of H, C, N and O only. Its energies are on a "
+                   "different scale from the other ANI models (water is about -468 eV, not -2079 eV): "
+                   "only energy differences mean something. Downloads about 21 MB the first time.")
     citation = "Zhang et al., Nat. Chem. (2024), doi:10.1038/s41557-023-01427-3; " + GAO
     elements = HCNO
     model_function = "ANI1xnr"
