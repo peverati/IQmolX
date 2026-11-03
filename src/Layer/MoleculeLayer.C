@@ -118,6 +118,7 @@ Molecule::Molecule(QObject* parent) : Component(DefaultMoleculeName, parent),
    m_smallerHydrogens(true), 
    m_modified(false),
    m_xtbSkipEnergy(false),
+   m_uffEnergyOnly(false),
    m_reperceiveBondsForAnimation(false),
    m_configurator(*this), 
    m_surfaceAnimator(0),
@@ -2069,9 +2070,12 @@ void Molecule::addHydrogens()
 
    QLOG_DEBUG() << "Number of hydrogens added:" << obMol->NumAtoms() - numAtoms;
 
+   // Creating the atoms and posting the command both trigger an energy update
+   m_uffEnergyOnly = true;
    Command::AddHydrogens* cmd  = 
       new Command::AddHydrogens(this, fromOBMol(obMol, &atomMap, &bondMap));
    postCommand(cmd);
+   m_uffEnergyOnly = false;
 
    delete obMol;
    m_modified = true;
@@ -2202,6 +2206,13 @@ bool Molecule::runXtb(QString const& methodName, bool optimize)
 
 void Molecule::computeEnergy(QString const& forceFieldName)
 {
+   bool xtbMethod(forceFieldName == "GFN2-xTB" || forceFieldName == "GFN1-xTB" 
+                  || forceFieldName == "GFN-FF");
+   if (m_uffEnergyOnly && xtbMethod) {
+      computeEnergy("UFF");
+      return;
+   }
+
    if (runXtb(forceFieldName, false)) return;
 
    QLOG_DEBUG() << "Computing energy with forcefield" << forceFieldName;

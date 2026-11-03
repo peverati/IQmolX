@@ -357,6 +357,11 @@ bool save(bool prompt = false);
             // emits updated() before its animation moves the atoms, which would trigger
             // an energy calculation on the old geometry and overwrite the result.
             bool m_xtbSkipEnergy;
+
+            // Set while posting the command that adds hydrogens.  The new atoms start
+            // on top of each other, which the xtb methods refuse, so the energy
+            // update that follows uses UFF instead.
+            bool m_uffEnergyOnly;
             bool m_reperceiveBondsForAnimation;
    
             Configurator::Molecule m_configurator;
