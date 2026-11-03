@@ -1,0 +1,12 @@
+# iqmolx-engines
+
+Helper process that lets IQMolX use Python-based calculators (machine learning potentials
+and other methods). IQMolX talks to it with one JSON message per line over stdin/stdout;
+see [PROTOCOL.md](PROTOCOL.md).
+
+    pip install -e '.[test]'
+    iqmolx-engines --describe        # list engines and their capabilities
+    pytest                           # tests (the ASE adapter tests skip without ASE)
+
+Engines: `demo` (Morse toy potential, numpy only, for tests) and `ase` (generic adapter
+for any ASE calculator). Weights and PyTorch are never bundled with IQMolX.
