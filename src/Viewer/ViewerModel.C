@@ -25,7 +25,6 @@
 #include "Layer/FrequenciesLayer.h"
 #include "Layer/GeometryListLayer.h"
 #include "Layer/GeometryLayer.h"
-#include "Layer/OrbitalsLayer.h"
 #include "Layer/SurfaceLayer.h"
 #include "Data/MacroMolecule.h"
 #include "Preferences.h"
@@ -974,25 +973,6 @@ void ViewerModel::selectionChanged(QItemSelection const& selected,
 
               glObject->select();
               m_selectedObjects.append(glObject);
-
-              // Clicking one of the surfaces of an orbital layer shows that one on its own
-              // (the others can be shown again with the check boxes).  A selection of
-              // several surfaces is left alone.
-              Layer::Surface* surface(qobject_cast<Layer::Surface*>(glObject));
-              if (surface && list.size() == 1) {
-                 QStandardItem* parent(surface->QStandardItem::parent());
-                 if (parent && qobject_cast<Layer::Orbitals*>(
-                    QVariantPtr<Layer::Base>::toPointer(parent->data()))) {
-                    for (int row = 0; row < parent->rowCount(); ++row) {
-                        QStandardItem* sibling(parent->child(row));
-                        if (sibling != surface && qobject_cast<Layer::Surface*>(
-                           QVariantPtr<Layer::Base>::toPointer(sibling->data(Qt::UserRole+1)))) {
-                           sibling->setCheckState(Qt::Unchecked);
-                        }
-                    }
-                    surface->setCheckState(Qt::Checked);
-                 }
-              }
 
        }else if ( (molecule = qobject_cast<Layer::Molecule*>(base)) ) {
           if (molecule->checkState() == Qt::Checked) {

@@ -53,6 +53,7 @@ namespace IQmol {
 
       private Q_SLOTS:
          void contextMenuEvent(QContextMenuEvent*);
+         void mousePressEvent(QMouseEvent*);
    };
 
 } // end namespace IQmol

@@ -1,6 +1,12 @@
 <RCC>
   <qresource prefix="/" >
     <file>icons/AddFragment.png</file>
+    <file>icons/CheckUnchecked.png</file>
+    <file>icons/CheckUnchecked@2x.png</file>
+    <file>icons/CheckChecked.png</file>
+    <file>icons/CheckChecked@2x.png</file>
+    <file>icons/CheckPartial.png</file>
+    <file>icons/CheckPartial@2x.png</file>
     <file>icons/T14.png</file>
     <file>icons/T24.png</file>
     <file>icons/AddHydrogens.png</file>

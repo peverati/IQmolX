@@ -23,10 +23,14 @@
 #include "ViewerModelView.h"
 #include "QVariantPtr.h"
 #include "Layer/MoleculeLayer.h"
+#include "Layer/OrbitalsLayer.h"
+#include "Layer/SurfaceLayer.h"
 
 #include <QContextMenuEvent>
 #include <QModelIndex>
 #include <QMenu>
+#include <QMouseEvent>
+#include <QStyleOptionViewItem>
 
 #include <QDebug>
 
@@ -41,6 +45,51 @@ ViewerModelView::ViewerModelView(QWidget* parent) : QTreeView(parent)
    setSelectionMode(QAbstractItemView::ExtendedSelection);
    setEditTriggers( QAbstractItemView::EditKeyPressed);
    setExpandsOnDoubleClick(false);
+
+   // The native check boxes of the items are not drawn in the dark tree on macOS, so there
+   // would be no way to see, or change, which layers are shown.
+   setStyleSheet(
+      "QTreeView::indicator { width: 14px; height: 14px; }"
+      "QTreeView::indicator:unchecked { image: url(:/icons/CheckUnchecked.png); }"
+      "QTreeView::indicator:checked { image: url(:/icons/CheckChecked.png); }"
+      "QTreeView::indicator:indeterminate { image: url(:/icons/CheckPartial.png); }");
+}
+
+
+// Clicking one of the surfaces of an orbital layer (not its check box) shows that surface on
+// its own: with several orbitals calculated they would otherwise all be drawn on top of
+// each other.  The other surfaces can be shown again with their check boxes.
+void ViewerModelView::mousePressEvent(QMouseEvent* event)
+{
+   QTreeView::mousePressEvent(event);
+   if (event->button() != Qt::LeftButton || event->modifiers() != Qt::NoModifier) return;
+
+   QModelIndex index(indexAt(event->pos()));
+   if (!index.isValid()) return;
+
+   QStyleOptionViewItem option;
+   option.initFrom(this);
+   option.rect = visualRect(index);
+   option.features |= QStyleOptionViewItem::HasCheckIndicator;
+   if (style()->subElementRect(QStyle::SE_ItemViewItemCheckIndicator, &option, this)
+      .adjusted(-2, -2, 2, 2).contains(event->pos())) return;
+
+   Layer::Base* base(QVariantPtr<Layer::Base>::toPointer(index.data(Qt::UserRole+1)));
+   Layer::Surface* surface(qobject_cast<Layer::Surface*>(base));
+   if (!surface) return;
+
+   QStandardItem* parent(surface->QStandardItem::parent());
+   if (!parent || !qobject_cast<Layer::Orbitals*>(
+      QVariantPtr<Layer::Base>::toPointer(parent->data()))) return;
+
+   for (int row = 0; row < parent->rowCount(); ++row) {
+       QStandardItem* sibling(parent->child(row));
+       if (sibling != surface && qobject_cast<Layer::Surface*>(
+          QVariantPtr<Layer::Base>::toPointer(sibling->data(Qt::UserRole+1)))) {
+          sibling->setCheckState(Qt::Unchecked);
+       }
+   }
+   surface->setCheckState(Qt::Checked);
 }
 
 
