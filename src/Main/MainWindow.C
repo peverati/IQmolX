@@ -163,6 +163,7 @@ void MainWindow::createConnections()
    connect(&m_toolBar, SIGNAL(save()),            &m_viewerModel, SLOT(saveAll()));
    connect(&m_toolBar, SIGNAL(addHydrogens()),    &m_viewerModel, SLOT(addHydrogens()));
    connect(&m_toolBar, SIGNAL(minimizeEnergy()),  &m_viewerModel, SLOT(minimizeEnergy()));
+   connect(XtbResultDialog::instance(), SIGNAL(runRequested()), &m_viewerModel, SLOT(runXtb()));
    connect(&m_toolBar, SIGNAL(deleteSelection()), &m_viewerModel, SLOT(deleteSelection()));
    connect(&m_toolBar, SIGNAL(takeSnapshot()),    m_viewer,       SLOT(takeSnapshot()));
    connect(&m_toolBar, SIGNAL(record(bool)),      this,           SLOT(setRecord(bool)));
@@ -641,11 +642,6 @@ void MainWindow::createMenus()
       connect(action, SIGNAL(triggered()), &m_viewerModel, SLOT(minimizeEnergy()));
       action->setShortcut(Qt::CTRL | Qt::Key_M);
 
-      name = "Single Point Energy";
-      action = menu->addAction(name);
-      connect(action, SIGNAL(triggered()), &m_viewerModel, SLOT(singlePointEnergy()));
-      action->setShortcut(Qt::CTRL | Qt::Key_E);
-
       name = "Select Force Field";
 
       QActionGroup* forceFieldGroup = new QActionGroup(this);
@@ -691,91 +687,10 @@ void MainWindow::createMenus()
          connect(action, SIGNAL(triggered()), this, SLOT(setForceField()));
          if (Preferences::DefaultForceField() == ff) action->setChecked(true);
 
-         // Semi-empirical tight-binding methods provided by the external xtb program
-         subMenu->addSeparator();
-         QStringList xtbMethods;
-         xtbMethods << "GFN2-xTB" << "GFN1-xTB" << "GFN-FF";
-         for (QString const& method : xtbMethods) {
-             action = subMenu->addAction(method);
-             action->setCheckable(true);
-             action->setData(method);
-             forceFieldGroup->addAction(action);
-             connect(action, SIGNAL(triggered()), this, SLOT(setForceField()));
-             if (Preferences::DefaultForceField() == method) action->setChecked(true);
-         }
-
-#ifdef IQMOL_WITH_LIBXTB
-      name = "Select xTB Backend";
-      subMenu = menu->addMenu(name);
-      {
-         QActionGroup* backendGroup = new QActionGroup(this);
-         QString current(Preferences::XtbBackend());
-
-         action = subMenu->addAction("External xtb Program");
-         action->setCheckable(true);
-         action->setData("program");
-         action->setToolTip("Run the xtb program found at the path in the preferences");
-         backendGroup->addAction(action);
-         connect(action, SIGNAL(triggered()), this, SLOT(setXtbBackend()));
-         if (current != "library") action->setChecked(true);
-
-         action = subMenu->addAction("Built-in Library (libxtb)");
-         action->setCheckable(true);
-         action->setData("library");
-         action->setToolTip("Run xtb inside IQmol, with IQmol's own geometry optimizer");
-         backendGroup->addAction(action);
-         connect(action, SIGNAL(triggered()), this, SLOT(setXtbBackend()));
-         if (current == "library") action->setChecked(true);
-      }
-#endif
-
-      name = "Select Solvent (xTB)";
-      subMenu = menu->addMenu(name);
-      subMenu->setToolTipsVisible(true);
-      {
-         // Implicit solvents available for the ALPB model of xtb (xtb name, menu text)
-         QList<QPair<QString, QString> > solvents;
-         solvents << qMakePair(QString(""),             QString("Gas Phase"))
-                  << qMakePair(QString("water"),        QString("Water"))
-                  << qMakePair(QString("acetone"),      QString("Acetone"))
-                  << qMakePair(QString("acetonitrile"), QString("Acetonitrile"))
-                  << qMakePair(QString("aniline"),      QString("Aniline"))
-                  << qMakePair(QString("benzaldehyde"), QString("Benzaldehyde"))
-                  << qMakePair(QString("benzene"),      QString("Benzene"))
-                  << qMakePair(QString("ch2cl2"),       QString("Dichloromethane"))
-                  << qMakePair(QString("chcl3"),        QString("Chloroform"))
-                  << qMakePair(QString("cs2"),          QString("Carbon Disulfide"))
-                  << qMakePair(QString("dioxane"),      QString("Dioxane"))
-                  << qMakePair(QString("dmf"),          QString("DMF"))
-                  << qMakePair(QString("dmso"),         QString("DMSO"))
-                  << qMakePair(QString("ether"),        QString("Diethyl Ether"))
-                  << qMakePair(QString("ethylacetate"), QString("Ethyl Acetate"))
-                  << qMakePair(QString("furane"),       QString("Furan"))
-                  << qMakePair(QString("hexadecane"),   QString("Hexadecane"))
-                  << qMakePair(QString("hexane"),       QString("Hexane"))
-                  << qMakePair(QString("methanol"),     QString("Methanol"))
-                  << qMakePair(QString("nitromethane"), QString("Nitromethane"))
-                  << qMakePair(QString("octanol"),      QString("Octanol"))
-                  << qMakePair(QString("woctanol"),     QString("Octanol (wet)"))
-                  << qMakePair(QString("phenol"),       QString("Phenol"))
-                  << qMakePair(QString("thf"),          QString("THF"))
-                  << qMakePair(QString("toluene"),      QString("Toluene"));
-
-         QActionGroup* solventGroup = new QActionGroup(this);
-         QString current(Preferences::XtbSolvent());
-         for (int i = 0; i < solvents.size(); ++i) {
-             action = subMenu->addAction(solvents[i].second);
-             action->setCheckable(true);
-             action->setData(solvents[i].first);
-             solventGroup->addAction(action);
-             connect(action, SIGNAL(triggered()), this, SLOT(setSolvent()));
-             if (current == solvents[i].first) action->setChecked(true);
-             if (i == 0) subMenu->addSeparator();
-         }
-      }
-
-      name = "Show xtb Output";
+      name = "xtb Setup...";
       action = menu->addAction(name);
+      action->setToolTip("Set up and run xtb calculations (GFN-xTB methods, solvents)");
+      action->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_X);
       connect(action, &QAction::triggered, []() { XtbResultDialog::instance()->showWindow(); });
 
       menu->addSeparator();
@@ -1016,26 +931,6 @@ void MainWindow::setLabel()
    if (turnOn) action->setChecked(true);
 }
 
-
-
-// Selects whether the xtb methods run the xtb program or libxtb
-void MainWindow::setXtbBackend()
-{
-   QAction* action = qobject_cast<QAction*>(sender());
-   if (!action) return;
-   Preferences::XtbBackend(action->data().toString());
-   m_viewerModel.computeEnergy();
-}
-
-
-// Selects the implicit solvent used by the xtb methods
-void MainWindow::setSolvent()
-{
-   QAction* action = qobject_cast<QAction*>(sender());
-   if (!action) return;
-   Preferences::XtbSolvent(action->data().toString());
-   m_viewerModel.computeEnergy();   // refresh the energy in the new environment
-}
 
 
 void MainWindow::setForceField()

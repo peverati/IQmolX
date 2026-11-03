@@ -1198,11 +1198,10 @@ void ViewerModel::computeEnergy()
 }
 
 
-void ViewerModel::singlePointEnergy()
+// Runs the calculation that is selected in the xtb window
+void ViewerModel::runXtb()
 {
-   forAllMolecules(
-      std::bind(&Layer::Molecule::singlePointEnergy, std::placeholders::_1, m_forceField)
-   );
+   forAllMolecules(std::bind(&Layer::Molecule::runXtbJob, std::placeholders::_1));
 }
 
 

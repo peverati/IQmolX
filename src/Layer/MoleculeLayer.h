@@ -117,13 +117,9 @@ bool save(bool prompt = false);
             void minimizeEnergy(QString const& forcefield);
             void computeEnergy(QString const& forcefield);
 
-            // Runs the external xtb program for the 'GFN2-xTB', 'GFN1-xTB' and
-            // 'GFN-FF' methods.  Returns false if method is not an xtb method.
-            bool runXtb(QString const& method, bool optimize, bool showDialog = false);
-
-            // Explicit single-point energy: for the xtb methods this reports the result
-            // in the xtb window, otherwise it is the same as computeEnergy.
-            void singlePointEnergy(QString const& forcefield);
+            // Runs the xtb calculation (method, solvent, backend, single point or
+            // optimization) that is selected in the xtb window.
+            void runXtbJob();
 
             void symmetrize(double tolerance, bool updateCoordinates = true);
 
@@ -283,6 +279,7 @@ bool save(bool prompt = false);
             void saveAs() { save(true); }
 
          private:
+            void runXtb(QString const& method, bool optimize);
             static bool s_autoDetectSymmetry;
 
             QString constraintsAsString();
@@ -361,11 +358,6 @@ bool save(bool prompt = false);
             // emits updated() before its animation moves the atoms, which would trigger
             // an energy calculation on the old geometry and overwrite the result.
             bool m_xtbSkipEnergy;
-
-            // Set while posting the command that adds hydrogens.  The new atoms start
-            // on top of each other, which the xtb methods refuse, so the energy
-            // update that follows uses UFF instead.
-            bool m_uffEnergyOnly;
             bool m_reperceiveBondsForAnimation;
    
             Configurator::Molecule m_configurator;

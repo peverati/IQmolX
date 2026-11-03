@@ -14,6 +14,9 @@
 #include "FileDialog.h"
 #include "Preferences.h"
 #include <QApplication>
+#include <QComboBox>
+#include <QFormLayout>
+#include <QGroupBox>
 #include <QDesktopWidget>
 #include <QMoveEvent>
 #include <QResizeEvent>
@@ -42,14 +45,63 @@ XtbResultDialog* XtbResultDialog::instance()
 }
 
 
-XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_running(false), m_placed(false)
+XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_running(false), m_started(false), m_placed(false)
 {
    // An ordinary window (not Qt::Tool): tool windows on macOS cannot be restored
    // from the Dock once they have been minimized.
    setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::WindowSystemMenuHint | 
       Qt::WindowMinimizeButtonHint | Qt::WindowCloseButtonHint);
    setWindowTitle("xtb");
-   resize(640, 480);
+   resize(680, 600);
+
+   // The calculation to run.  The choices are kept in the preferences.
+   m_settings = new QGroupBox("Calculation", this);
+   QFormLayout* form(new QFormLayout(m_settings));
+
+   m_jobCombo = new QComboBox(m_settings);
+   m_jobCombo->addItem("Single point energy", "singlepoint");
+   m_jobCombo->addItem("Geometry optimization", "optimize");
+   form->addRow("Job:", m_jobCombo);
+
+   m_methodCombo = new QComboBox(m_settings);
+   m_methodCombo->addItem("GFN2-xTB", "GFN2-xTB");
+   m_methodCombo->addItem("GFN1-xTB", "GFN1-xTB");
+   m_methodCombo->addItem("GFN-FF (force field)", "GFN-FF");
+   form->addRow("Method:", m_methodCombo);
+
+   // The solvents of the ALPB implicit solvation model (xtb name, menu text)
+   m_solventCombo = new QComboBox(m_settings);
+   m_solventCombo->setToolTip("Implicit solvent (ALPB model)");
+   char const* solvents[][2] = {
+      { "",             "Gas phase"        }, { "water",        "Water"            },
+      { "acetone",      "Acetone"          }, { "acetonitrile", "Acetonitrile"     },
+      { "aniline",      "Aniline"          }, { "benzaldehyde", "Benzaldehyde"     },
+      { "benzene",      "Benzene"          }, { "ch2cl2",       "Dichloromethane"  },
+      { "chcl3",        "Chloroform"       }, { "cs2",          "Carbon disulfide" },
+      { "dioxane",      "Dioxane"          }, { "dmf",          "DMF"              },
+      { "dmso",         "DMSO"             }, { "ether",        "Diethyl ether"    },
+      { "ethylacetate", "Ethyl acetate"    }, { "furane",       "Furan"            },
+      { "hexadecane",   "Hexadecane"       }, { "hexane",       "Hexane"           },
+      { "methanol",     "Methanol"         }, { "nitromethane", "Nitromethane"     },
+      { "octanol",      "Octanol"          }, { "woctanol",     "Octanol (wet)"    },
+      { "phenol",       "Phenol"           }, { "thf",          "THF"              },
+      { "toluene",      "Toluene"          }
+   };
+   for (auto const& solvent : solvents) m_solventCombo->addItem(solvent[1], solvent[0]);
+   form->addRow("Solvent:", m_solventCombo);
+
+   m_backendCombo = new QComboBox(m_settings);
+   m_backendCombo->addItem("xtb program", "program");
+   m_backendCombo->setItemData(0, "Run the xtb program found at the path in the preferences", 
+      Qt::ToolTipRole);
+#ifdef IQMOL_WITH_LIBXTB
+   m_backendCombo->addItem("Built-in library (libxtb)", "library");
+   m_backendCombo->setItemData(1, "Run xtb inside IQmol, with IQmol's own geometry optimizer", 
+      Qt::ToolTipRole);
+   form->addRow("Backend:", m_backendCombo);
+#else
+   m_backendCombo->hide();   // IQmol was built without libxtb
+#endif
 
    m_title = new QLabel(this);
    QFont font(m_title->font());
@@ -72,24 +124,38 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_running(f
    m_output->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
    m_output->setMaximumBlockCount(20000);
 
+   m_runButton    = new QPushButton("Run", this);
    m_cancelButton = new QPushButton("Cancel", this);
    m_saveButton   = new QPushButton("Save...", this);
    m_closeButton  = new QPushButton("Close", this);
-   m_closeButton->setDefault(true);
+   m_runButton->setDefault(true);
 
    QHBoxLayout* buttons(new QHBoxLayout());
    buttons->addStretch();
+   buttons->addWidget(m_runButton);
    buttons->addWidget(m_cancelButton);
    buttons->addWidget(m_saveButton);
    buttons->addWidget(m_closeButton);
 
    QVBoxLayout* layout(new QVBoxLayout(this));
+   layout->addWidget(m_settings);
    layout->addWidget(m_title);
    layout->addWidget(m_summary);
    layout->addWidget(m_progress);
    layout->addWidget(m_output, 1);
    layout->addLayout(buttons);
 
+   m_title->setText("xtb");
+   m_summary->setText("Choose the calculation and press Run to calculate the current molecule.");
+   m_progress->hide();
+   m_cancelButton->hide();
+   loadSettings();
+
+   connect(m_jobCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(saveSettings()));
+   connect(m_methodCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(saveSettings()));
+   connect(m_solventCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(saveSettings()));
+   connect(m_backendCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(saveSettings()));
+   connect(m_runButton, SIGNAL(clicked()), this, SLOT(run()));
    connect(m_cancelButton, SIGNAL(clicked()), this, SIGNAL(cancelRequested()));
    connect(m_saveButton, SIGNAL(clicked()), this, SLOT(save()));
    connect(m_closeButton, SIGNAL(clicked()), this, SLOT(close()));
@@ -99,17 +165,63 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_running(f
 void XtbResultDialog::setRunning(bool running)
 {
    m_running = running;
+   m_settings->setEnabled(!running);
    m_progress->setVisible(running);
+   m_runButton->setVisible(!running);
    m_cancelButton->setVisible(running);
    m_saveButton->setVisible(!running);
    m_closeButton->setVisible(!running);
-   if (running) m_cancelButton->setFocus(); else m_closeButton->setFocus();
+   if (running) m_cancelButton->setFocus(); else m_runButton->setFocus();
+}
+
+
+// Shows the settings stored in the preferences
+void XtbResultDialog::loadSettings()
+{
+   auto select = [](QComboBox* combo, QString const& value) {
+      int index(combo->findData(value));
+      if (index >= 0) combo->setCurrentIndex(index);
+   };
+
+   // do not store what is being loaded
+   QList<QComboBox*> combos;
+   combos << m_jobCombo << m_methodCombo << m_solventCombo << m_backendCombo;
+   for (QComboBox* combo : combos) combo->blockSignals(true);
+
+   select(m_jobCombo, Preferences::XtbJob());
+   select(m_methodCombo, Preferences::XtbMethod());
+   select(m_solventCombo, Preferences::XtbSolvent());
+   select(m_backendCombo, Preferences::XtbBackend());
+
+   for (QComboBox* combo : combos) combo->blockSignals(false);
+}
+
+
+void XtbResultDialog::saveSettings()
+{
+   Preferences::XtbJob(m_jobCombo->currentData().toString());
+   Preferences::XtbMethod(m_methodCombo->currentData().toString());
+   Preferences::XtbSolvent(m_solventCombo->currentData().toString());
+   Preferences::XtbBackend(m_backendCombo->currentData().toString());
+}
+
+
+void XtbResultDialog::run()
+{
+   saveSettings();
+   m_started = false;
+   runRequested();
+   if (!m_started) {
+      m_title->setText("xtb");
+      m_summary->setText("Nothing was calculated.  Is there a molecule with atoms to run xtb on?");
+   }
 }
 
 
 void XtbResultDialog::started(QString const& method, QString const& what,
    QString const& subject)
 {
+   m_started = true;
    m_fileName = method + (what.contains("optim") ? "_opt" : "_sp") + ".out";
    m_fileName.replace(QRegularExpression("[^A-Za-z0-9._-]"), "_");
    m_title->setText(method + " " + what);
@@ -183,11 +295,7 @@ void XtbResultDialog::showWindow()
       return;
    }
 
-   if (m_output->document()->isEmpty() && m_title->text().isEmpty()) {
-      m_title->setText("xtb");
-      m_summary->setText("No xtb calculation has been run yet in this session.");
-   }
-
+   loadSettings();
    setRunning(false);
    placeWindow();
    setWindowState(windowState() & ~Qt::WindowMinimized);

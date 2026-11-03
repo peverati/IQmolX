@@ -113,7 +113,7 @@ namespace IQmol {
          void translateToCenter();
          void minimizeEnergy();
          void computeEnergy();
-         void singlePointEnergy();
+         void runXtb();
          void insertMoleculeById(QString identifier);
          void newMoleculeFromSelection(QModelIndexList const&);
          void deleteSelection(QModelIndexList const&);

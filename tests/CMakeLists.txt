@@ -44,3 +44,11 @@ endif()
 add_executable(OptimizerTest EXCLUDE_FROM_ALL OptimizerTest.C)
 target_include_directories(OptimizerTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
 add_test(NAME OptimizerTest COMMAND OptimizerTest)
+
+
+# The xtb window (needs the Util library, runs on Qt's offscreen platform)
+find_package(Qt5 COMPONENTS Widgets REQUIRED)
+add_executable(XtbDialogTest EXCLUDE_FROM_ALL XtbDialogTest.C)
+target_include_directories(XtbDialogTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+target_link_libraries(XtbDialogTest PRIVATE Util Qt5::Widgets Qt5::Gui Qt5::Core)
+add_test(NAME XtbDialogTest COMMAND XtbDialogTest)

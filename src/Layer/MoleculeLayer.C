@@ -122,7 +122,6 @@ Molecule::Molecule(QObject* parent) : Component(DefaultMoleculeName, parent),
    m_smallerHydrogens(true), 
    m_modified(false),
    m_xtbSkipEnergy(false),
-   m_uffEnergyOnly(false),
    m_reperceiveBondsForAnimation(false),
    m_configurator(*this), 
    m_surfaceAnimator(0),
@@ -2074,12 +2073,9 @@ void Molecule::addHydrogens()
 
    QLOG_DEBUG() << "Number of hydrogens added:" << obMol->NumAtoms() - numAtoms;
 
-   // Creating the atoms and posting the command both trigger an energy update
-   m_uffEnergyOnly = true;
    Command::AddHydrogens* cmd  = 
       new Command::AddHydrogens(this, fromOBMol(obMol, &atomMap, &bondMap));
    postCommand(cmd);
-   m_uffEnergyOnly = false;
 
    delete obMol;
    m_modified = true;
@@ -2087,27 +2083,31 @@ void Molecule::addHydrogens()
 }
 
 
-// Runs xtb on the molecule.  For a single-point energy the geometry is left
-// untouched, otherwise the atoms are moved to the optimized geometry in an 
-// undoable command.
-bool Molecule::runXtb(QString const& methodName, bool optimize, bool showDialog)
+// Runs the calculation chosen in the xtb window (method, solvent, backend and single 
+// point or optimization) on this molecule
+void Molecule::runXtbJob()
 {
-   Calc::XtbProcess::Method method;
-   if (methodName == "GFN2-xTB") {
-      method = Calc::XtbProcess::GFN2;
-   }else if (methodName == "GFN1-xTB") {
+   runXtb(Preferences::XtbMethod(), Preferences::XtbJob() == "optimize");
+}
+
+
+// Runs xtb on the molecule and reports in the xtb window.  For a single-point energy 
+// the geometry is left untouched, otherwise the atoms are moved to the optimized 
+// geometry in an undoable command.
+void Molecule::runXtb(QString const& methodName, bool optimize)
+{
+   Calc::XtbProcess::Method method(Calc::XtbProcess::GFN2);
+   if (methodName == "GFN1-xTB") {
       method = Calc::XtbProcess::GFN1;
    }else if (methodName == "GFN-FF") {
       method = Calc::XtbProcess::GFNFF;
-   }else {
-      return false;
    }
 
-   // The energy was just set by the optimization, see m_xtbSkipEnergy
-   if (!optimize && !showDialog && m_xtbSkipEnergy) return true;
-
    AtomList atoms(findLayers<Atom>(Children));
-   if (atoms.isEmpty()) return true;
+   if (atoms.isEmpty()) {
+      QMsgBox::information(0, "IQmol", "There are no atoms to run xtb on");
+      return;
+   }
 
    Calc::Input input;
    input.charge       = totalCharge();
@@ -2125,10 +2125,9 @@ bool Molecule::runXtb(QString const& methodName, bool optimize, bool showDialog)
        input.coordinates << position.x << position.y << position.z;
    }
 
-   // Only one xtb calculation at a time.  A second request (e.g. the automatic 
-   // energy update) while an optimization is running in the dialog is ignored.
+   // Only one xtb calculation at a time
    static bool s_xtbBusy(false);
-   if (s_xtbBusy) return true;
+   if (s_xtbBusy) return;
    s_xtbBusy = true;
 
    // The xtb program, or libxtb inside IQmol if that is selected and available
@@ -2142,28 +2141,21 @@ bool Molecule::runXtb(QString const& methodName, bool optimize, bool showDialog)
 #endif
    if (!xtb) xtb.reset(new Calc::XtbProcess(Preferences::XtbPath(), method));
 
-   XtbResultDialog* dialog(0);
-   QMetaObject::Connection cancelConnection;
-
-   if (showDialog) {
-      // Keep the GUI alive and show the progress in a window
-      QString subject(text().isEmpty() ? "the molecule" : text());
-      subject += " (" + QString::number(atoms.size()) + " atoms)";
-      subject += useLibrary ? " using libxtb" : " using the xtb program";
-      dialog = XtbResultDialog::instance();
-      xtb->setInteractive(true);
-      xtb->setProgressCallback([dialog](QString const& chunk) { dialog->appendOutput(chunk); });
-      cancelConnection = QObject::connect(dialog, &XtbResultDialog::cancelRequested, 
-         [&xtb]() { xtb->cancel(); });
-      dialog->started(label, optimize ? "geometry optimization" : "single point", subject);
-   }
+   // Keep the GUI alive and show the progress in the xtb window
+   QString subject(text().isEmpty() ? "the molecule" : text());
+   subject += " (" + QString::number(atoms.size()) + " atoms)";
+   subject += useLibrary ? " using libxtb" : " using the xtb program";
+   XtbResultDialog* dialog(XtbResultDialog::instance());
+   xtb->setInteractive(true);
+   xtb->setProgressCallback([dialog](QString const& chunk) { dialog->appendOutput(chunk); });
+   QMetaObject::Connection cancelConnection(QObject::connect(dialog, 
+      &XtbResultDialog::cancelRequested, [&xtb]() { xtb->cancel(); }));
+   dialog->started(label, optimize ? "geometry optimization" : "single point", subject);
 
    Calc::Result result(optimize ? xtb->optimize(input) : xtb->energy(input));
 
-   if (dialog) {
-      QObject::disconnect(cancelConnection);
-      dialog->finished(result, label, optimize);
-   }
+   QObject::disconnect(cancelConnection);
+   dialog->finished(result, label, optimize);
    s_xtbBusy = false;
 
    QLOG_DEBUG() << "xtb" << label << "charge" << input.charge << "multiplicity" 
@@ -2172,21 +2164,14 @@ bool Molecule::runXtb(QString const& methodName, bool optimize, bool showDialog)
    // The full xtb input and output is only worth keeping when something went wrong
    if (!result.success || !result.converged) QLOG_DEBUG() << result.log;
 
-   if (!result.success) {
-      // The dialog reports failures of an optimization
-      if (!dialog) {
-         QString msg(methodName + " calculation failed for " + text() + "\n\n");
-         msg += result.message;
-         QMsgBox::warning(0, "IQmol", msg);
-      }
-      return true;
-   }
+   // Failures and cancellation are reported in the xtb window
+   if (!result.success) return;
 
    QString mesg(label + " energy: ");
 
    if (!optimize) {
       energyAvailable(result.energy, Info::Hartree, mesg);
-      return true;
+      return;
    }
 
    // Guard against the molecule having been edited while xtb was running
@@ -2194,7 +2179,7 @@ bool Molecule::runXtb(QString const& methodName, bool optimize, bool showDialog)
       QString msg("The molecule was modified while xtb was running.  "
                   "The optimized structure has been discarded.");
       QMsgBox::warning(0, "IQmol", msg);
-      return true;
+      return;
    }
 
    // The command records the initial positions on construction
@@ -2220,27 +2205,14 @@ bool Molecule::runXtb(QString const& methodName, bool optimize, bool showDialog)
    setAtomicCharges(Data::Type::GasteigerCharge);
    bool estimated(true);
    dipoleAvailable(dipoleFromPointCharges(), estimated);
-   return true;
-}
-
-
-void Molecule::singlePointEnergy(QString const& forceFieldName)
-{
-   if (runXtb(forceFieldName, false, true)) return;
-   computeEnergy(forceFieldName);
 }
 
 
 void Molecule::computeEnergy(QString const& forceFieldName)
 {
-   bool xtbMethod(forceFieldName == "GFN2-xTB" || forceFieldName == "GFN1-xTB" 
-                  || forceFieldName == "GFN-FF");
-   if (m_uffEnergyOnly && xtbMethod) {
-      computeEnergy("UFF");
-      return;
-   }
-
-   if (runXtb(forceFieldName, false)) return;
+   // An xtb optimization has just set the energy, the update that its undo command 
+   // triggers would replace it with the force field energy of the starting geometry
+   if (m_xtbSkipEnergy) return;
 
    QLOG_DEBUG() << "Computing energy with forcefield" << forceFieldName;
    QByteArray ff(forceFieldName.toLatin1());
@@ -2298,8 +2270,6 @@ void Molecule::computeEnergy(QString const& forceFieldName)
 
 void Molecule::minimizeEnergy(QString const& forceFieldName)
 {
-   if (runXtb(forceFieldName, true, true)) return;
-
    QLOG_DEBUG() << "Minimizing energy with forcefield" << forceFieldName;
    OBPlugin::List("forcefields");
    QByteArray ff(forceFieldName.toLatin1());

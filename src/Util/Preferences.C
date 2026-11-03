@@ -448,6 +448,30 @@ void XtbBackend(QString const& backend)
 }
 
 
+QString XtbMethod()
+{
+   QVariant value(Get("XtbMethod"));
+   return value.isNull() ? QString("GFN2-xTB") : value.value<QString>();
+}
+
+void XtbMethod(QString const& method)
+{
+   Set("XtbMethod", QVariant::fromValue(method));
+}
+
+
+QString XtbJob()
+{
+   QVariant value(Get("XtbJob"));
+   return value.isNull() ? QString("optimize") : value.value<QString>();
+}
+
+void XtbJob(QString const& job)
+{
+   Set("XtbJob", QVariant::fromValue(job));
+}
+
+
 QString XtbSolvent()
 {
    QVariant value(Get("XtbSolvent"));
@@ -477,7 +501,11 @@ void XtbPath(QString const& filePath)
 QString DefaultForceField()
 {
    QVariant value(Get("DefaultForceField"));
-   return value.isNull() ? QString("UFF") : value.value<QString>();
+   // The xtb methods used to be listed as force fields.  They are now run from the
+   // xtb window, so a saved default of that kind is replaced.
+   if (value.isNull() || value.value<QString>().contains("xTB") 
+       || value.value<QString>().startsWith("GFN")) return QString("UFF");
+   return value.value<QString>();
 }
 
 void DefaultForceField(QString const& forceField)

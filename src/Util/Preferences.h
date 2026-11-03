@@ -119,6 +119,14 @@ namespace Preferences {
    QString XtbBackend();
    void    XtbBackend(QString const&);
 
+   // Method of the xtb window: "GFN2-xTB", "GFN1-xTB" or "GFN-FF"
+   QString XtbMethod();
+   void    XtbMethod(QString const&);
+
+   // What the xtb window runs: "optimize" or "singlepoint"
+   QString XtbJob();
+   void    XtbJob(QString const&);
+
    // Implicit solvent (ALPB name, e.g. "water") for the xtb methods.  Empty is gas phase.
    QString XtbSolvent();
    void    XtbSolvent(QString const&);
