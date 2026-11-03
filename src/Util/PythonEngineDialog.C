@@ -63,17 +63,25 @@ QString const s_jobs[][2] = {
 };
 
 // Text for the settings area.  A word-wrapped label under-reports its height in a form, so the
-// text is cut off; a borderless text area of a sensible height does not have that problem.
-QTextBrowser* infoText(QWidget* parent, int height)
+// text is cut off; a borderless text area that is as high as its text, for the width it will
+// have, does not have that problem.
+QTextBrowser* infoText(QWidget* parent)
 {
    QTextBrowser* text(new QTextBrowser(parent));
    text->setFrameShape(QFrame::NoFrame);
    text->setReadOnly(true);
    text->setOpenLinks(false);
-   text->setMinimumHeight(height);
-   text->setMaximumHeight(height + 40);
+   text->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+   text->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
    text->viewport()->setAutoFillBackground(false);
    return text;
+}
+
+void setInfo(QTextBrowser* text, QString const& html, int width)
+{
+   text->setHtml(html);
+   text->document()->setTextWidth(width);
+   text->setFixedHeight(static_cast<int>(text->document()->size().height()) + 6);
 }
 
 
@@ -117,7 +125,7 @@ PythonEngineDialog::PythonEngineDialog(QWidget* parent) : QDialog(parent),
    pythonRow->addWidget(refresh);
    form->addRow("Python:", pythonRow);
 
-   m_environmentInfo = infoText(this, 66);
+   m_environmentInfo = infoText(this);
    m_setupButton = new QPushButton("Set Up Environment", this);
    m_setupButton->setToolTip("Make a Python environment for the engines with uv.  uv downloads a "
       "Python of its own,\nso none has to be installed.  Nothing is installed anywhere else.");
@@ -136,7 +144,7 @@ PythonEngineDialog::PythonEngineDialog(QWidget* parent) : QDialog(parent),
    engineRow->addWidget(m_installButton);
    form->addRow("Engine:", engineRow);
 
-   m_engineInfo = infoText(this, 104);
+   m_engineInfo = infoText(this);
    form->addRow(QString(), m_engineInfo);
 
    m_optionsBox = new QGroupBox("Engine settings", this);
@@ -383,7 +391,7 @@ void PythonEngineDialog::showEngine()
    }
    QString citation(m_descriptor.value("citation").toString());
    if (!citation.isEmpty()) s += "<br>Please cite: " + plain(citation);
-   m_engineInfo->setHtml(s + "</small>");
+   setInfo(m_engineInfo, s + "</small>", 450);
 
    // what the engine cannot handle is not offered
    bool charge(m_descriptor.value("charge").toBool(true));
@@ -541,15 +549,15 @@ void PythonEngineDialog::updateEnvironmentRow()
    m_setupButton->setVisible(!have);
    m_setupButton->setEnabled(uv);
    if (have) {
-      m_environmentInfo->setHtml("<small>IQMolX Python environment: " + plain(environment) + "</small>");
+      setInfo(m_environmentInfo, "<small>IQMolX Python environment: " + plain(environment) + "</small>", 450);
    }else if (uv) {
-      m_environmentInfo->setHtml("<small>There is no IQMolX Python environment yet.  Set Up Environment "
+      setInfo(m_environmentInfo, "<small>There is no IQMolX Python environment yet.  Set Up Environment "
          "makes one with uv: it downloads a Python of its own (about 25 MB) and installs the "
-         "helper.  Or choose a Python that has iqmolx-engines.</small>");
+         "helper.  Or choose a Python that has iqmolx-engines.</small>", 330);
    }else {
-      m_environmentInfo->setHtml("<small>There is no IQMolX Python environment, and uv, which makes "
+      setInfo(m_environmentInfo, "<small>There is no IQMolX Python environment, and uv, which makes "
          "it, was not found.  Install uv (for example <tt>brew install uv</tt>) or choose a Python "
-         "that has iqmolx-engines.</small>");
+         "that has iqmolx-engines.</small>", 330);
    }
 }
 
