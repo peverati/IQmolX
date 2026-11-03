@@ -25,8 +25,10 @@ def _builtin():
         pass
     from .engines.torchani_engine import ALL_ENGINES as TORCHANI
     from .engines.egret_engine import ALL_ENGINES as EGRET
+    from .engines.pyscf_engine import PySCFEngine
     classes.extend(TORCHANI)
     classes.extend(EGRET)
+    classes.append(PySCFEngine)
     return classes
 
 
