@@ -184,6 +184,16 @@ if (APPLE)
       ${IQmol_RESOURCES_RCC}
    )
    set_source_files_properties(${ICON_PATH} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+
+   # Give the application an identity.  Without a bundle identifier macOS (and tools that
+   # automate applications, such as screen readers or test drivers) cannot tell it apart.
+   set_target_properties(${targetName} PROPERTIES
+      MACOSX_BUNDLE_GUI_IDENTIFIER       "org.iqmol.IQmol3"
+      MACOSX_BUNDLE_BUNDLE_NAME          "IQmol"
+      MACOSX_BUNDLE_ICON_FILE            "IQmol.icns"
+      MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+      MACOSX_BUNDLE_BUNDLE_VERSION       "${PROJECT_VERSION}"
+   )
    file(COPY ${ICON_PATH} DESTINATION "bin/${targetName}.app/Contents/Resources")
    file(COPY resources/crtimgseq.py DESTINATION "bin/${targetName}.app/Contents/Resources")
    add_custom_command(TARGET ${targetName} POST_BUILD COMMAND ${CMAKE_COMMAND} -E 
