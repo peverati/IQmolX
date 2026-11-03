@@ -145,9 +145,13 @@ LICENSE, README, preprint: MIT; mace-torch MIT), weights are single files downlo
 `download.py` from a pinned commit and checked against the git blob hash; elements from the preprint.
 *PySCF* (`pyscf_engine.py`): HF and eight DFT functionals; **PySCF 2.14's analytic Hessian is wrong for
 meta-GGAs (TPSS, M06-2X, r2SCAN), so those use finite differences of the analytic forces**.  What was
-run for real: ANI-2x, ANI-1x and PySCF; the download helper against a local server.  **Not run: the
-other six TorchANI models, and the five Egret models (they need weights, and mace-torch)**.  The Help
-page marks each model "run" or "not run yet": update it when they are run.  The user's environment keeps
+run for real (user approved the downloads): all eight TorchANI engines (ANI-1xnr's energies are on a
+valence scale, water -468 eV, documented; ANI-r2s only vacuum and water, chloroform and acetonitrile not
+run), all five Egret models (weights downloaded and hash-checked; **they have no Hessian: the compiled
+TorchScript files cannot run that routine**, so `properties` is energy and forces and IQMolX makes
+frequencies from forces; element lists confirmed from the model files), PySCF, and the download helper
+against a local server.  Egret and ANI need `mace-torch` / `torch`+`torchani` in the environment (Install
+buttons).  The user's environment keeps
 the helper it was made with: reinstall it to get new engines (see the earlier note).
 Tests: `PythonEngineTest`, `PythonSetupTest`, `PythonDialogTest` (C++), `pytest` in the helper
 (`IQMOLX_TEST_DOWNLOADS=1` runs the TorchANI model tests).  Never run `XtbProcessTest` in a

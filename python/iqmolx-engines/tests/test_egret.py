@@ -20,7 +20,7 @@ def test_every_egret_model_describes_itself_properly():
         assert d["title"] and d["description"] and "MIT" in d["license"] and "Rowan" in d["citation"]
         assert d["charge"] is False and d["multiplicity"] is False
         assert d["requires_download"] is True and d["requirements"] == ["mace-torch>=0.3.14"]
-        assert {"energy", "forces", "hessian"} <= set(d["properties"])
+        assert d["properties"] == ["energy", "forces"]        # no Hessian: see egret_engine.py
         assert re.fullmatch(r"[0-9a-f]{40}", cls.blob_sha1) and cls.model_size > 1_000_000
         assert cls.model_file.endswith(".model")
 
@@ -74,7 +74,7 @@ def _models_asked_for():
 def test_each_model_gives_sensible_water(cls):
     eng = cls()
     eng.load(resolve_options(cls, {}, "load"), Context())
-    res = eng.compute(WATER_Z, WATER_XYZ, 0, 1, ["energy", "forces", "hessian"], {}, Context())
+    res = eng.compute(WATER_Z, WATER_XYZ, 0, 1, ["energy", "forces"], {}, Context())
     h = 1e-4
     for a, k in ((0, 2), (1, 1), (2, 1)):
         p, m = WATER_XYZ.copy(), WATER_XYZ.copy()
@@ -83,7 +83,10 @@ def test_each_model_gives_sensible_water(cls):
         ep = eng.compute(WATER_Z, p, 0, 1, ["energy"], {}, Context())["energy"]
         em = eng.compute(WATER_Z, m, 0, 1, ["energy"], {}, Context())["energy"]
         assert res["forces"][a, k] == pytest.approx(-(ep - em) / (2 * h), abs=2e-4)
-    assert res["hessian"].shape == (9, 9) and np.allclose(res["hessian"], res["hessian"].T, atol=1e-5)
+    with pytest.raises(EngineError) as e:                  # the helper refuses what the engine does not offer
+        cls.validate_system(WATER_Z, 0, 1, ["hessian"])
+    assert e.value.code == "unsupported_property"
+    assert -2200 < res["energy"] < -2000 and res["forces"].shape == (3, 3)     # water, in eV
     assert np.allclose(res["forces"].sum(axis=0), 0.0, atol=2e-3)
     moved = eng.compute(WATER_Z, WATER_XYZ + [2.0, -1.0, 3.0], 0, 1, ["energy"], {}, Context())["energy"]
     assert moved == pytest.approx(res["energy"], abs=1e-6)

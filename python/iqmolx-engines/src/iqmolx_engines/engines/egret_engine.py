@@ -54,7 +54,9 @@ class EgretBase(Engine):
     elements = ELEMENTS
     charge = False
     multiplicity = False
-    properties = ("energy", "forces", "hessian")
+    # No Hessian: the models are TorchScript exports, whose Hessian routine is a Python function that
+    # cannot run in the export ("annotated to be ignored").  IQMolX builds frequencies from forces.
+    properties = ("energy", "forces")
     requires_download = True
     requirements = ("mace-torch>=0.3.14",)
     options = (
@@ -95,15 +97,10 @@ class EgretBase(Engine):
         from ase import Atoms
 
         ctx.check_cancel()
-        n = len(numbers)
         atoms = Atoms(numbers=[int(z) for z in numbers], positions=np.asarray(coordinates, dtype=float))
         atoms.calc = self.calc
-        result = {"energy": float(atoms.get_potential_energy()),
-                  "forces": np.asarray(atoms.get_forces(), dtype=float)}
-        if "hessian" in want:
-            ctx.check_cancel()
-            result["hessian"] = np.asarray(self.calc.get_hessian(atoms), dtype=float).reshape(3 * n, 3 * n)
-        return result
+        return {"energy": float(atoms.get_potential_energy()),
+                "forces": np.asarray(atoms.get_forces(), dtype=float)}
 
 
 class Egret1Engine(EgretBase):

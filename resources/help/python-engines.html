@@ -176,42 +176,42 @@
           <td valign="top"> wB97X/6-31G(d) </td>
           <td valign="top"> H, C, N, O, F, S, Cl </td>
           <td valign="top"> 55 MB </td>
-          <td valign="top"> run, with frequencies </td></tr>
+          <td valign="top"> run; forces and Hessian checked </td></tr>
       <tr><td valign="top"><b>ANI-1x</b></td>
           <td valign="top"> wB97X/6-31G(d), by active learning </td>
           <td valign="top"> H, C, N, O </td>
           <td valign="top"> 10 MB </td>
-          <td valign="top"> run </td></tr>
+          <td valign="top"> run; forces and Hessian checked </td></tr>
       <tr><td valign="top"><b>ANI-1ccx</b></td>
           <td valign="top"> CCSD(T)*/CBS, by transfer learning from ANI-1x </td>
           <td valign="top"> H, C, N, O </td>
           <td valign="top"> 10 MB </td>
-          <td valign="top"> not run yet </td></tr>
+          <td valign="top"> run; forces and Hessian checked </td></tr>
       <tr><td valign="top"><b>ANI-1xnr</b></td>
           <td valign="top"> BLYP/TZV2P; a reactive potential.  Its energies are on a different scale from the other ANI models (water is about &minus;468 eV, not &minus;2079 eV): only energy differences mean something </td>
           <td valign="top"> H, C, N, O </td>
           <td valign="top"> 21 MB </td>
-          <td valign="top"> not run yet </td></tr>
+          <td valign="top"> run; forces and Hessian checked </td></tr>
       <tr><td valign="top"><b>ANI-2xr</b></td>
           <td valign="top"> wB97X/6-31G(d) with an added repulsion potential and a smoother potential energy surface </td>
           <td valign="top"> H, C, N, O, F, S, Cl </td>
           <td valign="top"> 55 MB </td>
-          <td valign="top"> not run yet </td></tr>
+          <td valign="top"> run; forces and Hessian checked </td></tr>
       <tr><td valign="top"><b>ANI-2dr</b></td>
           <td valign="top"> B97-3c with added dispersion and repulsion potentials </td>
           <td valign="top"> H, C, N, O, F, S, Cl </td>
           <td valign="top"> 55 MB </td>
-          <td valign="top"> not run yet </td></tr>
+          <td valign="top"> run; forces and Hessian checked </td></tr>
       <tr><td valign="top"><b>ANI-r2s</b> (experimental)</td>
           <td valign="top"> r2SCAN-3c, in vacuum or with the implicit solvent SMD: water, chloroform or acetonitrile (the <i>Solvent</i> setting) </td>
           <td valign="top"> H, C, N, O, F, S, Cl </td>
           <td valign="top"> 55 MB for each solvent </td>
-          <td valign="top"> not run yet </td></tr>
+          <td valign="top"> run in vacuum and in water (the water model lowers the energy of water); chloroform and acetonitrile not run </td></tr>
       <tr><td valign="top"><b>ANI-2x with MBIS charges</b> (experimental)</td>
           <td valign="top"> ANI-2x, plus a network for MBIS atomic charges; the dipole is calculated from the point charges </td>
           <td valign="top"> H, C, N, O, F, S, Cl </td>
           <td valign="top"> 62 MB </td>
-          <td valign="top"> not run yet </td></tr>
+          <td valign="top"> run; forces and Hessian checked </td></tr>
    </table>
 
    <p> Which one to use?  ANI-2x covers the most elements and is the standard
@@ -260,35 +260,40 @@
           <td valign="top"> The general-purpose model, optimized for bioorganic molecules </td>
           <td valign="top"> H, C, N, O, F, P, S, Cl, Br, I </td>
           <td valign="top"> 23 MB </td>
-          <td valign="top"> not run yet </td></tr>
+          <td valign="top"> run; forces checked against finite differences </td></tr>
       <tr><td valign="top"><b>Egret-1e</b></td>
           <td valign="top"> Egret-1 with main-group chemistry added; better thermochemistry </td>
           <td valign="top"> the same and Si </td>
           <td valign="top"> 24 MB </td>
-          <td valign="top"> not run yet </td></tr>
+          <td valign="top"> run; forces checked against finite differences </td></tr>
       <tr><td valign="top"><b>Egret-1t</b></td>
           <td valign="top"> Egret-1 with transition states added; for chemical reactivity </td>
           <td valign="top"> H, C, N, O, F, P, S, Cl, Br, I </td>
           <td valign="top"> 23 MB </td>
-          <td valign="top"> not run yet </td></tr>
+          <td valign="top"> run; forces checked against finite differences </td></tr>
       <tr><td valign="top"><b>Egret-1M</b></td>
           <td valign="top"> A smaller Egret-1 with a lower-resolution equivariance: fast, with a smaller memory footprint </td>
           <td valign="top"> H, C, N, O, F, P, S, Cl, Br, I </td>
           <td valign="top"> 9 MB </td>
-          <td valign="top"> not run yet </td></tr>
+          <td valign="top"> run; forces checked against finite differences </td></tr>
       <tr><td valign="top"><b>Egret-1S</b></td>
           <td valign="top"> A smaller Egret-1 that is invariant only: the fastest and smallest </td>
           <td valign="top"> H, C, N, O, F, P, S, Cl, Br, I </td>
           <td valign="top"> 4 MB </td>
-          <td valign="top"> not run yet </td></tr>
+          <td valign="top"> run; forces checked against finite differences </td></tr>
    </table>
 
    <p> The models are for <b>neutral molecules in the gas phase</b>: they have no
    input for a charge or a spin, so charged and open-shell molecules, and
    other elements, are refused with a message.  (The elements are those of the
-   preprint for Egret-1, -1e and -1t; for the two smaller models they are those of
-   Egret-1, which they are derived from.)  The settings are the
-   <i>Precision</i> (float64 gives smoother forces than float32).
+   preprint, and were checked against the model files: Egret-1, -1t, -1M and -1S
+   have the same ten, Egret-1e has silicon as well.)  The settings are the
+   <i>Precision</i> (float64 gives smoother forces than float32).  The models are
+   fast: one energy and forces of benzene takes about 0.07 s with Egret-1 and 0.03
+   s with Egret-1S on an Apple Silicon Mac.  <b>The models give no Hessian</b>
+   (they are compiled files in which that routine cannot run), so frequencies
+   are built from forces at displaced geometries, six calculations per atom, which
+   is quick for these models.
 
    <p> The model file is downloaded the first time a model is used, from a fixed
    version of the Egret repository on GitHub, and checked against the hash that
