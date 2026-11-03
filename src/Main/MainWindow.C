@@ -163,6 +163,7 @@ void MainWindow::createConnections()
    connect(&m_toolBar, SIGNAL(save()),            &m_viewerModel, SLOT(saveAll()));
    connect(&m_toolBar, SIGNAL(addHydrogens()),    &m_viewerModel, SLOT(addHydrogens()));
    connect(&m_toolBar, SIGNAL(minimizeEnergy()),  &m_viewerModel, SLOT(minimizeEnergy()));
+   connect(&m_toolBar, SIGNAL(xtbSetup()), XtbResultDialog::instance(), SLOT(showWindow()));
    connect(XtbResultDialog::instance(), SIGNAL(runRequested()), &m_viewerModel, SLOT(runXtb()));
    connect(&m_toolBar, SIGNAL(deleteSelection()), &m_viewerModel, SLOT(deleteSelection()));
    connect(&m_toolBar, SIGNAL(takeSnapshot()),    m_viewer,       SLOT(takeSnapshot()));

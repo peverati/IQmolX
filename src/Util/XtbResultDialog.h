@@ -53,14 +53,14 @@ namespace IQmol {
          /// belong to one molecule.
          bool chargeAndSpin(int& charge, int& multiplicity) const;
 
-         /// Brings the window to the front without starting anything, so the output of 
-         /// the last calculation can be viewed again
-         void showWindow();
-
          void appendOutput(QString const& text);
 
          /// Switches to the 'finished' state and shows the summary of the result
          void finished(Calc::Result const&, QString const& method, bool optimization);
+
+      public Q_SLOTS:
+         /// Opens the window (or brings it to the front) without starting anything
+         void showWindow();
 
       Q_SIGNALS:
          /// The Run button was pressed, the settings are in the preferences
