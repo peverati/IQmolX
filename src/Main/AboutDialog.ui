@@ -250,7 +250,7 @@
      </property>
      <property name="text">
       <string>IQMolX is a fork of IQmol, the molecular builder and visualizer by Andrew Gilbert, 
-        with added support for the xtb semiempirical programs.
+        with added support for the xtb semiempirical programs, developed with the assistance of the Claude AI (Anthropic).
         It is written using the Qt libraries.  The following were also used or incorporated:
       &lt;ul&gt;
          &lt;li&gt; &lt;a href=&quot;http://www.libqglviewer.com/&quot;&gt;libQGLViewer&lt;/a&gt;

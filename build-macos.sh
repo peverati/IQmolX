@@ -1,6 +1,7 @@
 #!/bin/bash
 # Copyright (C) 2026 Roberto Peverati.  Part of IQmol, free software under the GNU General
-# Public License, version 3 or (at your option) any later version.
+# Public License, version 3 or (at your option) any later version.  Developed with the
+# assistance of Claude (Anthropic).
 # Build IQmol on Apple Silicon macOS with Homebrew (qt@5, boost, openssl@3, libomp, gcc).
 #
 # Prerequisites:

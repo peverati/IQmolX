@@ -1,5 +1,6 @@
 // Copyright (C) 2026 Roberto Peverati.  Part of IQmol, free software under the GNU General Public
-// License, version 3 or (at your option) any later version.
+// License, version 3 or (at your option) any later version.  Developed with the assistance of
+// Claude (Anthropic).
 // Orbitals from the xtb program: reads molden.input and checks numerically, on a grid,
 // that the orbitals are orthonormal in IQmol's basis function conventions (normalization of
 // the primitives, ordering and scaling of the p and Cartesian d functions).

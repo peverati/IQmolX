@@ -37,6 +37,15 @@ The xtb help page is part of the built-in help (Help → Show Help).  The change
 top of IQmol 3.2.x; internally the program, its settings and its source folders keep the
 name IQmol.
 
+## How IQMolX was developed
+
+The changes to IQmol were written by Roberto Peverati **with the help of Claude**, an AI
+assistant made by Anthropic (Claude Code), which wrote most of the code, tests and
+documentation under his direction.  He defined the goals, ran and checked the program, and
+decided what to keep.  The work is tested (see `tests`), but it has not had the review of a
+long-established project, so please report problems.  The commit messages of the AI-assisted
+changes end with a `Co-Authored-By: Claude` line.
+
 ## Building
 
 The source relies on submodules, so use the recursive flag to check out the code:

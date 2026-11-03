@@ -1,5 +1,6 @@
 // Copyright (C) 2026 Roberto Peverati.  Part of IQmol, free software under the GNU General Public
-// License, version 3 or (at your option) any later version.
+// License, version 3 or (at your option) any later version.  Developed with the assistance of
+// Claude (Anthropic).
 // Tests of the harmonic vibrational analysis on cases with analytic answers.
 
 #include "Util/Vibrations.h"

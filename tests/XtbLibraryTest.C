@@ -1,5 +1,6 @@
 // Copyright (C) 2026 Roberto Peverati.  Part of IQmol, free software under the GNU General Public
-// License, version 3 or (at your option) any later version.
+// License, version 3 or (at your option) any later version.  Developed with the assistance of
+// Claude (Anthropic).
 // Standalone test of libxtb (the C API of xtb): energies, gradients and solvation are
 // compared with values from the xtb program for water.  It also runs an OpenMP region of
 // our own first, because IQmol uses libomp while libxtb uses GNU libgomp and the two

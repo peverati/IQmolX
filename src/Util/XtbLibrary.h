@@ -2,6 +2,7 @@
 /*******************************************************************************
 
   Copyright (C) 2026 Roberto Peverati
+  Developed with the assistance of Claude (Anthropic).
 
   This file is part of IQmol, a free molecular visualization program. See
   <http://iqmol.org> for more details.
