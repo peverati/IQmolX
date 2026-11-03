@@ -704,6 +704,51 @@ void MainWindow::createMenus()
              if (Preferences::DefaultForceField() == method) action->setChecked(true);
          }
 
+      name = "Select Solvent (xTB)";
+      subMenu = menu->addMenu(name);
+      subMenu->setToolTipsVisible(true);
+      {
+         // Implicit solvents available for the ALPB model of xtb (xtb name, menu text)
+         QList<QPair<QString, QString> > solvents;
+         solvents << qMakePair(QString(""),             QString("Gas Phase"))
+                  << qMakePair(QString("water"),        QString("Water"))
+                  << qMakePair(QString("acetone"),      QString("Acetone"))
+                  << qMakePair(QString("acetonitrile"), QString("Acetonitrile"))
+                  << qMakePair(QString("aniline"),      QString("Aniline"))
+                  << qMakePair(QString("benzaldehyde"), QString("Benzaldehyde"))
+                  << qMakePair(QString("benzene"),      QString("Benzene"))
+                  << qMakePair(QString("ch2cl2"),       QString("Dichloromethane"))
+                  << qMakePair(QString("chcl3"),        QString("Chloroform"))
+                  << qMakePair(QString("cs2"),          QString("Carbon Disulfide"))
+                  << qMakePair(QString("dioxane"),      QString("Dioxane"))
+                  << qMakePair(QString("dmf"),          QString("DMF"))
+                  << qMakePair(QString("dmso"),         QString("DMSO"))
+                  << qMakePair(QString("ether"),        QString("Diethyl Ether"))
+                  << qMakePair(QString("ethylacetate"), QString("Ethyl Acetate"))
+                  << qMakePair(QString("furane"),       QString("Furan"))
+                  << qMakePair(QString("hexadecane"),   QString("Hexadecane"))
+                  << qMakePair(QString("hexane"),       QString("Hexane"))
+                  << qMakePair(QString("methanol"),     QString("Methanol"))
+                  << qMakePair(QString("nitromethane"), QString("Nitromethane"))
+                  << qMakePair(QString("octanol"),      QString("Octanol"))
+                  << qMakePair(QString("woctanol"),     QString("Octanol (wet)"))
+                  << qMakePair(QString("phenol"),       QString("Phenol"))
+                  << qMakePair(QString("thf"),          QString("THF"))
+                  << qMakePair(QString("toluene"),      QString("Toluene"));
+
+         QActionGroup* solventGroup = new QActionGroup(this);
+         QString current(Preferences::XtbSolvent());
+         for (int i = 0; i < solvents.size(); ++i) {
+             action = subMenu->addAction(solvents[i].second);
+             action->setCheckable(true);
+             action->setData(solvents[i].first);
+             solventGroup->addAction(action);
+             connect(action, SIGNAL(triggered()), this, SLOT(setSolvent()));
+             if (current == solvents[i].first) action->setChecked(true);
+             if (i == 0) subMenu->addSeparator();
+         }
+      }
+
       name = "Show xtb Output";
       action = menu->addAction(name);
       connect(action, &QAction::triggered, []() { XtbResultDialog::instance()->showWindow(); });
@@ -946,6 +991,16 @@ void MainWindow::setLabel()
    if (turnOn) action->setChecked(true);
 }
 
+
+
+// Selects the implicit solvent used by the xtb methods
+void MainWindow::setSolvent()
+{
+   QAction* action = qobject_cast<QAction*>(sender());
+   if (!action) return;
+   Preferences::XtbSolvent(action->data().toString());
+   m_viewerModel.computeEnergy();   // refresh the energy in the new environment
+}
 
 
 void MainWindow::setForceField()

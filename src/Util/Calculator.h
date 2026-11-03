@@ -31,6 +31,7 @@ namespace Calc {
       QVector<double> coordinates;   // x0,y0,z0,x1,y1,z1,... in Angstrom
       int             charge;
       int             multiplicity;
+      QString         solvent;       // implicit solvent (ALPB name), empty for gas phase
 
       Input() : charge(0), multiplicity(1) { }
    };
@@ -51,10 +52,12 @@ namespace Calc {
       double          dipoleDebye;
       int             cycles;        // optimization cycles
       double          seconds;       // wall time
+      bool            hasGsolv;      // a solvation free energy was reported
+      double          gsolv;         // Hartree
 
       Result() : success(false), converged(false), energy(0.0), cancelled(false),
          initialEnergy(0.0), gradientNorm(-1.0), gapEV(-1.0), dipoleDebye(-1.0), 
-         cycles(0), seconds(0.0) { }
+         cycles(0), seconds(0.0), hasGsolv(false), gsolv(0.0) { }
    };
 
    class Calculator {

@@ -100,6 +100,27 @@ int main(int argc, char** argv)
    check(cancelled.cancelled && !cancelled.success, "cancel() stops a running calculation");
    check(cancelled.seconds < 5.0, "cancellation returns promptly");
 
+   // Implicit solvent (ALPB)
+   Input inWater(water);
+   inWater.solvent = "water";
+   Result solvated(xtb.energy(inWater));
+   check(solvated.success && solvated.hasGsolv && solvated.gsolv < 0.0, "ALPB(water) reports a negative Gsolv");
+   check(solvated.success && solvated.energy < sp.energy, "water is stabilised by ALPB(water)");
+   check(!sp.hasGsolv, "gas phase reports no Gsolv");
+
+   Input inMeoh(water);
+   inMeoh.solvent = "methanol";
+   Result inMethanol(xtb.energy(inMeoh));
+   check(inMethanol.success && inMethanol.energy != solvated.energy, "different solvents give different energies");
+
+   Input inBad(water);
+   inBad.solvent = "notasolvent";
+   Result badSolvent(xtb.energy(inBad));
+   check(!badSolvent.success && !badSolvent.message.isEmpty(), "unknown solvent is reported as failure");
+
+   Result optWater(xtb.optimize(inWater));
+   check(optWater.success && optWater.converged && optWater.hasGsolv, "optimization in ALPB(water) converges");
+
    std::printf("%d failure(s)\n", s_failures);
    return s_failures == 0 ? 0 : 1;
 }

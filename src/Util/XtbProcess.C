@@ -134,6 +134,11 @@ void parseDetails(QString const& output, Result& result)
       result.dipoleDebye = x;
    }
 
+   if (lastNumber(output, "-> Gsolv\\s+(-?\\d+\\.\\d+) Eh", x)) {
+      result.hasGsolv = true;
+      result.gsolv = x;
+   }
+
    // The first summary block is the energy of the starting geometry
    QRegularExpression re(":: total energy\\s+(-?\\d+\\.\\d+) Eh");
    QRegularExpressionMatch match(re.match(output));
@@ -262,6 +267,7 @@ Result XtbProcess::run(Input const& input, bool optimize)
    args << "--chrg" << QString::number(input.charge);
    args << "--uhf"  << QString::number(input.multiplicity - 1);
    args << (optimize ? "--opt" : "--sp");
+   if (!input.solvent.isEmpty()) args << "--alpb" << input.solvent;
 
    QProcess process;
    process.setWorkingDirectory(dir.path());

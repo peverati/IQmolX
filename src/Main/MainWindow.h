@@ -116,6 +116,7 @@ namespace Gmx {
          void windowModified() { setWindowModified(true); }
 
          void setForceField();
+         void setSolvent();
          void setLabel();
          void reindexAtoms();
 

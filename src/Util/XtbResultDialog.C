@@ -28,6 +28,7 @@
 #include <QPlainTextEdit>
 #include <QProgressBar>
 #include <QPushButton>
+#include <QRegularExpression>
 #include <QScrollBar>
 #include <QVBoxLayout>
 
@@ -110,7 +111,7 @@ void XtbResultDialog::started(QString const& method, QString const& what,
    QString const& subject)
 {
    m_fileName = method + (what.contains("optim") ? "_opt" : "_sp") + ".out";
-   m_fileName.replace(" ", "_");
+   m_fileName.replace(QRegularExpression("[^A-Za-z0-9._-]"), "_");
    m_title->setText(method + " " + what);
    m_summary->setText("Running on " + subject + "...");
    m_output->clear();
@@ -251,6 +252,10 @@ void XtbResultDialog::finished(Calc::Result const& result, QString const& method
    if (optimization && result.initialEnergy != 0.0) {
       double dE((result.energy - result.initialEnergy) * hartreeToKcal);
       s += row("Energy change", QString::number(dE, 'f', 2) + " kcal/mol");
+   }
+   if (result.hasGsolv) {
+      s += row("Solvation free energy", QString::number(result.gsolv, 'f', 6) + " E<sub>h</sub> ("
+         + QString::number(result.gsolv * hartreeToKcal, 'f', 2) + " kcal/mol)");
    }
    if (result.gradientNorm >= 0.0) {
       s += row("Gradient norm", QString::number(result.gradientNorm, 'f', 6) + " E<sub>h</sub>/a<sub>0</sub>");

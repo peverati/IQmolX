@@ -114,6 +114,10 @@ namespace Preferences {
    QByteArray XtbWindowGeometry();
    void       XtbWindowGeometry(QByteArray const&);
 
+   // Implicit solvent (ALPB name, e.g. "water") for the xtb methods.  Empty is gas phase.
+   QString XtbSolvent();
+   void    XtbSolvent(QString const&);
+
    // Location of the xtb executable.  Empty means search XTB_PATH and PATH.
    QString XtbPath();
    void    XtbPath(QString const&);

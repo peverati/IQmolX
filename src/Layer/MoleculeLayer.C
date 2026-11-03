@@ -2108,6 +2108,11 @@ bool Molecule::runXtb(QString const& methodName, bool optimize, bool showDialog)
    Calc::Input input;
    input.charge       = totalCharge();
    input.multiplicity = multiplicity();
+   input.solvent      = Preferences::XtbSolvent();
+
+   // Used in the window title and the energy label
+   QString label(methodName);
+   if (!input.solvent.isEmpty()) label += "/ALPB(" + input.solvent + ")";
 
    AtomList::iterator iter;
    for (iter = atoms.begin(); iter != atoms.end(); ++iter) {
@@ -2135,18 +2140,18 @@ bool Molecule::runXtb(QString const& methodName, bool optimize, bool showDialog)
       xtb.setProgressCallback([dialog](QString const& chunk) { dialog->appendOutput(chunk); });
       cancelConnection = QObject::connect(dialog, &XtbResultDialog::cancelRequested, 
          [&xtb]() { xtb.cancel(); });
-      dialog->started(methodName, optimize ? "geometry optimization" : "single point", subject);
+      dialog->started(label, optimize ? "geometry optimization" : "single point", subject);
    }
 
    Calc::Result result(optimize ? xtb.optimize(input) : xtb.energy(input));
 
    if (dialog) {
       QObject::disconnect(cancelConnection);
-      dialog->finished(result, methodName, optimize);
+      dialog->finished(result, label, optimize);
    }
    s_xtbBusy = false;
 
-   QLOG_DEBUG() << "xtb" << methodName << "charge" << input.charge << "multiplicity" 
+   QLOG_DEBUG() << "xtb" << label << "charge" << input.charge << "multiplicity" 
                 << input.multiplicity << "energy (Eh)" << result.energy 
                 << "success" << result.success << "converged" << result.converged;
    // The full xtb input and output is only worth keeping when something went wrong
@@ -2162,7 +2167,7 @@ bool Molecule::runXtb(QString const& methodName, bool optimize, bool showDialog)
       return true;
    }
 
-   QString mesg(methodName + " energy: ");
+   QString mesg(label + " energy: ");
 
    if (!optimize) {
       energyAvailable(result.energy, Info::Hartree, mesg);

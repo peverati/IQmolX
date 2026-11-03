@@ -436,6 +436,18 @@ void XtbWindowGeometry(QByteArray const& geometry)
 }
 
 
+QString XtbSolvent()
+{
+   QVariant value(Get("XtbSolvent"));
+   return value.isNull() ? QString() : value.value<QString>();
+}
+
+void XtbSolvent(QString const& solvent)
+{
+   Set("XtbSolvent", QVariant::fromValue(solvent));
+}
+
+
 QString XtbPath()
 {
    QVariant value(Get("XtbPath"));
