@@ -56,8 +56,12 @@ int main(int argc, char** argv)
    Preferences::UseSettingsName(organization, application);
    QSettings(QSettings::UserScope, organization, application).clear();
 
+   // Whatever job was used last time, the window starts with a geometry optimization
+   Preferences::XtbJob("optfreq");
+
    // With nothing stored the window starts with GFN2-xTB, a geometry optimization in the gas phase
    XtbResultDialog* d(XtbResultDialog::instance());
+   check(Preferences::XtbJob() == "optimize", "a job stored by an earlier session is replaced by a geometry optimization");
    {
       QComboBox* defaultMethod(comboWith(d, "GFN2-xTB"));
       check(Preferences::XtbMethod() == "GFN2-xTB", "the default method is GFN2-xTB");

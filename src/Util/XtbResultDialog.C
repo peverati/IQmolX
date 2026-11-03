@@ -189,6 +189,10 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
    m_summary->setText("Choose the calculation and press Run to calculate the current molecule.");
    m_progress->hide();
    m_cancelButton->hide();
+
+   // The window always starts with a geometry optimization: the heavier jobs (frequencies)
+   // are not remembered from an earlier session.  The other settings are.
+   Preferences::XtbJob("optimize");
    loadSettings();
 
    connect(m_jobCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(saveSettings()));
