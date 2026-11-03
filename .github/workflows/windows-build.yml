@@ -74,6 +74,8 @@ jobs:
           ls "$GITHUB_WORKSPACE/xtb-install/bin" "$GITHUB_WORKSPACE/xtb-install/lib"
 
       - name: Configure IQMolX
+        # -include cstdint: the newest GCC no longer pulls in <cstdint> by itself, which older
+        # code such as yaml-cpp relies on
         run: |
           # OpenBabel asks for the old behaviour of a macOS-only policy, which CMake 4 refuses
           sed -i 's/CMP0042 OLD/CMP0042 NEW/' modules/openbabel/CMakeLists.txt
@@ -84,6 +86,7 @@ jobs:
           cmake -B build -G Ninja \
              -DBUILD_SHARED=OFF -DQARCHIVE=OFF -DCMAKE_BUILD_TYPE=Release \
              -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+             -DCMAKE_CXX_FLAGS="-include cstdint" \
              -DOPENSSL_ROOT_DIR="$MSYSTEM_PREFIX" \
              -DXTB_ROOT="$GITHUB_WORKSPACE/xtb-install"
 
