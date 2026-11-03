@@ -97,9 +97,12 @@ its end; a lost helper is reported with its exit status and stderr tail); the en
 `~/Library/Application Support/IQmol/python`, made by `Calc::PythonSetup` with `uv venv --python
 3.12 --python-preference only-managed`, so no system Python is needed (verified with a real uv).
 `uv` itself is found in `$IQMOLX_UV`, the app's `Resources/bin`, the PATH or the usual install
-folders; it is **not yet bundled** in the app, nor is the helper package (the window finds the
-package through `$IQMOLX_ENGINES_PATH` or `Resources/python/iqmolx-engines`): packaging must add
-both before release.  TorchANI/ANI-2x was run for real (torch 2.13, TorchANI 2.9; its weights
+folders.  `package-macos.sh` now bundles uv (from `UV_BIN`, with its license texts) and the helper
+as a wheel in `Resources/python` (installing from a folder would write into the signed app); the
+workflow installs a pinned uv from PyPI for that.  A packaged app was checked in a real run: with
+no environment variables it built its environment from the bundled uv and wheel.  The CI workflow
+changes themselves have not run yet.  Not done: updating the helper in an existing environment
+after an app update (the environment keeps the version it was made with).  TorchANI/ANI-2x was run for real (torch 2.13, TorchANI 2.9; its weights
 are downloaded from Hugging Face on first use, MIT), not frequencies in the app window.  The
 ASE adapter and the "Install ..." button were checked with real uv outside the window's click.
 Tests: `PythonEngineTest`, `PythonSetupTest`, `PythonDialogTest` (C++), `pytest` in the helper
