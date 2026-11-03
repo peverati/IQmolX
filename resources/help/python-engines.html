@@ -97,10 +97,11 @@
       <tr><td valign="top"><b>Demo</b></td>
           <td> A toy potential that does not describe real molecules.  It needs
                nothing and is useful to try out the window. </td></tr>
-      <tr><td valign="top"><b>ANI-2x (TorchANI)</b></td>
-          <td> A neural network potential, see <a href="#ani">below</a>.  Needs
-               the packages <i>torch</i> and <i>torchani</i> (together about 1 GB
-               of disk space). </td></tr>
+      <tr><td valign="top"><b>ANI models (TorchANI)</b></td>
+          <td> Eight neural network potentials of the ANI family, from ANI-1x and
+               ANI-2x to a model with implicit solvents, see <a href="#ani">below</a>.
+               They need the packages <i>torch</i> and <i>torchani</i> (together
+               about 1 GB of disk space). </td></tr>
       <tr><td valign="top"><b>ASE calculator</b></td>
           <td> Uses any calculator of ASE, see <a href="#ase">below</a>.  Needs
                the package <i>ase</i>. </td></tr>
@@ -151,34 +152,87 @@
 
 
    <br>
-   <h3><a name="ani"></a>ANI-2x</h3>
+   <h3><a name="ani"></a>ANI Models</h3>
 
-   <p> ANI-2x is a neural network potential, an ensemble of eight networks trained
-   on energies and forces of the wB97X/6-31G(d) method.  It is much faster than
-   the method it learned from.  It is limited to
+   <p> The ANI models are neural network potentials, ensembles of eight networks
+   trained on energies and forces of quantum chemistry calculations.  They are much
+   faster than the methods they learned from.  Each model is an engine of its own
+   in the list, because each has its own elements, level of theory and
+   parameters.  All of them are limited to <b>neutral, closed-shell</b> molecules
+   and to the elements in the table; anything else is refused with a message, and
+   the options for charge and spin are not available.
 
-   <ul>
-      <li> the elements <b>H, C, N, O, F, S and Cl</b>, and <br>
-      <li> <b>neutral, closed-shell</b> molecules.
-   </ul>
+   <table border="1" cellpadding="5" cellspacing="0" width="100%">
+      <tr><th>Engine</th><th>Learned from</th><th>Elements</th><th>Download</th><th>Checked here</th></tr>
+      <tr><td valign="top"><b>ANI-2x</b></td>
+          <td valign="top"> wB97X/6-31G(d) </td>
+          <td valign="top"> H, C, N, O, F, S, Cl </td>
+          <td valign="top"> 55 MB </td>
+          <td valign="top"> run, with frequencies </td></tr>
+      <tr><td valign="top"><b>ANI-1x</b></td>
+          <td valign="top"> wB97X/6-31G(d), by active learning </td>
+          <td valign="top"> H, C, N, O </td>
+          <td valign="top"> 10 MB </td>
+          <td valign="top"> run </td></tr>
+      <tr><td valign="top"><b>ANI-1ccx</b></td>
+          <td valign="top"> CCSD(T)*/CBS, by transfer learning from ANI-1x </td>
+          <td valign="top"> H, C, N, O </td>
+          <td valign="top"> 10 MB </td>
+          <td valign="top"> not run yet </td></tr>
+      <tr><td valign="top"><b>ANI-1xnr</b></td>
+          <td valign="top"> BLYP/TZV2P; a reactive potential </td>
+          <td valign="top"> H, C, N, O </td>
+          <td valign="top"> 21 MB </td>
+          <td valign="top"> not run yet </td></tr>
+      <tr><td valign="top"><b>ANI-2xr</b></td>
+          <td valign="top"> wB97X/6-31G(d) with an added repulsion potential and a smoother potential energy surface </td>
+          <td valign="top"> H, C, N, O, F, S, Cl </td>
+          <td valign="top"> 55 MB </td>
+          <td valign="top"> not run yet </td></tr>
+      <tr><td valign="top"><b>ANI-2dr</b></td>
+          <td valign="top"> B97-3c with added dispersion and repulsion potentials </td>
+          <td valign="top"> H, C, N, O, F, S, Cl </td>
+          <td valign="top"> 55 MB </td>
+          <td valign="top"> not run yet </td></tr>
+      <tr><td valign="top"><b>ANI-r2s</b> (experimental)</td>
+          <td valign="top"> r2SCAN-3c, in vacuum or with the implicit solvent SMD: water, chloroform or acetonitrile (the <i>Solvent</i> setting) </td>
+          <td valign="top"> H, C, N, O, F, S, Cl </td>
+          <td valign="top"> 55 MB for each solvent </td>
+          <td valign="top"> not run yet </td></tr>
+      <tr><td valign="top"><b>ANI-2x with MBIS charges</b> (experimental)</td>
+          <td valign="top"> ANI-2x, plus a network for MBIS atomic charges; the dipole is calculated from the point charges </td>
+          <td valign="top"> H, C, N, O, F, S, Cl </td>
+          <td valign="top"> 62 MB </td>
+          <td valign="top"> not run yet </td></tr>
+   </table>
 
-   <p> Anything else is refused with a message, and the options for charge and
-   spin are not available.  It is run through the
+   <p> Which one to use?  ANI-2x covers the most elements and is the standard
+   choice.  ANI-1ccx is the one aiming at coupled-cluster accuracy, for H, C, N and
+   O.  ANI-2xr and ANI-2dr have smoother potential energy surfaces, which helps
+   optimizations and dynamics; ANI-2dr includes dispersion.  ANI-r2s is the way to
+   get an implicit solvent.  The experimental models may change.  The energies of
+   the models are not comparable with each other, because they approximate
+   different methods.
+
+   <p> The models are run through the
    <a href="https://github.com/aiqm/torchani">TorchANI</a> package; both the code
-   and the parameters are MIT licensed.
-
-   <p> <i>The first time ANI-2x is used</i> the parameters (55 MB) are downloaded
-   from Hugging Face and kept on your computer, so an internet connection is needed once.
-   No login is needed.  The settings of the engine are the <i>Network</i> (the
+   and the parameters are MIT licensed.  <i>The first time a model is used</i> its
+   parameters (the sizes are in the table) are downloaded from Hugging Face and
+   kept on your computer, so an internet connection is needed once per model.  No
+   login is needed.  The settings of every ANI engine are the <i>Network</i> (the
    ensemble of all eight, or a single one, which is faster and a little less
    accurate) and the <i>Precision</i> (float64, the default, gives smoother forces
    for optimizations and frequencies than float32).  The frequencies use the
    second derivatives of the network directly.
 
-   <p> Please cite
+   <p> Please cite the paper of the model and TorchANI:
    <ul>
-      <li> C. Devereux et al., J. Chem. Theory Comput. 16, 4192 (2020) (ANI-2x) <br>
-      <li> X. Gao et al., J. Chem. Inf. Model. 60, 3408 (2020) (TorchANI).
+      <li> ANI-2x: C. Devereux et al., J. Chem. Theory Comput. 16, 4192 (2020) <br>
+      <li> ANI-1x: J. S. Smith et al., J. Chem. Phys. 148, 241733 (2018) <br>
+      <li> ANI-1ccx: J. S. Smith et al., Nat. Commun. 10, 2903 (2019) <br>
+      <li> ANI-1xnr: S. Zhang et al., Nat. Chem. (2024), doi:10.1038/s41557-023-01427-3 <br>
+      <li> The other models: see the TorchANI repository <br>
+      <li> TorchANI: X. Gao et al., J. Chem. Inf. Model. 60, 3408 (2020).
    </ul>
 
 
