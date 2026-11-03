@@ -126,10 +126,11 @@ changes themselves have not run yet.  Not done: updating the helper in an existi
 after an app update (the environment keeps the version it was made with).  TorchANI/ANI-2x was run for real (torch 2.13, TorchANI 2.9; its weights
 are downloaded from Hugging Face on first use, MIT), not frequencies in the app window.  The
 ASE adapter and the "Install ..." button were checked with real uv outside the window's click.
-**Guides: neither is written yet.**  What can be documented now: the window, Set Up Environment and
-Install (user guide); the base class, the demo, ASE and TorchANI engines and `PROTOCOL.md`
-(developer guide).  The entry-point discovery in `registry.py` has not yet been tried with a real
-third-party plugin; the sample plugin of the developer guide is where that gets tested.
+**Guides.**  The developer guide `python/iqmolx-engines/PLUGINS.md` is written, with the sample
+plugin `python/examples/iqmolx-engine-lennard-jones` that the helper tests install with pip and
+run (this is also where the entry-point discovery was first tried with a real plugin: it works,
+and a running helper notices a plugin installed after it started).  Still to write: the user guide
+(an in-app Help page, see the plan), and each later engine adds its section to both.
 Tests: `PythonEngineTest`, `PythonSetupTest`, `PythonDialogTest` (C++), `pytest` in the helper
 (`IQMOLX_TEST_DOWNLOADS=1` runs the TorchANI model tests).  Never run `XtbProcessTest` in a
 folder with content: it removes its working directory when xtb is not found.

@@ -238,4 +238,5 @@ status 2.
 
 Engines are Python classes deriving from `iqmolx_engines.base.Engine`. Built-in engines are
 registered in `iqmolx_engines.registry`; third-party packages can add engines through the
-entry-point group `iqmolx_engines` (each entry point names an `Engine` subclass).
+entry-point group `iqmolx_engines` (each entry point names an `Engine` subclass). How to write
+one is in [PLUGINS.md](PLUGINS.md).
