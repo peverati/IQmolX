@@ -58,6 +58,16 @@ if (Python3_EXECUTABLE)
 endif()
 
 
+# The creation of the Python environment with uv, tested with a fake uv
+add_executable(PythonSetupTest EXCLUDE_FROM_ALL
+   PythonSetupTest.C
+   ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/PythonSetup.C
+)
+target_include_directories(PythonSetupTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+target_link_libraries(PythonSetupTest PRIVATE Qt5::Core)
+add_test(NAME PythonSetupTest COMMAND PythonSetupTest)
+
+
 # The Python engines window, against the demo engine (offscreen Qt)
 add_executable(PythonDialogTest EXCLUDE_FROM_ALL PythonDialogTest.C)
 target_include_directories(PythonDialogTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)

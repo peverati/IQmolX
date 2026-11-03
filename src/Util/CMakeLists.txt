@@ -39,6 +39,7 @@ set( SOURCES
    WriteToTemporaryFile.C
    PythonEngine.C
    PythonEngineDialog.C
+   PythonSetup.C
    Vibrations.C
    XtbOutput.C
    XtbProcess.C
