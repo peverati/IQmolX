@@ -1,0 +1,235 @@
+<html>
+<head>
+   <link href="style.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+
+   <center> <h1> Semiempirical Calculations with xtb <br> </h1> </center><p></p>
+
+   <p> IQmol can run the semiempirical tight-binding methods GFN2-xTB and
+   GFN1-xTB of the <a href="https://github.com/grimme-lab/xtb">xtb</a> package
+   (Grimme group) directly on the molecule in the Viewer.  The calculations are
+   fast enough to be run interactively and can optimize the geometry, calculate
+   energies, vibrational frequencies and molecular orbitals, with or without an
+   implicit solvent.  The results are added to the molecule and can be
+   examined with the usual IQmol tools.  The force field GFN-FF is also available
+   for <a href="#gfnff">building and minimizing</a> structures.
+
+   <p> All settings are collected in the xtb window, which is opened with the
+   <img src="images/buttons/Xtb.png"> button on the
+   <a href="toolbar.html">Tool Bar</a> or with the menu option
+   Build&rarr;xtb Setup... (Ctrl+Shift+X).
+
+   <p><center><img src="images/XtbWindow.png" width="470" /></center></p>
+
+
+   <br>
+   <h3><a name="backends"></a>Backends</h3>
+
+   <p> The calculation is carried out either by
+   <ul>
+      <li> the <b>xtb program</b>, an executable that IQmol runs in the
+           background (it must be installed separately, see
+           <a href="#installation">Installation</a>), or <br>
+      <li> the <b>built-in library</b> (libxtb), which runs inside IQmol.  This
+           choice only appears if IQmol was built with libxtb.  The geometry
+           optimization uses IQmol's own optimizer with the xtb convergence
+           criteria. 
+   </ul>
+
+   <p> Both give the same energies and frequencies (the frequencies differ by
+   about 0.05%).  The program is the more flexible of the two, as it offers the
+   options described under <a href="#program">xtb Program</a>.  The library
+   cannot write the orbital basis set, so when orbitals are requested IQmol
+   runs one extra single point with the xtb program to obtain them; without the
+   program no orbitals are produced.
+
+
+   <br>
+   <h3><a name="settings"></a>Calculation Settings</h3>
+
+   <p> The settings are remembered between sessions, except for the job, which
+   always starts as a geometry optimization.
+
+   <table>
+      <tr><td valign="top"><b>Job</b></td>
+          <td> <i>Single point energy</i>, <i>Geometry optimization</i> (the
+          atoms are moved to the optimized structure, which can be undone from
+          the History), <i>Vibrational frequencies</i> or <i>Geometry
+          optimization and frequencies</i>.</td></tr>
+
+      <tr><td valign="top"><b>Method</b></td>
+          <td> GFN2-xTB or GFN1-xTB.</td></tr>
+
+      <tr><td valign="top"><b>Solvent</b></td>
+          <td> Gas phase, or one of the implicit solvents of the ALPB model
+          (water, methanol, acetonitrile, ...).  The solvation free energy
+          is reported with the result.</td></tr>
+
+      <tr><td valign="top"><b>Charge, spin</b></td>
+          <td> By default the charge and spin multiplicity of the molecule are
+          used.  Unticking the box lets you enter other values for this
+          calculation, for example to calculate a cation or a triplet.  An
+          impossible combination is reported before xtb is started.</td></tr>
+
+      <tr><td valign="top"><b>Electronic temperature</b></td>
+          <td> The temperature of the Fermi smearing of the orbital occupations
+          in K (default 300 K, as in xtb).  Very low values cannot be used when
+          the highest occupied and lowest unoccupied orbitals are (nearly)
+          degenerate.</td></tr>
+
+      <tr><td valign="top"><b>Orbitals</b></td>
+          <td> Also calculate the molecular orbitals, see
+          <a href="#orbitals">Molecular Orbitals</a>.  Switch this off for
+          very large molecules.</td></tr>
+   </table>
+
+   <p> Pressing <b>Run</b> starts the calculation.  The window shows the output
+   of xtb as it is produced and the molecule cannot be edited until the
+   calculation has finished or been cancelled.
+
+
+   <br>
+   <h3><a name="program"></a>xtb Program</h3>
+
+   <p> When the xtb program is the backend, four further settings appear:
+
+   <ul>
+      <li> <b>xtb program</b>: the location of the executable.  If empty, IQmol
+           looks in the environment variable XTB_PATH and in the PATH.  This is
+           the same setting as in the Preferences. <br>
+      <li> <b>xtb options</b>: further command line options for xtb, for
+           example <tt>--etemp 500 --verbose</tt>.  The options for the method,
+           charge (<tt>--chrg</tt>), spin (<tt>--uhf</tt>), solvent and
+           electronic temperature given here replace those chosen in the window;
+           others are added to the command. <br>
+      <li> <b>Working directory</b>: the folder in which xtb runs.  The input
+           and output files stay there and the complete output is saved as
+           <tt>xtb_opt.out</tt> (<tt>xtb_sp.out</tt>, <tt>xtb_hess.out</tt>).
+           Files from an earlier run are replaced.  If empty, a temporary
+           directory is used. <br>
+      <li> <b>Review and edit the input file</b>: when ticked, pressing Run
+           first shows the command line and the input file for xtb.
+   </ul>
+
+   <p><center><img src="images/XtbInput.png" width="470" /></center></p>
+
+   <p> The geometry in the input file can be edited; <b>Submit</b> runs xtb with
+   the text exactly as it appears, <b>Cancel</b> does not run it.  The number
+   of atoms has to stay the same.  The charge, spin and the other settings are
+   changed in the fields above, they are part of the command line shown.  For an
+   optimization followed by frequencies the edited input is used for the
+   optimization.
+
+
+   <br>
+   <h3><a name="results"></a>Results and Saving</h3>
+
+   <p> When the calculation has finished the window shows a summary: the energy
+   (and its change for an optimization), the norm of the gradient, the number of
+   optimization cycles, the HOMO-LUMO gap, the dipole moment, the solvation free
+   energy and the time taken.  The energy is also shown in the Info layer of the
+   molecule.
+
+   <p><center><img src="images/XtbResult.png" width="470" /></center></p>
+
+   <p> <b>Save Output...</b> writes the text of the xtb output to a file.  <b>Save
+   All Files...</b> copies every file the xtb program produced (input, output,
+   optimized geometry, orbitals, ...) to a folder of your choice.  When no
+   working directory has been set the files are kept until the next run or until
+   IQmol is closed.  A calculation can be stopped with <b>Cancel</b>.
+
+
+   <br>
+   <h3><a name="frequencies"></a>Vibrational Frequencies</h3>
+
+   <p> The frequencies, IR intensities and normal modes are added to the
+   molecule as a Frequencies layer named after the method, together with the
+   zero point energy.  They are used just like those from a Q-Chem calculation,
+   see <a href="vibrations.html">Vibrational Frequencies</a>.  The frequencies
+   should be calculated at an optimized geometry; the window warns when the
+   structure is not a stationary point, so the job <i>Geometry optimization and
+   frequencies</i> is usually the right choice.  The result of an earlier run is
+   replaced.
+
+
+   <br>
+   <h3><a name="orbitals"></a>Molecular Orbitals</h3>
+
+   <p> The orbitals of the final geometry are added to the molecule as an
+   Orbitals layer under Surfaces, named after the method.  They are plotted with
+   the same tools as other orbitals: double click the layer to open the surface
+   dialog and select, for example, the HOMO, as described in
+   <a href="surfaces.html#wavefunctionSurfaces">Plotting Surfaces</a>.  Orbital
+   energies, densities and Mulliken densities are available also.  The orbitals
+   are those of the minimal valence basis of the xTB methods; the same spatial
+   orbitals are used for both spins.  The orbitals of an earlier run are
+   replaced.  They are not available for GFN-FF.
+
+
+   <br>
+   <h3><a name="gfnff"></a>GFN-FF as a Force Field</h3>
+
+   <p> GFN-FF can be selected in Build&rarr;Select Force Field (next to MMFF94,
+   UFF and the others) or as the default force field in the Preferences.  It is
+   then used by <img src="images/buttons/Minimize.png"> Minimize Structure and
+   for the energy shown while building.  It always runs in the gas phase and does
+   not support constraints or frozen atoms, which are ignored with a warning.
+
+
+   <br>
+   <h3><a name="example"></a>Example</h3>
+
+   <p> Optimizing methane and plotting its HOMO:
+
+   <ol>
+      <li> Click in the Viewer in build mode to place a carbon atom and use
+           Build&rarr;Fill Valencies With Hydrogens to add the hydrogens. <br>
+      <li> Open the xtb window with the <img src="images/buttons/Xtb.png">
+           button.  Leave the job on <i>Geometry optimization</i>, the method
+           on GFN2-xTB and the solvent on gas phase, and press <b>Run</b>. <br>
+      <li> The input file is shown for review.  Press <b>Submit</b>. <br>
+      <li> The calculation takes a fraction of a second and the molecule moves
+           to the optimized structure (about -4.1752 E<sub>h</sub>; the energy
+           change and the HOMO-LUMO gap of 17.35 eV are in the summary).  The
+           move is listed in the History and can be undone. <br>
+      <li> Open the Surfaces item in the Model View and double click the
+           Orbitals layer to plot the orbitals.  Each plotted surface can
+           be shown, hidden and configured separately. <br>
+      <li> To see the infrared spectrum of the molecule choose <i>Geometry
+           optimization and frequencies</i>, run again and double click the new
+           Frequencies layer.  Press <b>Save All Files...</b> if you want to keep
+           the files that xtb produced.
+   </ol>
+
+
+   <br>
+   <h3><a name="installation"></a>Installation</h3>
+
+   <p> The xtb program is not part of IQmol.  It can be obtained from the xtb
+   <a href="https://github.com/grimme-lab/xtb/releases">releases</a> or built
+   with the script <tt>build-xtb-macos.sh</tt> that comes with the IQmol source
+   (it needs Homebrew's cmake, gcc and openblas).  Set its location in the xtb
+   window or in the Preferences.  To build IQmol with the built-in library, point
+   <tt>XTB_ROOT</tt> to the xtb installation when running
+   <tt>build-macos.sh</tt>.
+
+
+   <br>
+   <h3>Notes</h3>
+
+   <ol>
+      <li> The xtb methods are approximate.  Energies are not comparable with
+           those of other methods, and the methods are parametrized for the
+           elements up to radon. <br>
+      <li> The library cannot cancel the calculation of frequencies, which also
+           blocks the window until it has finished.  Use the xtb program for
+           large molecules. <br>
+      <li> Charge, spin and solvent are applied for the calculation only; they
+           are not stored in the molecule.
+   </ol>
+
+</body>
+
+</html>

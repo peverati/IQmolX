@@ -67,11 +67,15 @@
     <file>help/calculations.html</file>
     <file>help/paths.html</file>
     <file>help/vibrations.html</file>
+    <file>help/xtb.html</file>
     <file>help/movies.html</file>
 
     <file>help/images/header.png</file>
     <file>help/images/ModelView.png</file>
     <file>help/images/VibrationsWindow.png</file>
+    <file>help/images/XtbWindow.png</file>
+    <file>help/images/XtbInput.png</file>
+    <file>help/images/XtbResult.png</file>
     <file>help/images/PathWindow.png</file>
     <file>help/images/MoleculeConfigurator.png</file>
     <file>help/images/MainWindow.png</file>
@@ -87,6 +91,7 @@
     <file>help/images/buttons/AddHydrogens.png</file>
     <file>help/images/buttons/Open.png</file>
     <file>help/images/buttons/Minimize.png</file>
+    <file>help/images/buttons/Xtb.png</file>
     <file>help/images/buttons/MagicWand.png</file>
     <file>help/images/buttons/NewDocument.png</file>
     <file>help/images/buttons/Movie.png</file>
