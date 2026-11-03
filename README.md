@@ -51,7 +51,7 @@ changes end with a `Co-Authored-By: Claude` line.
 The source relies on submodules, so use the recursive flag to check out the code:
 
 ```
-git clone --recursive https://github.com/<your-user>/IQMolX.git
+git clone --recursive https://github.com/peverati/IQMolX.git
 ```
 
 To compile, make sure that your Qt installation can be found by cmake.  This means that
