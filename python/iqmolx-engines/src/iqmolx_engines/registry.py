@@ -28,6 +28,10 @@ def _builtin():
     return classes
 
 
+def _warn(text):
+    print("iqmolx-engines: " + text, file=sys.stderr)
+
+
 def _entry_points():
     try:
         from importlib.metadata import entry_points
@@ -41,17 +45,24 @@ def _entry_points():
         try:
             cls = ep.load()
         except Exception as exc:
-            print("iqmolx-engines: cannot load plugin %s: %s" % (ep.name, exc),
-                  file=sys.stderr)
+            _warn("cannot load plugin %s: %s" % (ep.name, exc))
             continue
-        if isinstance(cls, type) and issubclass(cls, Engine):
+        if not (isinstance(cls, type) and issubclass(cls, Engine)):
+            _warn("plugin %s is not an Engine subclass, ignored" % ep.name)
+        elif not cls.name:
+            _warn("plugin %s has no engine name, ignored" % ep.name)
+        else:
             found.append(cls)
     return found
 
 
 def engines():
-    """Dict name -> Engine subclass. Built-in names win over plugins."""
+    """Dict name -> Engine subclass.  Built-in names win over plugins (with a warning on stderr)."""
     result = {}
-    for cls in _entry_points() + _builtin():
+    for cls in _entry_points():
+        result[cls.name] = cls
+    for cls in _builtin():
+        if cls.name in result:
+            _warn("the plugin engine '%s' is hidden by the built-in engine of that name" % cls.name)
         result[cls.name] = cls
     return result

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "iqmolx-engine-lennard-jones"
+version = "0.1.0"
+description = "Example plugin for IQMolX: Lennard-Jones noble gas clusters"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "GPL-3.0-or-later" }
+# The helper itself (iqmolx-engines) is already in the environment that runs the plugin, so a
+# plugin lists only what it adds.  numpy comes with the helper.
+dependencies = []
+
+# This is what makes the helper find the plugin: the group is "iqmolx_engines", the value
+# points at an Engine subclass.  The name on the left of the = is free.
+[project.entry-points."iqmolx_engines"]
+lj = "iqmolx_engine_lj:LennardJonesEngine"
+
+[tool.setuptools.packages.find]
+where = ["src"]
