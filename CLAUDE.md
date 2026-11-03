@@ -91,6 +91,21 @@ Open questions to settle early: exact protocol fields and versioning, cancel sem
 model is computing, how a crashed helper is reported, where the Python environment lives (the
 app-support folder), and whether `uv` can create it without a system Python.
 
+**Status (steps 1 to 5 are done on `ml-engines`).**  Answers: the protocol is in
+`python/iqmolx-engines/PROTOCOL.md` (v1; cancel is answered at once and a forward pass runs to
+its end; a lost helper is reported with its exit status and stderr tail); the environment is
+`~/Library/Application Support/IQmol/python`, made by `Calc::PythonSetup` with `uv venv --python
+3.12 --python-preference only-managed`, so no system Python is needed (verified with a real uv).
+`uv` itself is found in `$IQMOLX_UV`, the app's `Resources/bin`, the PATH or the usual install
+folders; it is **not yet bundled** in the app, nor is the helper package (the window finds the
+package through `$IQMOLX_ENGINES_PATH` or `Resources/python/iqmolx-engines`): packaging must add
+both before release.  TorchANI/ANI-2x was run for real (torch 2.13, TorchANI 2.9; its weights
+are downloaded from Hugging Face on first use, MIT), not frequencies in the app window.  The
+ASE adapter and the "Install ..." button were checked with real uv outside the window's click.
+Tests: `PythonEngineTest`, `PythonSetupTest`, `PythonDialogTest` (C++), `pytest` in the helper
+(`IQMOLX_TEST_DOWNLOADS=1` runs the TorchANI model tests).  Never run `XtbProcessTest` in a
+folder with content: it removes its working directory when xtb is not found.
+
 ## What was verified and what was not
 
 * The macOS app builds, passes its tests and has been packaged into a signed disk image; a
