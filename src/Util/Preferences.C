@@ -424,6 +424,18 @@ void FFmpegPath(QString const& filePath)
 }
 
 
+QByteArray XtbWindowGeometry()
+{
+   QVariant value(Get("XtbWindowGeometry"));
+   return value.isNull() ? QByteArray() : value.toByteArray();
+}
+
+void XtbWindowGeometry(QByteArray const& geometry)
+{
+   Set("XtbWindowGeometry", QVariant::fromValue(geometry));
+}
+
+
 QString XtbPath()
 {
    QVariant value(Get("XtbPath"));

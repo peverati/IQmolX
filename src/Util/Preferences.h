@@ -109,6 +109,11 @@ namespace Preferences {
    QString FFmpegPath();
    void    FFmpegPath(QString const&);
 
+   // Position and size of the xtb progress window (QWidget::saveGeometry data).
+   // Empty until the user has moved or resized the window.
+   QByteArray XtbWindowGeometry();
+   void       XtbWindowGeometry(QByteArray const&);
+
    // Location of the xtb executable.  Empty means search XTB_PATH and PATH.
    QString XtbPath();
    void    XtbPath(QString const&);

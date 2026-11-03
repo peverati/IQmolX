@@ -12,6 +12,11 @@
 
 #include "XtbResultDialog.h"
 #include "FileDialog.h"
+#include "Preferences.h"
+#include <QApplication>
+#include <QDesktopWidget>
+#include <QMoveEvent>
+#include <QResizeEvent>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -36,7 +41,7 @@ XtbResultDialog* XtbResultDialog::instance()
 }
 
 
-XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_running(false)
+XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_running(false), m_placed(false)
 {
    // Qt::Tool keeps the window above the main window on macOS
    setWindowFlags(Qt::Tool | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
@@ -109,9 +114,53 @@ void XtbResultDialog::started(QString const& method, QString const& what,
    m_output->clear();
    setRunning(true);
    setModal(true);   // blocks edits to the molecule while the calculation runs
+   placeWindow();
    show();
    raise();
    activateWindow();
+}
+
+
+// The first time, the window is restored to where the user last left it, or 
+// centred over the IQmol window if there is no saved position.  After that the 
+// window stays wherever it was moved to.
+void XtbResultDialog::placeWindow()
+{
+   if (m_placed || isVisible()) return;
+
+   bool restored(false);
+   QByteArray geometry(Preferences::XtbWindowGeometry());
+   if (!geometry.isEmpty()) restored = restoreGeometry(geometry);
+
+   if (!restored) {
+      QWidget* anchor(QApplication::activeWindow());
+      if (anchor && anchor != this) {
+         QRect r(anchor->frameGeometry());
+         move(r.center() - rect().center());
+      }
+   }
+   m_placed = true;
+}
+
+
+void XtbResultDialog::rememberGeometry()
+{
+   // Ignore the moves and resizes made before the window is shown
+   if (m_placed && isVisible()) Preferences::XtbWindowGeometry(saveGeometry());
+}
+
+
+void XtbResultDialog::moveEvent(QMoveEvent* event)
+{
+   QDialog::moveEvent(event);
+   rememberGeometry();
+}
+
+
+void XtbResultDialog::resizeEvent(QResizeEvent* event)
+{
+   QDialog::resizeEvent(event);
+   rememberGeometry();
 }
 
 

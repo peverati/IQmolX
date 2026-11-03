@@ -52,12 +52,16 @@ namespace IQmol {
          void save();
 
       protected:
+         void moveEvent(QMoveEvent*);
+         void resizeEvent(QResizeEvent*);
          void reject();   // Escape or window close while running means cancel
 
       private:
          explicit XtbResultDialog(QWidget* parent = 0);
 
          void setRunning(bool running);
+         void placeWindow();
+         void rememberGeometry();
 
          QLabel*         m_title;
          QLabel*         m_summary;
@@ -68,6 +72,7 @@ namespace IQmol {
          QPushButton*    m_closeButton;
          QString         m_fileName;   // suggested name for the saved output
          bool            m_running;
+         bool            m_placed;     // true once the window has been positioned
    };
 
 } // end namespace IQmol
