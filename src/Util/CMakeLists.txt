@@ -36,6 +36,7 @@ set( SOURCES
    Timer.C
    WaitingSpinner.C
    WriteToTemporaryFile.C
+   Vibrations.C
    XtbOutput.C
    XtbProcess.C
    XtbResultDialog.C

@@ -59,9 +59,11 @@ namespace Calc {
 
          Result energy(Input const&) override;
          Result optimize(Input const&) override;
+         Result frequencies(Input const&) override;
 
       private:
-         Result run(Input const&, bool optimize);
+         enum Task { SinglePoint, Optimization, Hessian };
+         Result run(Input const&, Task task);
          QStringList methodArguments() const;
 
          QString m_executable;

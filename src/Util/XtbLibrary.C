@@ -13,6 +13,7 @@
 #include "XtbLibrary.h"
 #include "XtbOutput.h"
 #include "Optimizer.h"
+#include "Vibrations.h"
 #include <xtb.h>
 #include <QCoreApplication>
 #include <QElapsedTimer>
@@ -104,6 +105,25 @@ class Session {
          return !failed();
       }
 
+      // Numerical Hessian (Hartree/Bohr^2, 3N x 3N) and the derivatives of the dipole moment
+      // with respect to the coordinates (in e, 3 values per coordinate).  The library wants a 
+      // fresh results object here, as the Hessian is sensitive to the starting guess.
+      bool hessian(std::vector<double> const& x, std::vector<double>& hessian, 
+         std::vector<double>& dipoleGradient)
+      {
+         xtb_updateMolecule(m_env, m_mol, x.data(), 0);
+         xtb_TResults fresh(xtb_newResults());
+         hessian.assign(static_cast<size_t>(9) * m_natoms * m_natoms, 0.0);
+         dipoleGradient.assign(static_cast<size_t>(9) * m_natoms, 0.0);
+         // The xtb program converges the SCF more tightly for the displaced structures
+         // of a Hessian (accuracy 0.3 instead of 1), which matters for soft modes
+         xtb_setAccuracy(m_env, m_calc, 0.3);
+         xtb_hessian(m_env, m_mol, m_calc, fresh, hessian.data(), 0, 0, dipoleGradient.data(), 0);
+         xtb_setAccuracy(m_env, m_calc, 1.0);
+         xtb_delResults(&fresh);
+         return !failed();
+      }
+
       // One more single point, this time recording xtb's printout and the dipole
       bool printout(std::vector<double> const& x, QString& text, double& dipoleDebye)
       {
@@ -183,6 +203,100 @@ Result XtbLibrary::energy(Input const& input)
 Result XtbLibrary::optimize(Input const& input)
 {
    return run(input, true);
+}
+
+
+Result XtbLibrary::frequencies(Input const& input)
+{
+   Result result;
+   m_cancelled = false;
+
+   int natoms(input.atomicNumbers.size());
+   if (natoms == 0 || input.coordinates.size() != 3*natoms) {
+      result.message = "Invalid input: inconsistent number of atoms and coordinates";
+      return result;
+   }
+   QString spinError(checkSpin(input));
+   if (!spinError.isEmpty()) {
+      result.message = spinError;
+      return result;
+   }
+
+   QElapsedTimer clock;
+   clock.start();
+
+   Session session(input, m_method);
+   if (session.failed()) {
+      result.message = "xtb setup failed\n" + session.error();
+      return result;
+   }
+
+   std::vector<double> x(Session::bohrCoordinates(input.coordinates));
+   QString log;
+   auto report = [&](QString const& text) {
+      log += text;
+      if (m_progress) m_progress(text);
+   };
+
+   // The energy and gradient of the geometry: the frequencies only mean something at a 
+   // stationary point
+   QString text;
+   double dipole(-1.0);
+   if (!session.printout(x, text, dipole)) {
+      result.message = "xtb failed\n" + session.error();
+      return result;
+   }
+   report(text);
+   if (!parseEnergy(text, result.energy)) {
+      result.message = "Unable to read the energy from the xtb output";
+      return result;
+   }
+   parseDetails(text, result);
+   if (dipole >= 0.0) result.dipoleDebye = dipole;
+   result.initialEnergy = result.energy;
+
+   report(QString::asprintf("\nNumerical Hessian (%d displaced calculations) ...\n", 6 * natoms));
+   if (m_interactive) QCoreApplication::processEvents();
+
+   std::vector<double> hessian, dipoleGradient;
+   if (!session.hessian(x, hessian, dipoleGradient)) {
+      result.message = "xtb failed to calculate the Hessian\n" + session.error();
+      result.log = log;
+      return result;
+   }
+
+   std::vector<int> numbers(input.atomicNumbers.toStdVector());
+   VibrationalAnalysis analysis(analyseVibrations(numbers, x, hessian, &dipoleGradient));
+   if (!analysis.ok) {
+      result.message = "Vibrational analysis failed: " + QString::fromStdString(analysis.message);
+      result.log = log;
+      return result;
+   }
+
+   VibrationalData& data(result.vibrations);
+   for (size_t i = 0; i < analysis.frequencies.size(); ++i) {
+       data.frequencies.append(analysis.frequencies[i]);
+       data.reducedMasses.append(analysis.reducedMasses[i]);
+       if (i < analysis.intensities.size()) data.intensities.append(analysis.intensities[i]);
+       data.modes.append(QVector<double>::fromStdVector(analysis.modes[i]));
+   }
+   data.zeroPointEnergy = analysis.zeroPointEnergy;
+   result.hasVibrations = true;
+
+   report("\n  mode     frequency (cm-1)   IR intensity (km/mol)\n");
+   for (int i = 0; i < data.frequencies.size(); ++i) {
+       report(QString::asprintf("  %4d     %12.2f     %12.4f\n", i + 1, data.frequencies[i], 
+          i < data.intensities.size() ? data.intensities[i] : 0.0));
+   }
+   report(QString::asprintf("\n  zero point energy  %.8f Eh\n", data.zeroPointEnergy));
+
+   result.coordinates.resize(input.coordinates.size());
+   for (int i = 0; i < input.coordinates.size(); ++i) result.coordinates[i] = input.coordinates[i];
+   result.converged = true;
+   result.seconds = clock.elapsed() / 1000.0;
+   result.log = log;
+   result.success = true;
+   return result;
 }
 
 

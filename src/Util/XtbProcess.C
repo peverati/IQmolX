@@ -166,17 +166,23 @@ QString XtbProcess::findExecutable(QString const& hint)
 
 Result XtbProcess::energy(Input const& input)
 {
-   return run(input, false);
+   return run(input, SinglePoint);
 }
 
 
 Result XtbProcess::optimize(Input const& input)
 {
-   return run(input, true);
+   return run(input, Optimization);
 }
 
 
-Result XtbProcess::run(Input const& input, bool optimize)
+Result XtbProcess::frequencies(Input const& input)
+{
+   return run(input, Hessian);
+}
+
+
+Result XtbProcess::run(Input const& input, Task task)
 {
    Result result;
 
@@ -214,7 +220,11 @@ Result XtbProcess::run(Input const& input, bool optimize)
    args << methodArguments();
    args << "--chrg" << QString::number(input.charge);
    args << "--uhf"  << QString::number(input.multiplicity - 1);
-   args << (optimize ? "--opt" : "--sp");
+   switch (task) {
+      case SinglePoint: args << "--sp";   break;
+      case Optimization: args << "--opt"; break;
+      case Hessian:      args << "--hess"; break;
+   }
    if (!input.solvent.isEmpty()) args << "--alpb" << input.solvent;
 
    QProcess process;
@@ -310,7 +320,7 @@ Result XtbProcess::run(Input const& input, bool optimize)
       return result;
    }
 
-   if (optimize) {
+   if (task == Optimization) {
       // xtb writes the last geometry even when the optimization does not converge
       if (!readXyz(dir.filePath("xtbopt.xyz"), natoms, result.coordinates)) {
          result.message = "Failed to read the optimized geometry from xtb\n" + tail(output);
@@ -326,6 +336,20 @@ Result XtbProcess::run(Input const& input, bool optimize)
    }
 
    parseDetails(output, result);
+
+   if (task == Hessian) {
+      // The vibrations are in the Gaussian 98 style output file
+      QFile g98(dir.filePath("g98.out"));
+      QString g98Text;
+      if (g98.open(QIODevice::ReadOnly)) g98Text = QString::fromLocal8Bit(g98.readAll());
+      if (!parseG98(g98Text, input.atomicNumbers, result.vibrations)) {
+         result.message = "Failed to read the vibrational frequencies from xtb\n" + tail(output);
+         return result;
+      }
+      parseZeroPointEnergy(output, result.vibrations.zeroPointEnergy);
+      result.hasVibrations = true;
+      result.log += "--- g98.out ---\n" + g98Text;
+   }
    result.success = true;
    return result;
 }

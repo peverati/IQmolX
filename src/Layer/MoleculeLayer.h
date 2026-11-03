@@ -36,6 +36,8 @@
 #include "Math/Matrix.h"
 
 #include <QMap>
+#include <QPointer>
+#include "Util/Calculator.h"
 #include <QFileInfo>
 
 #include <functional>
@@ -120,6 +122,9 @@ bool save(bool prompt = false);
             // Runs the xtb calculation (method, solvent, backend, single point or
             // optimization) that is selected in the xtb window.
             void runXtbJob();
+
+            // Adds vibrations as a Frequencies layer, replacing those of an earlier xtb run
+            void setVibrations(Calc::VibrationalData const&, QString const& label);
 
             void symmetrize(double tolerance, bool updateCoordinates = true);
 
@@ -279,7 +284,7 @@ bool save(bool prompt = false);
             void saveAs() { save(true); }
 
          private:
-            void runXtb(QString const& method, bool optimize);
+            void runXtb(QString const& method, QString const& job);
             static bool s_autoDetectSymmetry;
 
             QString constraintsAsString();
@@ -358,6 +363,9 @@ bool save(bool prompt = false);
             // emits updated() before its animation moves the atoms, which would trigger
             // an energy calculation on the old geometry and overwrite the result.
             bool m_xtbSkipEnergy;
+
+            // The Frequencies layer from the last xtb frequency calculation
+            QPointer<Base> m_xtbFrequencies;
             bool m_reperceiveBondsForAnimation;
    
             Configurator::Molecule m_configurator;

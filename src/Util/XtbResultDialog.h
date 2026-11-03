@@ -56,7 +56,9 @@ namespace IQmol {
          void appendOutput(QString const& text);
 
          /// Switches to the 'finished' state and shows the summary of the result
-         void finished(Calc::Result const&, QString const& method, bool optimization);
+         /// what is the type of calculation, e.g. 'single point' or 'vibrational frequencies'
+         void finished(Calc::Result const&, QString const& method, QString const& what,
+            bool optimization);
 
       public Q_SLOTS:
          /// Opens the window (or brings it to the front) without starting anything

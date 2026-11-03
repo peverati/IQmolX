@@ -4,6 +4,7 @@ add_executable(XtbProcessTest EXCLUDE_FROM_ALL
    XtbProcessTest.C
    ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/XtbProcess.C
    ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/XtbOutput.C
+   ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/Vibrations.C
 )
 target_include_directories(XtbProcessTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
 target_link_libraries(XtbProcessTest PRIVATE Qt5::Core)
@@ -28,6 +29,7 @@ if (XTB_ROOT AND EXISTS ${XTB_ROOT}/include/xtb.h)
       XtbBackendTest.C
       ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/XtbProcess.C
       ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/XtbLibrary.C
+      ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/Vibrations.C
       ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/XtbOutput.C
    )
    target_include_directories(XtbBackendTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src ${XTB_ROOT}/include)
@@ -52,3 +54,12 @@ add_executable(XtbDialogTest EXCLUDE_FROM_ALL XtbDialogTest.C)
 target_include_directories(XtbDialogTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
 target_link_libraries(XtbDialogTest PRIVATE Util Qt5::Widgets Qt5::Gui Qt5::Core)
 add_test(NAME XtbDialogTest COMMAND XtbDialogTest)
+
+
+# Vibrational analysis: no dependencies
+add_executable(VibrationsTest EXCLUDE_FROM_ALL
+   VibrationsTest.C
+   ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/Vibrations.C
+)
+target_include_directories(VibrationsTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+add_test(NAME VibrationsTest COMMAND VibrationsTest)

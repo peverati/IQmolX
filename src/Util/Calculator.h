@@ -37,6 +37,24 @@ namespace Calc {
       Input() : charge(0), multiplicity(1) { }
    };
 
+   /// The result of a vibrational analysis
+   struct VibrationalData {
+      QVector<double>          frequencies;     // cm^-1, imaginary ones negative, ascending
+      QVector<double>          intensities;     // IR, km/mol (empty if not available)
+      QVector<double>          reducedMasses;   // amu
+      QVector<QVector<double> > modes;          // per mode the Cartesian displacement of each atom
+                                                // (3N numbers), normalized to a sum of squares of 1
+      double                   zeroPointEnergy; // Hartree
+
+      VibrationalData() : zeroPointEnergy(0.0) { }
+
+      int imaginary() const {
+         int n(0);
+         for (double f : frequencies) if (f < 0.0) ++n;
+         return n;
+      }
+   };
+
    struct Result {
       bool            success;       // the calculation ran and produced a result
       bool            converged;     // geometry optimization converged
@@ -53,12 +71,14 @@ namespace Calc {
       double          dipoleDebye;
       int             cycles;        // optimization cycles
       double          seconds;       // wall time
+      bool            hasVibrations; // the vibrational data below is available
+      VibrationalData vibrations;
       bool            hasGsolv;      // a solvation free energy was reported
       double          gsolv;         // Hartree
 
       Result() : success(false), converged(false), energy(0.0), cancelled(false),
          initialEnergy(0.0), gradientNorm(-1.0), gapEV(-1.0), dipoleDebye(-1.0), 
-         cycles(0), seconds(0.0), hasGsolv(false), gsolv(0.0) { }
+         cycles(0), seconds(0.0), hasVibrations(false), hasGsolv(false), gsolv(0.0) { }
    };
 
    class Calculator {
@@ -72,6 +92,16 @@ namespace Calc {
 
          /// Geometry optimization
          virtual Result optimize(Input const&) = 0;
+
+         /// Vibrational frequencies, normal modes and IR intensities at the geometry of the
+         /// input, which should be a stationary point.  The energy and the norm of the 
+         /// gradient at that geometry are also reported.
+         virtual Result frequencies(Input const&) 
+         { 
+            Result result;
+            result.message = name() + " cannot calculate vibrational frequencies";
+            return result; 
+         }
 
          /// Text describing the progress of a calculation is passed to this function as 
          /// it becomes available.  Only used together with setInteractive(true).

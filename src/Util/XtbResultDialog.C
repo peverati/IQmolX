@@ -63,6 +63,8 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
    m_jobCombo = new QComboBox(m_settings);
    m_jobCombo->addItem("Single point energy", "singlepoint");
    m_jobCombo->addItem("Geometry optimization", "optimize");
+   m_jobCombo->addItem("Vibrational frequencies", "frequencies");
+   m_jobCombo->addItem("Geometry optimization and frequencies", "optfreq");
    form->addRow("Job:", m_jobCombo);
 
    m_methodCombo = new QComboBox(m_settings);
@@ -362,7 +364,7 @@ void XtbResultDialog::appendOutput(QString const& text)
 
 
 void XtbResultDialog::finished(Calc::Result const& result, QString const& method,
-   bool optimization)
+   QString const& what, bool optimization)
 {
    setRunning(false);
    hide();            // see the note in started()
@@ -372,7 +374,6 @@ void XtbResultDialog::finished(Calc::Result const& result, QString const& method
    raise();
    activateWindow();
 
-   QString what(optimization ? "geometry optimization" : "single point");
    QString s;
 
    if (result.cancelled) {
@@ -391,6 +392,7 @@ void XtbResultDialog::finished(Calc::Result const& result, QString const& method
 
    QString status(" finished");
    if (optimization) status = result.converged ? " converged" : " did not converge";
+   if (optimization && result.converged && result.hasVibrations) status = " finished";
    m_title->setText(method + " " + what + status);
 
    double const hartreeToKcal(627.5094740631);
@@ -424,9 +426,53 @@ void XtbResultDialog::finished(Calc::Result const& result, QString const& method
    if (result.dipoleDebye >= 0.0) {
       s += row("Dipole moment", QString::number(result.dipoleDebye, 'f', 3) + " D");
    }
+   if (result.hasVibrations) {
+      Calc::VibrationalData const& v(result.vibrations);
+      int imaginary(v.imaginary());
+      int real(v.frequencies.size() - imaginary);
+      s += row("Vibrational modes", QString::number(v.frequencies.size()));
+      if (real > 0) {
+         s += row("Frequencies", QString::number(v.frequencies[imaginary], 'f', 1) + " to " 
+            + QString::number(v.frequencies.last(), 'f', 1) + " cm<sup>-1</sup>");
+      }
+      s += row("Zero point energy", QString::number(v.zeroPointEnergy, 'f', 6) + " E<sub>h</sub> ("
+         + QString::number(v.zeroPointEnergy * hartreeToKcal, 'f', 2) + " kcal/mol)");
+      if (!v.intensities.isEmpty()) {
+         int strongest(0);
+         for (int i = 1; i < v.intensities.size(); ++i) {
+             if (v.intensities[i] > v.intensities[strongest]) strongest = i;
+         }
+         s += row("Strongest IR band", QString::number(v.frequencies[strongest], 'f', 1) + " cm<sup>-1</sup> ("
+            + QString::number(v.intensities[strongest], 'f', 1) + " km/mol)");
+      }
+      QString imaginaryText(QString::number(imaginary));
+      if (imaginary > 0) {
+         imaginaryText += " (";
+         for (int i = 0; i < imaginary && i < 3; ++i) {
+             imaginaryText += (i ? ", " : "") + QString::number(v.frequencies[i], 'f', 1);
+         }
+         imaginaryText += (imaginary > 3 ? ", ..." : "") + QString(" cm<sup>-1</sup>)");
+      }
+      s += row("Imaginary frequencies", imaginary > 0 ? "<span style=\"color:#c03030\">" + imaginaryText + "</span>" : imaginaryText);
+   }
    s += row("Wall time", QString::number(result.seconds, 'f', 2) + " s");
    s += "</table>";
 
+   if (result.hasVibrations) {
+      int imaginary(result.vibrations.imaginary());
+      if (imaginary > 0) {
+         s += "<p>The structure is not a minimum: " + QString::number(imaginary) 
+            + (imaginary == 1 ? " imaginary frequency indicates" : " imaginary frequencies indicate")
+            + " a saddle point (or an incompletely optimized structure).</p>";
+      }
+      if (!optimization && result.gradientNorm > 0.002) {
+         s += "<p><b>The geometry is not a stationary point</b> (gradient norm " 
+            + QString::number(result.gradientNorm, 'f', 4) + " E<sub>h</sub>/a<sub>0</sub>), "
+              "so the frequencies are not reliable.  Use <i>Geometry optimization and frequencies</i>.</p>";
+      }
+      s += "<p>The modes are in the <i>Frequencies</i> entry of the molecule: select a mode there to "
+           "animate it, or open it to see the IR spectrum.</p>";
+   }
    if (!result.converged) {
       s += "<p>The geometry has been updated to the last structure found, "
            "but it is not fully optimized.</p>";

@@ -127,7 +127,7 @@ namespace Preferences {
    QString XtbMethod();
    void    XtbMethod(QString const&);
 
-   // What the xtb window runs: "optimize" or "singlepoint"
+   // What the xtb window runs: "singlepoint", "optimize", "frequencies" or "optfreq"
    QString XtbJob();
    void    XtbJob(QString const&);
 

@@ -2083,19 +2083,25 @@ void Molecule::addHydrogens()
 }
 
 
-// Runs the calculation chosen in the xtb window (method, solvent, backend and single 
-// point or optimization) on this molecule
+// Runs the calculation chosen in the xtb window (method, solvent, backend and job)
+// on this molecule
 void Molecule::runXtbJob()
 {
-   runXtb(Preferences::XtbMethod(), Preferences::XtbJob() == "optimize");
+   runXtb(Preferences::XtbMethod(), Preferences::XtbJob());
 }
 
 
-// Runs xtb on the molecule and reports in the xtb window.  For a single-point energy 
-// the geometry is left untouched, otherwise the atoms are moved to the optimized 
-// geometry in an undoable command.
-void Molecule::runXtb(QString const& methodName, bool optimize)
+// Runs xtb on the molecule and reports in the xtb window.  The job is one of
+//    singlepoint   the energy, the geometry is left untouched
+//    optimize      the atoms are moved to the optimized geometry in an undoable command
+//    frequencies   vibrational frequencies, normal modes and IR intensities, which are
+//                  added to the molecule as a Frequencies layer
+//    optfreq       an optimization followed by the frequencies of the optimized geometry
+void Molecule::runXtb(QString const& methodName, QString const& job)
 {
+   bool const optimize(job == "optimize" || job == "optfreq");
+   bool const frequencies(job == "frequencies" || job == "optfreq");
+
    Calc::XtbProcess::Method method(Calc::XtbProcess::GFN2);
    if (methodName == "GFN1-xTB") {
       method = Calc::XtbProcess::GFN1;
@@ -2159,6 +2165,15 @@ void Molecule::runXtb(QString const& methodName, bool optimize)
 #endif
    if (!xtb) xtb.reset(new Calc::XtbProcess(Preferences::XtbPath(), method));
 
+   QString what("single point");
+   if (optimize && frequencies) {
+      what = "geometry optimization and frequencies";
+   }else if (optimize) {
+      what = "geometry optimization";
+   }else if (frequencies) {
+      what = "vibrational frequencies";
+   }
+
    // Keep the GUI alive and show the progress in the xtb window
    QString subject(text().isEmpty() ? "the molecule" : text());
    subject += " (" + QString::number(atoms.size()) + " atoms)";
@@ -2167,16 +2182,38 @@ void Molecule::runXtb(QString const& methodName, bool optimize)
    xtb->setProgressCallback([dialog](QString const& chunk) { dialog->appendOutput(chunk); });
    QMetaObject::Connection cancelConnection(QObject::connect(dialog, 
       &XtbResultDialog::cancelRequested, [&xtb]() { xtb->cancel(); }));
-   dialog->started(label, optimize ? "geometry optimization" : "single point", subject,
-      input.charge, input.multiplicity);
+   dialog->started(label, what, subject, input.charge, input.multiplicity);
 
-   Calc::Result result(optimize ? xtb->optimize(input) : xtb->energy(input));
+   Calc::Result result;
+   if (optimize) {
+      result = xtb->optimize(input);
+   }else if (!frequencies) {
+      result = xtb->energy(input);
+   }
+
+   // The frequencies are those of the optimized geometry
+   Calc::Result frequencyResult;
+   if (frequencies && (!optimize || result.success)) {
+      if (optimize) {
+         input.coordinates = result.coordinates;
+         dialog->appendOutput("\n------------------------  vibrational frequencies  ------------------------\n\n");
+      }
+      frequencyResult = xtb->frequencies(input);
+      if (!optimize) {
+         result = frequencyResult;
+      }else if (frequencyResult.success) {
+         result.vibrations   = frequencyResult.vibrations;
+         result.hasVibrations = true;
+         result.gradientNorm = frequencyResult.gradientNorm;
+         result.seconds     += frequencyResult.seconds;
+      }
+   }
 
    QObject::disconnect(cancelConnection);
-   dialog->finished(result, label, optimize);
+   dialog->finished(result, label, what, optimize);
    s_xtbBusy = false;
 
-   QLOG_DEBUG() << "xtb" << label << "charge" << input.charge << "multiplicity" 
+   QLOG_DEBUG() << "xtb" << label << job << "charge" << input.charge << "multiplicity" 
                 << input.multiplicity << "energy (Eh)" << result.energy 
                 << "success" << result.success << "converged" << result.converged;
    // The full xtb input and output is only worth keeping when something went wrong
@@ -2186,43 +2223,96 @@ void Molecule::runXtb(QString const& methodName, bool optimize)
    if (!result.success) return;
 
    QString mesg(label + " energy: ");
-
-   if (!optimize) {
-      energyAvailable(result.energy, Info::Hartree, mesg);
-      return;
-   }
-
-   // Guard against the molecule having been edited while xtb was running
-   if (findLayers<Atom>(Children) != atoms) {
-      QString msg("The molecule was modified while xtb was running.  "
-                  "The optimized structure has been discarded.");
-      QMsgBox::warning(0, "IQmol", msg);
-      return;
-   }
-
-   // The command records the initial positions on construction
-   Command::MinimizeStructure* cmd(new Command::MinimizeStructure(this));
-
-   int i(0);
-   for (iter = atoms.begin(); iter != atoms.end(); ++iter, ++i) {
-       (*iter)->setPosition(Vec(result.coordinates[3*i], result.coordinates[3*i+1], 
-          result.coordinates[3*i+2]));
-   }
-
-   cmd->setMessage(mesg + QString::number(result.energy, 'f', 6) + " Eh");
    energyAvailable(result.energy, Info::Hartree, mesg);
 
-   m_modified = true;
-   reindexAtomsAndBonds();
-   m_xtbSkipEnergy = true;
-   postCommand(cmd);
-   m_xtbSkipEnergy = false;
+   if (optimize) {
+      // Guard against the molecule having been edited while xtb was running
+      if (findLayers<Atom>(Children) != atoms) {
+         QString msg("The molecule was modified while xtb was running.  "
+                     "The result has been discarded.");
+         QMsgBox::warning(0, "IQmol", msg);
+         return;
+      }
 
-   // As in minimizeEnergy these need to come after the command is posted
-   centerOfNuclearChargeAvailable(centerOfNuclearCharge());
-   setAtomicCharges(Data::Type::GasteigerCharge);
-   bool estimated(true);
-   dipoleAvailable(dipoleFromPointCharges(), estimated);
+      // The command records the initial positions on construction
+      Command::MinimizeStructure* cmd(new Command::MinimizeStructure(this));
+
+      int i(0);
+      for (iter = atoms.begin(); iter != atoms.end(); ++iter, ++i) {
+          (*iter)->setPosition(Vec(result.coordinates[3*i], result.coordinates[3*i+1], 
+             result.coordinates[3*i+2]));
+      }
+
+      cmd->setMessage(mesg + QString::number(result.energy, 'f', 6) + " Eh");
+
+      m_modified = true;
+      reindexAtomsAndBonds();
+      m_xtbSkipEnergy = true;
+      postCommand(cmd);
+      m_xtbSkipEnergy = false;
+
+      // As in minimizeEnergy these need to come after the command is posted
+      centerOfNuclearChargeAvailable(centerOfNuclearCharge());
+      setAtomicCharges(Data::Type::GasteigerCharge);
+      bool estimated(true);
+      dipoleAvailable(dipoleFromPointCharges(), estimated);
+   }
+
+   if (frequencies && result.hasVibrations) {
+      if (findLayers<Atom>(Children).size() == result.vibrations.modes.value(0).size() / 3) {
+         setVibrations(result.vibrations, label);
+      }
+   }
+}
+
+
+// Adds the vibrations from an xtb calculation to the molecule as a Frequencies layer, 
+// which gives the usual display of the modes, their animation and the IR spectrum.  
+// A layer from an earlier xtb calculation is replaced.
+void Molecule::setVibrations(Calc::VibrationalData const& vibrations, QString const& label)
+{
+   int const natoms(findLayers<Atom>(Children).size());
+   double const hartreeToKcal(627.5094740631);
+
+   Data::Frequencies* data(new Data::Frequencies);
+   for (int i = 0; i < vibrations.frequencies.size(); ++i) {
+       QList<qglviewer::Vec> eigenvector;
+       QVector<double> const& d(vibrations.modes[i]);
+       for (int atom = 0; atom < natoms; ++atom) {
+           eigenvector.append(qglviewer::Vec(d[3*atom], d[3*atom+1], d[3*atom+2]));
+       }
+       double intensity(i < vibrations.intensities.size() ? vibrations.intensities[i] : 0.0);
+       bool irActive(intensity > 0.01);
+       bool ramanActive(false);
+
+       Data::VibrationalMode* mode(new Data::VibrationalMode(vibrations.frequencies[i], 
+          intensity, irActive, ramanActive, eigenvector));
+       mode->setRamanIntensity(0.0);
+       data->append(mode);
+   }
+   data->setThermochemicalData(vibrations.zeroPointEnergy * hartreeToKcal, 0.0, 0.0);
+
+   // Replace the result of an earlier calculation
+   if (m_xtbFrequencies) {
+      removeLayer(m_xtbFrequencies);
+      m_xtbFrequencies->deleteLater();
+      m_xtbFrequencies = 0;
+   }
+
+   // The usual route for data that is added to a molecule, except that the geometry
+   // stored in a file must not replace the current one
+   Data::Bank bank;
+   bank.append(data);
+   Factory& factory(Factory::instance());
+   Layer::List layerList(factory.toLayers(bank));
+   appendData(layerList);
+   m_bank.merge(bank);
+
+   QList<Frequencies*> layers(findLayers<Frequencies>(Children));
+   if (!layers.isEmpty()) {
+      m_xtbFrequencies = layers.last();
+      m_xtbFrequencies->setText("Frequencies (" + label + ")");
+   }
 }
 
 

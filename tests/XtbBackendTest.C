@@ -8,6 +8,7 @@
 #include <QFile>
 #include <QStringList>
 #include <QTextStream>
+#include <QElapsedTimer>
 #include <QtMath>
 #include <cstdio>
 
@@ -128,6 +129,79 @@ int main(int argc, char** argv)
        check(qAbs(dE) < 5e-5, label + ": same minimum energy");
        check(rmsd < 0.05, label + ": same geometry");
        check(optL.gradientNorm >= 0.0 && optL.gradientNorm < 1.5e-3, label + ": final gradient is small");
+
+       // Vibrational frequencies of the same geometry from both backends
+       Input minimum(input);
+       minimum.coordinates = optP.coordinates;
+       QElapsedTimer clockP;  clockP.start();
+       Result freqP(program.frequencies(minimum));
+       double secondsP(clockP.elapsed() / 1000.0);
+       QElapsedTimer clockL;  clockL.start();
+       Result freqL(library.frequencies(minimum));
+       double secondsL(clockL.elapsed() / 1000.0);
+       if (!freqP.success || !freqL.success) {
+          check(false, label + ": both frequency calculations run: " + freqP.message + " / " + freqL.message);
+          continue;
+       }
+
+       VibrationalData const& vp(freqP.vibrations);
+       VibrationalData const& vl(freqL.vibrations);
+       int natoms(input.atomicNumbers.size());
+       check(vp.frequencies.size() == vl.frequencies.size() && vl.frequencies.size() >= 3 * natoms - 6,
+          label + ": same number of modes (" + QString::number(vl.frequencies.size()) + ")");
+
+       // The two Hessians differ slightly (the library's agrees with finite differences of
+       // the gradient, the program's --hess deviates from them by about 0.05% in an O-H
+       // stretch), so the comparison allows 0.2% plus 4 cm-1 for soft modes.  Modes that
+       // lie close to a neighbour mix, so their shapes are only compared if they are
+       // separated by more than 30 cm-1.
+       double maxDf(0.0), maxRelDf(0.0), maxDi(0.0), maxDmass(0.0), minOverlap(1.0);
+       double sumP(0.0), sumL(0.0);
+       bool frequenciesAgree(true), intensitiesAgree(true);
+       int count(qMin(vp.frequencies.size(), vl.frequencies.size())), compared(0);
+       for (int i = 0; i < count; ++i) {
+           double df(qAbs(vp.frequencies[i] - vl.frequencies[i]));
+           maxDf = qMax(maxDf, df);
+           maxRelDf = qMax(maxRelDf, df / qMax(100.0, qAbs(vp.frequencies[i])));
+           if (df > 0.002 * qAbs(vp.frequencies[i]) + 4.0) frequenciesAgree = false;
+
+           bool isolated(true);
+           if (i > 0 && qAbs(vp.frequencies[i] - vp.frequencies[i-1]) < 30.0) isolated = false;
+           if (i + 1 < count && qAbs(vp.frequencies[i] - vp.frequencies[i+1]) < 30.0) isolated = false;
+
+           if (vp.intensities.size() == count && vl.intensities.size() == count) {
+              sumP += vp.intensities[i];
+              sumL += vl.intensities[i];
+              if (isolated) {
+                 double dI(qAbs(vp.intensities[i] - vl.intensities[i]));
+                 maxDi = qMax(maxDi, dI);
+                 if (dI > 0.05 * vp.intensities[i] + 0.6) intensitiesAgree = false;
+              }
+           }
+           if (isolated) {
+              maxDmass = qMax(maxDmass, qAbs(vp.reducedMasses[i] - vl.reducedMasses[i]) / vp.reducedMasses[i]);
+           }
+           if (isolated && vp.modes[i].size() == vl.modes[i].size()) {
+              double overlap(0.0);
+              for (int k = 0; k < vp.modes[i].size(); ++k) overlap += vp.modes[i][k] * vl.modes[i][k];
+              minOverlap = qMin(minOverlap, qAbs(overlap));
+              ++compared;
+           }
+       }
+       std::printf("   frequencies: %d modes, %.1f to %.1f cm-1, max df %.2f cm-1 (%.3f%%), max dI %.2f km/mol, total IR %.1f/%.1f km/mol, "
+                   "%d isolated modes compared, overlap >= %.4f, ZPE %.6f/%.6f Eh, imaginary %d/%d, "
+                   "time %.2f s program / %.2f s library\n", count, vl.frequencies.first(),
+                   vl.frequencies.last(), maxDf, 100.0 * maxRelDf, maxDi, sumP, sumL, compared, minOverlap, vp.zeroPointEnergy,
+                   vl.zeroPointEnergy, vp.imaginary(), vl.imaginary(), secondsP, secondsL);
+       check(frequenciesAgree, label + ": frequencies agree (0.2% + 4 cm-1)");
+       check(intensitiesAgree, label + ": IR intensities of isolated modes agree (5% + 0.6 km/mol)");
+       check(qAbs(sumP - sumL) < 0.03 * sumP + 1.0, label + ": total IR intensity agrees within 3%");
+       check(maxDmass < 0.02, label + ": reduced masses of isolated modes agree within 2%");
+       check(minOverlap > 0.97, label + ": isolated normal modes agree");
+       check(qAbs(vp.zeroPointEnergy - vl.zeroPointEnergy) < 2e-4 * vp.zeroPointEnergy + 1e-5,
+          label + ": zero point energies agree");
+       check(vp.imaginary() == vl.imaginary(), label + ": both find the same number of imaginary frequencies");
+       check(freqL.gradientNorm >= 0.0 && freqL.gradientNorm < 2e-3, label + ": the geometry is stationary");
    }
 
    // Error handling and the features of the shared interface

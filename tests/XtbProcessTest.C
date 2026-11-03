@@ -100,6 +100,33 @@ int main(int argc, char** argv)
    check(cancelled.cancelled && !cancelled.success, "cancel() stops a running calculation");
    check(cancelled.seconds < 5.0, "cancellation returns promptly");
 
+   // Vibrational frequencies of optimized water (values from the xtb program output)
+   Input minimum(water);
+   minimum.coordinates = opt.coordinates;
+   Result freq(xtb.frequencies(minimum));
+   check(freq.success && freq.hasVibrations && freq.vibrations.frequencies.size() == 3, "frequencies: three modes for water");
+   if (freq.success && freq.vibrations.frequencies.size() == 3) {
+      VibrationalData const& v(freq.vibrations);
+      // (the exact values depend on how tightly the geometry was optimized, by a few cm-1)
+      check(qAbs(v.frequencies[0] - 1539.0) < 5.0 && qAbs(v.frequencies[1] - 3645.0) < 5.0 
+         && qAbs(v.frequencies[2] - 3653.0) < 5.0, "frequencies: water bend and stretches");
+      check(v.intensities.size() == 3 && qAbs(v.intensities[0] - 133.0) < 3.0, "frequencies: IR intensity of the bend");
+      check(qAbs(v.zeroPointEnergy - 0.02013) < 5e-5, "frequencies: zero point energy");
+      double norm(0.0);
+      for (double x : v.modes[0]) norm += x * x;
+      check(qAbs(norm - 1.0) < 1e-9, "frequencies: normal modes are normalized");
+      // mass weighted modes are orthogonal, which the Cartesian displacements are not
+      double orth(0.0);
+      static double const mass[3] = { 15.99940492, 1.00794075, 1.00794075 };
+      for (int a = 0; a < 3; ++a) for (int b = a + 1; b < 3; ++b) {
+          double sum(0.0);
+          for (int i = 0; i < 9; ++i) sum += mass[i / 3] * v.modes[a][i] * v.modes[b][i];
+          orth = qMax(orth, qAbs(sum));
+      }
+      check(orth < 2e-2, "frequencies: the modes are Cartesian displacements (orthogonal when mass weighted)");
+   }
+   check(!freq.success || freq.energy != 0.0, "frequencies: the energy is reported");
+
    // Implicit solvent (ALPB)
    Input inWater(water);
    inWater.solvent = "water";

@@ -153,7 +153,7 @@ int main(int argc, char** argv)
    result.gsolv = -0.022;
    result.cycles = 6;
    result.seconds = 0.1;
-   d->finished(result, "GFN-FF/ALPB(methanol)", true);
+   d->finished(result, "GFN-FF/ALPB(methanol)", "geometry optimization", true);
    check(run->isVisible() && !cancel->isVisible(), "Run is available again when finished");
    check(method->isEnabled() && solvent->isEnabled() && job->isEnabled(), "settings are unlocked when finished");
    bool hasResult(false);
@@ -170,11 +170,11 @@ int main(int argc, char** argv)
    // The values in use are shown, so that unchecking the box starts from them
    d->started("GFN2-xTB", "single point", "radical (4 atoms)", 0, 2);
    check(chargeSpin->value() == 0 && multiplicitySpin->value() == 2, "the boxes show the values in use");
-   d->finished(result, "GFN2-xTB", false);
+   d->finished(result, "GFN2-xTB", "single point", false);
    useMolecule->setChecked(false);
    d->started("GFN2-xTB", "single point", "radical (4 atoms)", 1, 1);
    bool entered(false);
-   d->finished(result, "GFN2-xTB", false);
+   d->finished(result, "GFN2-xTB", "single point", false);
    for (QLabel* l : d->findChildren<QLabel*>()) if (l->text().contains("entered in this window")) entered = true;
    check(entered, "the summary says when the values were entered by hand");
    useMolecule->setChecked(true);
@@ -184,8 +184,51 @@ int main(int argc, char** argv)
    check(!run->isVisible(), "a second calculation can be started");
    IQmol::Calc::Result failed;
    failed.message = "xtb failed";
-   d->finished(failed, "GFN-FF", false);
+   d->finished(failed, "GFN-FF", "single point", false);
    check(run->isVisible(), "failure returns to the setup state");
+
+   // Vibrational frequencies: choices, summary and warnings
+   check(job->count() == 4 && job->findData("frequencies") >= 0 && job->findData("optfreq") >= 0,
+      "the job list has single point, optimization, frequencies and optimization + frequencies");
+   {
+      d->started("GFN2-xTB", "vibrational frequencies", "water (3 atoms)", 0, 1);
+      IQmol::Calc::Result freq;
+      freq.success = true;
+      freq.converged = true;
+      freq.energy = -5.0705;
+      freq.gradientNorm = 0.0004;
+      freq.hasVibrations = true;
+      freq.vibrations.frequencies << 1538.9 << 3643.1 << 3651.8;
+      freq.vibrations.intensities << 133.3 << 6.8 << 16.6;
+      freq.vibrations.zeroPointEnergy = 0.020125;
+      d->finished(freq, "GFN2-xTB", "vibrational frequencies", false);
+      QString text;
+      for (QLabel* l : d->findChildren<QLabel*>()) if (l->text().contains("Vibrational modes")) text = l->text();
+      check(text.contains("Vibrational modes") && text.contains("1538.9 to 3651.8"), "the summary shows the number and range of the modes");
+      check(text.contains("Zero point energy") && text.contains("12.63 kcal/mol"), "the summary shows the zero point energy");
+      check(text.contains("Strongest IR band") && text.contains("1538.9") && text.contains("133.3 km/mol"), "the summary shows the strongest IR band");
+      check(text.contains("Imaginary frequencies") && !text.contains("not a minimum"), "no warning for a minimum");
+      check(text.contains("Frequencies</i> entry"), "the summary says where to find the modes");
+
+      d->started("GFN2-xTB", "vibrational frequencies", "x (3 atoms)", 0, 1);
+      freq.gradientNorm = 0.02;
+      freq.vibrations.frequencies.clear();
+      freq.vibrations.frequencies << -85.2 << 1538.9 << 3651.8;
+      freq.vibrations.intensities.clear();
+      freq.vibrations.intensities << 1.0 << 133.3 << 16.6;
+      d->finished(freq, "GFN2-xTB", "vibrational frequencies", false);
+      QString warning;
+      for (QLabel* l : d->findChildren<QLabel*>()) if (l->text().contains("Vibrational modes")) warning = l->text();
+      check(warning.contains("-85.2") && warning.contains("not a minimum"), "an imaginary frequency is reported with a warning");
+      check(warning.contains("not a stationary point"), "frequencies at a non-stationary geometry are flagged");
+
+      // After an optimization the geometry is stationary by construction, so no such warning
+      d->started("GFN2-xTB", "geometry optimization and frequencies", "x (3 atoms)", 0, 1);
+      d->finished(freq, "GFN2-xTB", "geometry optimization and frequencies", true);
+      QString afterOpt;
+      for (QLabel* l : d->findChildren<QLabel*>()) if (l->text().contains("Vibrational modes")) afterOpt = l->text();
+      check(!afterOpt.contains("not a stationary point"), "no stationarity warning after an optimization");
+   }
 
    // The same window comes back with the settings after being closed
    d->close();

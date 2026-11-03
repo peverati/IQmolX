@@ -31,4 +31,13 @@ namespace Calc {
    /// number of cycles, dipole, solvation free energy, energy of the first geometry)
    void parseDetails(QString const& output, Result& result);
 
+   /// Zero point energy of a frequency calculation, in Hartree
+   bool parseZeroPointEnergy(QString const& output, double& energy);
+
+   /// Reads the frequencies, IR intensities, reduced masses and normal modes from the 
+   /// g98.out file that xtb writes for a Hessian calculation (Gaussian 98 format) for a
+   /// molecule with these atoms.  xtb writes the normal modes mass weighted; they are 
+   /// converted to Cartesian displacements and normalized.
+   bool parseG98(QString const& text, QVector<int> const& atomicNumbers, VibrationalData& data);
+
 } } // end namespace IQmol::Calc
