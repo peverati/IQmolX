@@ -14,6 +14,8 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
+#include <QFileDialog>
+#include <QTimer>
 #include <QJsonDocument>
 #include <QLabel>
 #include <QLineEdit>
@@ -137,6 +139,22 @@ int main(int argc, char** argv)
    d->refreshEngines();
    check(!button(d, "Run")->isEnabled(), "Run is disabled when the helper cannot start");
    check(!d->prepare(problem) && problem.contains("Python"), "prepare explains: " + problem);
+
+   // --- Save Output...: cancelling the file dialog must leave the window open ---
+   {
+      QPushButton* save(button(d, "Save Output..."));
+      check(save != 0 && save->isVisible(), "the Save Output button is there");
+      bool dialogWasOpen(false);
+      QTimer::singleShot(400, [&]() {                // press Cancel in the file dialog, once it is up
+         for (QWidget* w : QApplication::topLevelWidgets()) {
+            QFileDialog* f(qobject_cast<QFileDialog*>(w));
+            if (f && f->isVisible()) { dialogWasOpen = true; f->reject(); }
+         }
+      });
+      if (save) save->click();
+      check(dialogWasOpen, "a file dialog opened");
+      check(d->isVisible(), "the Python Engines window is still open after cancelling the save");
+   }
 
    // --- the size: room for the output, and the size the user chose is remembered ---
    {

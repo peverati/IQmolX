@@ -22,13 +22,14 @@
 ********************************************************************************/
 
 #include "PythonEngineDialog.h"
+#include "FileDialog.h"
 #include "Preferences.h"
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDir>
 #include <QDoubleSpinBox>
-#include <QFileDialog>
+#include <QMessageBox>
 #include <QFile>
 #include <QFileInfo>
 #include <QFontDatabase>
@@ -292,7 +293,9 @@ bool PythonEngineDialog::chargeAndSpin(int& charge, int& multiplicity) const
 void PythonEngineDialog::browseForPython()
 {
    QString start(m_pythonEdit->text().isEmpty() ? QDir::homePath() : m_pythonEdit->text());
-   QString path(QFileDialog::getOpenFileName(this, "Python interpreter", start));
+   // IQmol's wrapper: the native file panel of macOS closes the window it was opened from when it is
+   // cancelled, so the Qt dialog is used there
+   QString path(FileDialog::getOpenFileName(this, "Python interpreter", start));
    if (path.isEmpty()) return;
    m_pythonEdit->setText(path);
    saveSettings();
@@ -825,12 +828,25 @@ void PythonEngineDialog::finished(Calc::Result const& result, QString const& met
 
 void PythonEngineDialog::save()
 {
-   QString path(QFileDialog::getSaveFileName(this, "Save output", m_fileName));
+   // Remember the folder for the rest of the session
+   static QString dir(QDir::homePath());
+
+   // The wrapper of IQmol, not QFileDialog: cancelling the native file panel of macOS would close
+   // this window as well
+   QString path(FileDialog::getSaveFileName(this, "Save output", QDir(dir).filePath(m_fileName),
+      "Output (*.out *.log *.txt);;All files (*)"));
    if (path.isEmpty()) return;
+
    QFile file(path);
-   if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-      QTextStream(&file) << m_output->toPlainText();
+   if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+      QMessageBox::warning(this, "IQmol", "Unable to write to " + path + "\n" + file.errorString());
+      return;
    }
+   QTextStream out(&file);
+   out << m_output->toPlainText();
+   if (!m_output->toPlainText().endsWith('\n')) out << "\n";
+   out.flush();
+   dir = QFileInfo(path).absolutePath();
 }
 
 
