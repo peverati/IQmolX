@@ -83,6 +83,28 @@ jobs:
              -DOPENSSL_ROOT_DIR="$MSYSTEM_PREFIX" \
              -DXTB_ROOT="$GITHUB_WORKSPACE/xtb-install"
 
+      - name: OpenBabel data headers
+        # OpenBabel makes these with a Perl script that it starts directly, which Windows
+        # cannot do, so they are made here with perl before the build
+        run: |
+          D=modules/openbabel/data
+          O=build/modules/openbabel/data
+          mkdir -p "$O"
+          while read -r input name header; do
+            perl "$D/bin2hex.pl" "$D/$input" "$name" "$name" > "$O/$header"
+          done <<'LIST'
+          atomtyp.txt AtomTypeData atomtyp.h
+          bondtyp.txt BondTypeData bondtyp.h
+          phmodel.txt PhModelData phmodeldata.h
+          resdata.txt ResidueData resdata.h
+          torlib.txt TorsionDefaults torlib.h
+          types.txt TypesData types.h
+          atomization-energies.txt AtomicHeatOfFormationData atomizationenergies.h
+          space-groups.txt SpaceGroupsData spacegroups.h
+          ringtyp.txt RingTypeData ringtyp.h
+          LIST
+          ls -la "$O"
+
       - name: Build IQMolX
         run: cmake --build build --target IQmol
 
