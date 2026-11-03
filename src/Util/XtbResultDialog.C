@@ -218,7 +218,12 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
 
    m_runButton    = new QPushButton("Run", this);
    m_cancelButton = new QPushButton("Cancel", this);
-   m_saveButton   = new QPushButton("Save...", this);
+   m_saveButton   = new QPushButton("Save Output...", this);
+   m_saveButton->setToolTip("Save the text of the xtb output to a file");
+   m_saveAllButton = new QPushButton("Save All Files...", this);
+   m_saveAllButton->setToolTip("Copy all the files that the xtb program wrote (input, output, geometry,\n"
+      "molden orbitals, ...) to a folder");
+   m_saveAllButton->setEnabled(false);
    m_closeButton  = new QPushButton("Close", this);
    m_runButton->setDefault(true);
 
@@ -227,6 +232,7 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
    buttons->addWidget(m_runButton);
    buttons->addWidget(m_cancelButton);
    buttons->addWidget(m_saveButton);
+   buttons->addWidget(m_saveAllButton);
    buttons->addWidget(m_closeButton);
 
    // The input of the xtb program, shown (editable) instead of the output while it is reviewed
@@ -280,6 +286,9 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
    connect(m_runButton, SIGNAL(clicked()), this, SLOT(run()));
    connect(m_cancelButton, SIGNAL(clicked()), this, SLOT(cancelClicked()));
    connect(m_saveButton, SIGNAL(clicked()), this, SLOT(save()));
+   connect(m_saveAllButton, SIGNAL(clicked()), this, SLOT(saveAll()));
+   // temporary directories of the xtb program are not left behind
+   connect(qApp, &QCoreApplication::aboutToQuit, this, &XtbResultDialog::forgetTemporaryDirectory);
    connect(m_closeButton, SIGNAL(clicked()), this, SLOT(close()));
 }
 
@@ -292,6 +301,7 @@ void XtbResultDialog::setRunning(bool running)
    m_runButton->setVisible(!running);
    m_cancelButton->setVisible(running);
    m_saveButton->setVisible(!running);
+   m_saveAllButton->setVisible(!running);
    m_closeButton->setVisible(!running);
    if (running) m_cancelButton->setFocus(); else m_runButton->setFocus();
 }
@@ -425,6 +435,7 @@ void XtbResultDialog::setReviewing(bool reviewing)
    m_runButton->setText(reviewing ? "Submit" : "Run");
    m_cancelButton->setVisible(reviewing || m_running);
    m_saveButton->setVisible(!reviewing && !m_running);
+   m_saveAllButton->setVisible(!reviewing && !m_running);
    m_closeButton->setVisible(!reviewing && !m_running);
    if (reviewing) m_inputEdit->setFocus(); else m_runButton->setFocus();
 }
@@ -575,9 +586,67 @@ void XtbResultDialog::appendOutput(QString const& text)
 }
 
 
+// Removes the temporary directory of an earlier run, which is kept for saving
+void XtbResultDialog::forgetTemporaryDirectory()
+{
+   if (!m_temporaryDirectory.isEmpty()) QDir(m_temporaryDirectory).removeRecursively();
+   m_temporaryDirectory.clear();
+   m_directory.clear();
+}
+
+
+void XtbResultDialog::saveAll()
+{
+   static QString dir(QDir::homePath());
+
+   if (m_directory.isEmpty() || !QDir(m_directory).exists()) {
+      QMessageBox::information(this, "IQmol", "There are no xtb files to save.");
+      return;
+   }
+
+   QString target(QFileDialog::getExistingDirectory(this, 
+      "Save all the xtb files to this folder (it can be created here)", dir));
+   if (target.isEmpty()) return;
+   dir = target;
+
+   QDir source(m_directory);
+   if (QFileInfo(target).canonicalFilePath() == QFileInfo(m_directory).canonicalFilePath()) {
+      QMessageBox::information(this, "IQmol", "That is the folder the files are in already.");
+      return;
+   }
+
+   QStringList names(source.entryList(QDir::Files | QDir::NoDotAndDotDot));
+   QStringList existing;
+   for (QString const& name : names) if (QFileInfo::exists(QDir(target).filePath(name))) existing << name;
+   if (!existing.isEmpty()) {
+      QString msg("These files exist in " + target + " and will be replaced:\n\n" 
+         + existing.mid(0, 8).join("\n") + (existing.size() > 8 ? "\n..." : "") + "\n\nContinue?");
+      if (QMessageBox::question(this, "IQmol", msg) != QMessageBox::Yes) return;
+   }
+
+   int copied(0);
+   QStringList failed;
+   for (QString const& name : names) {
+       QString to(QDir(target).filePath(name));
+       QFile::remove(to);
+       if (QFile::copy(source.filePath(name), to)) ++copied; else failed << name;
+   }
+
+   QString msg("Saved " + QString::number(copied) + " files to " + target + ".");
+   if (!failed.isEmpty()) msg += "\n\nCould not copy: " + failed.join(", ");
+   QMessageBox::information(this, "IQmol", msg);
+}
+
+
 void XtbResultDialog::finished(Calc::Result const& result, QString const& method,
    QString const& what, bool optimization)
 {
+   // The files of the program, if it left any, can be saved; those of an earlier run go
+   if (m_temporaryDirectory != result.directory) forgetTemporaryDirectory();
+   m_directory = result.directory;
+   if (result.temporaryDirectory) m_temporaryDirectory = result.directory;
+   m_saveAllButton->setEnabled(!m_directory.isEmpty());
+
    setRunning(false);
    hide();            // see the note in started()
    setWindowState(windowState() & ~Qt::WindowMinimized);

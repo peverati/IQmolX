@@ -287,6 +287,30 @@ int main(int argc, char** argv)
    check(d->isVisible() && solvent->currentData() == "", "reopening shows the current settings");
    check(temperature->value() == 120.0, "reopening shows the stored electronic temperature");
 
+   // Saving the files of the xtb program
+   {
+      QPushButton* saveAll(button(d, "Save All Files..."));
+      check(saveAll != 0 && button(d, "Save Output...") != 0, "there are buttons for the output and for all files");
+      QDir tmp(QDir::tempPath());
+      QString first(tmp.filePath("xtbdialogtest-first")), second(tmp.filePath("xtbdialogtest-second"));
+      QDir().mkpath(first); QDir().mkpath(second);
+      Calc::Result r;
+      r.success = true; r.converged = true; r.energy = -1.0;
+      r.directory = first; r.temporaryDirectory = true;
+      d->started("GFN2-xTB", "single point", "x", 0, 1);
+      d->finished(r, "GFN2-xTB", "single point", false);
+      check(saveAll && saveAll->isEnabled(), "Save All Files is available after a run of the program");
+      r.directory = second;
+      d->started("GFN2-xTB", "single point", "x", 0, 1);
+      d->finished(r, "GFN2-xTB", "single point", false);
+      check(!QDir(first).exists() && QDir(second).exists(), "the temporary directory of the earlier run is removed");
+      Calc::Result lib;
+      lib.success = true; lib.converged = true;
+      d->started("GFN2-xTB", "single point", "x", 0, 1);
+      d->finished(lib, "GFN2-xTB", "single point", false);
+      check(saveAll && !saveAll->isEnabled() && !QDir(second).exists(), "without files (library) there is nothing to save");
+   }
+
    // Review of the input: submit (edited) and cancel
    {
       d->showWindow();

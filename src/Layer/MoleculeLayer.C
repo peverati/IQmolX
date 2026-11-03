@@ -2178,6 +2178,7 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
       program = new Calc::XtbProcess(Preferences::XtbPath(), method);
       program->setExtraArguments(QProcess::splitCommand(Preferences::XtbOptions()));
       program->setWorkingDirectory(Preferences::XtbWorkDir());
+      program->setKeepTemporaryDirectory(true);   // the xtb window can save the files
       xtb.reset(program);
    }
 

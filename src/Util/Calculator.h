@@ -105,13 +105,15 @@ namespace Calc {
       VibrationalData vibrations;
       bool            hasGsolv;      // a solvation free energy was reported
       double          gsolv;         // Hartree
+      QString         directory;     // where the program ran and left its files (if it has any)
+      bool            temporaryDirectory; // that directory is a temporary one, nobody removes it
       bool            hasOrbitals;   // the orbitals below are available
       OrbitalData     orbitals;
 
       Result() : success(false), converged(false), energy(0.0), cancelled(false),
          initialEnergy(0.0), gradientNorm(-1.0), gapEV(-1.0), dipoleDebye(-1.0), 
          cycles(0), seconds(0.0), hasVibrations(false), hasGsolv(false), gsolv(0.0),
-         hasOrbitals(false) { }
+         temporaryDirectory(false), hasOrbitals(false) { }
    };
 
    class Calculator {

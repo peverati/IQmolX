@@ -3,6 +3,7 @@
 
 #include "Util/XtbProcess.h"
 #include <QCoreApplication>
+#include <QDir>
 #include <QFile>
 #include <QTemporaryDir>
 #include <QRegularExpression>
@@ -172,6 +173,24 @@ int main(int argc, char** argv)
       check(qAbs(p.energy(in).energy - before.energy) < 1e-9, "an empty text goes back to the generated input");
    }
 
+   // A temporary directory that is kept, for the xtb window to save its files
+   {
+      XtbProcess p(argc > 1 ? argv[1] : "");
+      p.setKeepTemporaryDirectory(true);
+      Result o(p.optimize(water));
+      check(o.success && o.temporaryDirectory && QFile::exists(o.directory + "/xtbopt.xyz"), 
+         "the temporary directory is kept and reported");
+      Input minimum(water);
+      minimum.coordinates = o.coordinates;
+      Result h(p.frequencies(minimum));
+      check(h.success && h.directory == o.directory && QFile::exists(o.directory + "/xtb_opt.out")
+         && QFile::exists(o.directory + "/xtb_hess.out") && QFile::exists(o.directory + "/xtbopt.xyz")
+         && QFile::exists(o.directory + "/g98.out"), "the optimization and the frequencies share the directory and keep their files");
+      QDir(o.directory).removeRecursively();
+      XtbProcess q(argc > 1 ? argv[1] : "");
+      check(q.energy(water).directory.isEmpty(), "by default no directory is kept");
+   }
+
    // Working directory and extra options
    {
       QTemporaryDir parent;
@@ -183,10 +202,10 @@ int main(int argc, char** argv)
       check(r.success && r.converged, "working directory: optimization runs");
       check(QFile::exists(work + "/input.xyz") && QFile::exists(work + "/xtbopt.xyz"),
          "working directory: the input and output files are left there");
-      QFile out(work + "/xtb.out");
+      QFile out(work + "/xtb_opt.out");
       QString text;
       if (out.open(QIODevice::ReadOnly)) text = QString::fromLocal8Bit(out.readAll());
-      check(text.contains("TOTAL ENERGY"), "working directory: the output is saved as xtb.out");
+      check(text.contains("TOTAL ENERGY"), "working directory: the output is saved as xtb_opt.out");
       check(text.contains("5000"), "extra options are passed to xtb (--etemp 5000)");
       check(r.success && r.energy > opt.energy + 0.1, "the extra options come last and override (water cation)");
 

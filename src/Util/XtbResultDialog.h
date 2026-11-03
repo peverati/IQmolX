@@ -79,6 +79,7 @@ namespace IQmol {
 
       private Q_SLOTS:
          void save();
+      void saveAll();
          void run();
          void saveSettings();
       void updateProgramFields();
@@ -97,6 +98,7 @@ namespace IQmol {
 
          void setRunning(bool running);
          void setReviewing(bool reviewing);
+         void forgetTemporaryDirectory();
          void loadSettings();
          void placeWindow();
          void rememberGeometry();
@@ -135,6 +137,9 @@ namespace IQmol {
          QProgressBar*   m_progress;
          QPushButton*    m_cancelButton;
          QPushButton*    m_saveButton;
+   QPushButton*    m_saveAllButton;
+   QString         m_directory;      // where the xtb program left its files
+   QString         m_temporaryDirectory;  // the same if we have to remove it
          QPushButton*    m_closeButton;
          QString         m_fileName;   // suggested name for the saved output
          bool            m_running;

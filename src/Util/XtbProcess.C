@@ -145,6 +145,7 @@ void applyUserOptions(QStringList& args, QStringList const& user)
 
 XtbProcess::XtbProcess(QString const& executable, Method method)
  : m_executable(executable), m_method(method), m_timeout(600), m_interactive(false),
+   m_keepTemporary(false),
    m_cancelled(false), m_process(0)
 {
 }
@@ -282,12 +283,29 @@ Result XtbProcess::run(Input const& input, Task task)
    // Either the directory chosen by the user, which keeps all the files, or a temporary one
    QTemporaryDir tempDir;
    QString workPath;
+   QString const outName(task == Hessian ? "xtb_hess.out" : (task == Optimization ? "xtb_opt.out" : "xtb_sp.out"));
    if (m_workingDirectory.isEmpty()) {
-      if (!tempDir.isValid()) {
-         result.message = "Failed to create a temporary directory";
-         return result;
+      if (m_keepTemporary && !m_temporaryPath.isEmpty() && QDir(m_temporaryPath).exists()) {
+         workPath = m_temporaryPath;     // the calculations of one job share a directory
+      }else {
+         if (!tempDir.isValid()) {
+            result.message = "Failed to create a temporary directory";
+            return result;
+         }
+         workPath = tempDir.path();
+         if (m_keepTemporary) {
+            tempDir.setAutoRemove(false);
+            m_temporaryPath = workPath;
+         }
       }
-      workPath = tempDir.path();
+      if (m_keepTemporary) {
+         result.directory = workPath;
+         result.temporaryDirectory = true;
+         // results of an earlier calculation in this directory
+         QFile::remove(QDir(workPath).filePath(outName));
+         if (task != Hessian) QFile::remove(QDir(workPath).filePath("xtbopt.xyz"));
+         QFile::remove(QDir(workPath).filePath("molden.input"));
+      }
    }else {
       workPath = QDir(m_workingDirectory).absolutePath();
       if (!QDir().mkpath(workPath)) {
@@ -296,10 +314,13 @@ Result XtbProcess::run(Input const& input, Task task)
       }
       // Results of an earlier run must not be mistaken for those of this one
       QStringList stale;
-      stale << "xtbopt.xyz" << "xtbopt.log" << "molden.input" << "g98.out" << "xtb.out";
+      stale << "molden.input" << outName;
+      if (task != Hessian) stale << "xtbopt.xyz" << "xtbopt.log";
+      if (task == Hessian) stale << "g98.out";
       for (QString const& name : stale) {
           QFile::remove(QDir(workPath).filePath(name));
       }
+      result.directory = workPath;
    }
    QDir dir(workPath);
 
@@ -392,8 +413,8 @@ Result XtbProcess::run(Input const& input, Task task)
    }
 
    // The complete output is kept next to the other files
-   if (!m_workingDirectory.isEmpty()) {
-      QFile outFile(dir.filePath("xtb.out"));
+   if (!m_workingDirectory.isEmpty() || m_keepTemporary) {
+      QFile outFile(dir.filePath(outName));
       if (outFile.open(QIODevice::WriteOnly)) outFile.write(output.toLocal8Bit());
    }
 

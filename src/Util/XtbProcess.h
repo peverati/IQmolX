@@ -77,6 +77,11 @@ namespace Calc {
          /// An empty text goes back to the generated one.
          void setInputText(QString const& text) { m_inputText = text; }
 
+         /// By default the temporary directory is removed after each calculation.  When this
+         /// is set it is kept (and reused by the following calculations of this object) and
+         /// reported in Result::directory, whose owner then has to remove it.
+         void setKeepTemporaryDirectory(bool keep) { m_keepTemporary = keep; }
+
          Result energy(Input const&) override;
          Result optimize(Input const&) override;
          Result frequencies(Input const&) override;
@@ -90,6 +95,8 @@ namespace Calc {
          QStringList m_extraArguments;
          QString m_workingDirectory;
          QString m_inputText;
+         bool m_keepTemporary;
+         QString m_temporaryPath;
          Method  m_method;
          int     m_timeout;
          bool    m_interactive;
