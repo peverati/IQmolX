@@ -151,6 +151,10 @@ namespace Preferences {
    QString XtbOptions();
    void    XtbOptions(QString const&);
 
+   // Show the input file of the xtb program for review (and editing) before it is run
+   bool XtbReviewInput();
+   void XtbReviewInput(bool const);
+
    // Directory where the xtb program runs, so that its input and output files stay there.
    // Empty means a temporary directory that is removed afterwards.
    QString XtbWorkDir();

@@ -66,18 +66,30 @@ namespace Calc {
          /// Returns an empty string if it cannot be found.
          static QString findExecutable(QString const& hint = QString());
 
+         enum Task { SinglePoint, Optimization, Hessian };
+
+         /// The input file (xyz) that is written for the calculation, and the command line 
+         /// that runs it, as they would be used by energy(), optimize() and frequencies()
+         QString inputText(Input const&) const;
+         QString commandLine(Input const&, Task) const;
+
+         /// Replaces the generated input file by this text (an edited version of inputText()).
+         /// An empty text goes back to the generated one.
+         void setInputText(QString const& text) { m_inputText = text; }
+
          Result energy(Input const&) override;
          Result optimize(Input const&) override;
          Result frequencies(Input const&) override;
 
       private:
-         enum Task { SinglePoint, Optimization, Hessian };
          Result run(Input const&, Task task);
+         QStringList arguments(Input const&, Task) const;
          QStringList methodArguments() const;
 
          QString m_executable;
          QStringList m_extraArguments;
          QString m_workingDirectory;
+         QString m_inputText;
          Method  m_method;
          int     m_timeout;
          bool    m_interactive;

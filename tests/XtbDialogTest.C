@@ -8,6 +8,7 @@
 #include <QCheckBox>
 #include <QDoubleSpinBox>
 #include <QLineEdit>
+#include <QTimer>
 #include <QSpinBox>
 #include <QComboBox>
 #include <QDir>
@@ -126,7 +127,7 @@ int main(int argc, char** argv)
    QCheckBox* useMolecule(0);
    QCheckBox* orbitals(0);
    for (QCheckBox* c : d->findChildren<QCheckBox*>()) {
-       if (c->text().contains("orbitals")) orbitals = c; else useMolecule = c;
+       if (c->text().contains("orbitals")) orbitals = c; else if (c->text().contains("charge and spin")) useMolecule = c;
    }
    check(orbitals && orbitals->isChecked() == Preferences::XtbOrbitals() && Preferences::XtbOrbitals(),
       "orbitals are calculated by default");
@@ -285,6 +286,35 @@ int main(int argc, char** argv)
    d->showWindow();
    check(d->isVisible() && solvent->currentData() == "", "reopening shows the current settings");
    check(temperature->value() == 120.0, "reopening shows the stored electronic temperature");
+
+   // Review of the input: submit (edited) and cancel
+   {
+      d->showWindow();
+      QPlainTextEdit* inputEdit(0);
+      for (QPlainTextEdit* e : d->findChildren<QPlainTextEdit*>()) if (!e->isReadOnly()) inputEdit = e;
+      check(inputEdit != 0, "there is an editable input text");
+      QCheckBox* review(0);
+      for (QCheckBox* c : d->findChildren<QCheckBox*>()) if (c->text().contains("Review")) review = c;
+      check(review && review->isChecked() && Preferences::XtbReviewInput(), "the input is reviewed by default");
+
+      QString text("2\n\nH 0 0 0\nH 0 0 0.7\n");
+      QTimer::singleShot(50, [&]() {
+         inputEdit->setPlainText(inputEdit->toPlainText() + "# edited\n");
+         button(d, "Submit")->click();
+      });
+      bool ok(d->reviewInput("xtb input.xyz --sp", text));
+      check(ok && text.endsWith("# edited\n"), "submitting returns the edited input");
+      check(button(d, "Run") && button(d, "Run")->isVisible(), "the window returns to its normal state");
+
+      QString text2("original");
+      QTimer::singleShot(50, [&]() { button(d, "Cancel")->click(); });
+      check(!d->reviewInput("xtb input.xyz --sp", text2) && text2 == "original", "cancelling returns false and keeps the text");
+
+      review->setChecked(false);
+      QString text3("x");
+      check(d->reviewInput("cmd", text3) && text3 == "x", "with the review switched off nothing is shown");
+      review->setChecked(true);
+   }
 
    // The settings of the xtb program: path, options and working directory
    {

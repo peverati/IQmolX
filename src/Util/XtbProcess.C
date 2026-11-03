@@ -48,12 +48,10 @@ char const* s_symbols[] = {
 int const s_numSymbols(sizeof(s_symbols)/sizeof(s_symbols[0]));
 
 
-bool writeXyz(QString const& path, Input const& input)
+QString xyzText(Input const& input)
 {
-   QFile file(path);
-   if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return false;
-
-   QTextStream out(&file);
+   QString text;
+   QTextStream out(&text);
    out << input.atomicNumbers.size() << "\n\n";
    for (int i = 0; i < input.atomicNumbers.size(); ++i) {
        int Z(input.atomicNumbers[i]);
@@ -62,7 +60,7 @@ bool writeXyz(QString const& path, Input const& input)
            << QString::number(input.coordinates[3*i+1], 'f', 10) << " "
            << QString::number(input.coordinates[3*i+2], 'f', 10) << "\n";
    }
-   return true;
+   return text;
 }
 
 
@@ -223,6 +221,43 @@ Result XtbProcess::frequencies(Input const& input)
 }
 
 
+QString XtbProcess::inputText(Input const& input) const
+{
+   return m_inputText.isEmpty() ? xyzText(input) : m_inputText;
+}
+
+
+QStringList XtbProcess::arguments(Input const& input, Task task) const
+{
+   QStringList args;
+   args << "input.xyz";
+   args << methodArguments();
+   args << "--chrg" << QString::number(input.charge);
+   args << "--uhf"  << QString::number(input.multiplicity - 1);
+   switch (task) {
+      case SinglePoint:  args << "--sp";   break;
+      case Optimization: args << "--opt";  break;
+      case Hessian:      args << "--hess"; break;
+   }
+   if (!input.solvent.isEmpty()) args << "--alpb" << input.solvent;
+   if (input.orbitals && m_method != GFNFF) args << "--molden";
+   if (input.electronicTemperature >= 0.0 && m_method != GFNFF) {
+      args << "--etemp" << QString::number(input.electronicTemperature, 'g', 10);
+   }
+   applyUserOptions(args, m_extraArguments);
+   return args;
+}
+
+
+QString XtbProcess::commandLine(Input const& input, Task task) const
+{
+   QString exe(findExecutable(m_executable));
+   QStringList parts;
+   parts << (exe.isEmpty() ? QString("xtb") : exe) << arguments(input, task);
+   return parts.join(' ');
+}
+
+
 Result XtbProcess::run(Input const& input, Task task)
 {
    Result result;
@@ -269,27 +304,16 @@ Result XtbProcess::run(Input const& input, Task task)
    QDir dir(workPath);
 
    QString inputFile(dir.filePath("input.xyz"));
-   if (!writeXyz(inputFile, input)) {
-      result.message = "Failed to write xtb input file";
-      return result;
+   {
+      QFile file(inputFile);
+      if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+         result.message = "Failed to write xtb input file";
+         return result;
+      }
+      file.write(inputText(input).toLocal8Bit());
    }
 
-   QStringList args;
-   args << "input.xyz";
-   args << methodArguments();
-   args << "--chrg" << QString::number(input.charge);
-   args << "--uhf"  << QString::number(input.multiplicity - 1);
-   switch (task) {
-      case SinglePoint: args << "--sp";   break;
-      case Optimization: args << "--opt"; break;
-      case Hessian:      args << "--hess"; break;
-   }
-   if (!input.solvent.isEmpty()) args << "--alpb" << input.solvent;
-   if (input.orbitals && m_method != GFNFF) args << "--molden";
-   if (input.electronicTemperature >= 0.0 && m_method != GFNFF) {
-      args << "--etemp" << QString::number(input.electronicTemperature, 'g', 10);
-   }
-   applyUserOptions(args, m_extraArguments);
+   QStringList args(arguments(input, task));
 
    QProcess process;
    process.setWorkingDirectory(workPath);

@@ -17,6 +17,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
+#include <QEventLoop>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QDesktopWidget>
@@ -50,7 +51,7 @@ XtbResultDialog* XtbResultDialog::instance()
 }
 
 
-XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0), m_multiplicity(1), m_temperature(300.0), m_running(false), m_started(false), m_placed(false)
+XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0), m_multiplicity(1), m_temperature(300.0), m_running(false), m_started(false), m_placed(false), m_reviewLoop(0), m_reviewAccepted(false), m_reviewCancelled(false)
 {
    // An ordinary window (not Qt::Tool): tool windows on macOS cannot be restored
    // from the Dock once they have been minimized.
@@ -61,6 +62,7 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
 
    // The calculation to run.  The choices are kept in the preferences.
    m_settings = new QGroupBox("Calculation", this);
+   m_settings->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);   // never squeezed
    QFormLayout* form(new QFormLayout(m_settings));
 
    m_jobCombo = new QComboBox(m_settings);
@@ -184,6 +186,11 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
       "Leave it empty to use a temporary directory that is removed afterwards.");
    m_workDirEdit->setPlaceholderText("empty: temporary directory");
    form->addRow("Working directory:", m_workDirRow);
+   m_reviewCheck = new QCheckBox("Review and edit the input file before running", m_settings);
+   m_reviewCheck->setToolTip("Shows the command line and the input file (xyz) that xtb is about to\n"
+      "be given.  The file can be edited there and is submitted as it is.");
+   form->addRow("Input:", m_reviewCheck);
+   m_reviewRow = m_reviewCheck;
    for (QWidget* row : QList<QWidget*>({ m_programRow, m_optionsRow, m_workDirRow })) {
        row->setMinimumWidth(440);   // paths are long; the form would keep the fields small
    }
@@ -222,12 +229,30 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
    buttons->addWidget(m_saveButton);
    buttons->addWidget(m_closeButton);
 
+   // The input of the xtb program, shown (editable) instead of the output while it is reviewed
+   m_reviewBox = new QWidget(this);
+   QVBoxLayout* reviewLayout(new QVBoxLayout(m_reviewBox));
+   reviewLayout->setContentsMargins(0, 0, 0, 0);
+   QLabel* reviewTitle(new QLabel("<b>Input for xtb</b> &mdash; edit it if needed, then press Submit", m_reviewBox));
+   m_commandLabel = new QLabel(m_reviewBox);
+   m_commandLabel->setWordWrap(true);
+   m_commandLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+   m_commandLabel->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+   m_inputEdit = new QPlainTextEdit(m_reviewBox);
+   m_inputEdit->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+   m_inputEdit->setLineWrapMode(QPlainTextEdit::NoWrap);
+   reviewLayout->addWidget(reviewTitle);
+   reviewLayout->addWidget(m_commandLabel);
+   reviewLayout->addWidget(m_inputEdit, 1);
+   m_reviewBox->hide();
+
    QVBoxLayout* layout(new QVBoxLayout(this));
    layout->addWidget(m_settings);
    layout->addWidget(m_title);
    layout->addWidget(m_summary);
    layout->addWidget(m_progress);
    layout->addWidget(m_output, 1);
+   layout->addWidget(m_reviewBox, 1);
    layout->addLayout(buttons);
 
    m_title->setText("xtb");
@@ -246,13 +271,14 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
    connect(m_backendCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(saveSettings()));
    connect(m_temperatureSpin, SIGNAL(valueChanged(double)), this, SLOT(saveSettings()));
    connect(m_orbitalsCheck, SIGNAL(toggled(bool)), this, SLOT(saveSettings()));
+   connect(m_reviewCheck, SIGNAL(toggled(bool)), this, SLOT(saveSettings()));
    connect(m_programEdit, SIGNAL(editingFinished()), this, SLOT(saveSettings()));
    connect(m_optionsEdit, SIGNAL(editingFinished()), this, SLOT(saveSettings()));
    connect(m_workDirEdit, SIGNAL(editingFinished()), this, SLOT(saveSettings()));
    connect(m_backendCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(updateProgramFields()));
    updateProgramFields();
    connect(m_runButton, SIGNAL(clicked()), this, SLOT(run()));
-   connect(m_cancelButton, SIGNAL(clicked()), this, SIGNAL(cancelRequested()));
+   connect(m_cancelButton, SIGNAL(clicked()), this, SLOT(cancelClicked()));
    connect(m_saveButton, SIGNAL(clicked()), this, SLOT(save()));
    connect(m_closeButton, SIGNAL(clicked()), this, SLOT(close()));
 }
@@ -285,6 +311,7 @@ void XtbResultDialog::loadSettings()
    for (QComboBox* combo : combos) combo->blockSignals(true);
    m_temperatureSpin->blockSignals(true);
    m_orbitalsCheck->blockSignals(true);
+   m_reviewCheck->blockSignals(true);
 
    select(m_jobCombo, Preferences::XtbJob());
    select(m_methodCombo, Preferences::XtbMethod());
@@ -295,10 +322,12 @@ void XtbResultDialog::loadSettings()
    m_workDirEdit->setText(Preferences::XtbWorkDir());
    m_temperatureSpin->setValue(Preferences::XtbElectronicTemperature());
    m_orbitalsCheck->setChecked(Preferences::XtbOrbitals());
+   m_reviewCheck->setChecked(Preferences::XtbReviewInput());
 
    for (QComboBox* combo : combos) combo->blockSignals(false);
    m_temperatureSpin->blockSignals(false);
    m_orbitalsCheck->blockSignals(false);
+   m_reviewCheck->blockSignals(false);
 }
 
 
@@ -310,6 +339,7 @@ void XtbResultDialog::saveSettings()
    Preferences::XtbBackend(m_backendCombo->currentData().toString());
    Preferences::XtbElectronicTemperature(m_temperatureSpin->value());
    Preferences::XtbOrbitals(m_orbitalsCheck->isChecked());
+   Preferences::XtbReviewInput(m_reviewCheck->isChecked());
    Preferences::XtbPath(m_programEdit->text().trimmed());
    Preferences::XtbOptions(m_optionsEdit->text().trimmed());
    Preferences::XtbWorkDir(m_workDirEdit->text().trimmed());
@@ -323,7 +353,7 @@ void XtbResultDialog::updateProgramFields()
    QFormLayout* form(qobject_cast<QFormLayout*>(m_settings->layout()));
    if (!form) return;
    QList<QWidget*> rows;
-   rows << m_programRow << m_optionsRow << m_workDirRow;
+   rows << m_programRow << m_optionsRow << m_workDirRow << m_reviewRow;
    for (QWidget* row : rows) {
        row->setVisible(program);
        if (QWidget* label = form->labelForField(row)) label->setVisible(program);
@@ -355,13 +385,74 @@ void XtbResultDialog::browseForWorkDir()
 
 void XtbResultDialog::run()
 {
+   // while the input is being reviewed the button submits it
+   if (m_reviewLoop) {
+      m_reviewAccepted = true;
+      m_reviewLoop->quit();
+      return;
+   }
+
    saveSettings();
    m_started = false;
+   m_reviewCancelled = false;
    runRequested();
-   if (!m_started) {
+   if (!m_started && !m_reviewCancelled) {
       m_title->setText("xtb");
       m_summary->setText("Nothing was calculated.  Is there a molecule with atoms to run xtb on?");
    }
+}
+
+
+void XtbResultDialog::cancelClicked()
+{
+   if (m_reviewLoop) {
+      m_reviewAccepted = false;
+      m_reviewLoop->quit();
+   }else {
+      cancelRequested();
+   }
+}
+
+
+void XtbResultDialog::setReviewing(bool reviewing)
+{
+   m_settings->setEnabled(!reviewing);
+   m_reviewBox->setVisible(reviewing);
+   m_title->setVisible(!reviewing);
+   m_summary->setVisible(!reviewing);
+   m_output->setVisible(!reviewing);
+   m_runButton->setVisible(reviewing || !m_running);
+   m_runButton->setText(reviewing ? "Submit" : "Run");
+   m_cancelButton->setVisible(reviewing || m_running);
+   m_saveButton->setVisible(!reviewing && !m_running);
+   m_closeButton->setVisible(!reviewing && !m_running);
+   if (reviewing) m_inputEdit->setFocus(); else m_runButton->setFocus();
+}
+
+
+bool XtbResultDialog::reviewInput(QString const& commandLine, QString& text)
+{
+   if (!m_reviewCheck->isChecked() || m_reviewLoop) return true;
+
+   m_commandLabel->setText(commandLine);
+   m_inputEdit->setPlainText(text);
+   setReviewing(true);
+
+   QEventLoop loop;
+   m_reviewLoop = &loop;
+   m_reviewAccepted = false;
+   loop.exec();
+   m_reviewLoop = 0;
+
+   bool accepted(m_reviewAccepted);
+   if (accepted) text = m_inputEdit->toPlainText();
+   setReviewing(false);
+   m_reviewCancelled = !accepted;
+   if (!accepted) {
+      m_title->setText("xtb");
+      m_summary->setText("Not run: the input was not submitted.");
+   }
+   return accepted;
 }
 
 
@@ -640,7 +731,9 @@ void XtbResultDialog::done(int result)
 
 void XtbResultDialog::reject()
 {
-   if (m_running) {
+   if (m_reviewLoop) {
+      cancelClicked();
+   }else if (m_running) {
       cancelRequested();
    }else {
       QDialog::reject();

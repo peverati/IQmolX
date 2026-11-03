@@ -2173,11 +2173,40 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
       useLibrary = true;
    }
 #endif
+   Calc::XtbProcess* program(0);
    if (!xtb) {
-      Calc::XtbProcess* program(new Calc::XtbProcess(Preferences::XtbPath(), method));
+      program = new Calc::XtbProcess(Preferences::XtbPath(), method);
       program->setExtraArguments(QProcess::splitCommand(Preferences::XtbOptions()));
       program->setWorkingDirectory(Preferences::XtbWorkDir());
       xtb.reset(program);
+   }
+
+   // The orbitals belong to the final geometry: those of the frequency calculation if there
+   // is one, otherwise of the optimization or single point
+   bool const orbitals(Preferences::XtbOrbitals() && method != Calc::XtbProcess::GFNFF);
+   input.orbitals = orbitals && !frequencies;
+
+   // The input of the xtb program can be reviewed and edited before it is submitted
+   if (program) {
+      Calc::XtbProcess::Task task(optimize ? Calc::XtbProcess::Optimization 
+         : (frequencies ? Calc::XtbProcess::Hessian : Calc::XtbProcess::SinglePoint));
+      QString text(program->inputText(input));
+      QString header("Command:  " + program->commandLine(input, task));
+      header += "\nDirectory:  " + (Preferences::XtbWorkDir().isEmpty() 
+         ? QString("a temporary directory") : Preferences::XtbWorkDir());
+      header += "\nFile input.xyz:";
+      if (!dialog->reviewInput(header, text)) {
+         s_xtbBusy = false;
+         return;
+      }
+      // the result is applied to the atoms of the molecule, so there must be as many
+      if (text.section('\n', 0, 0).trimmed().toInt() != atoms.size()) {
+         QMsgBox::warning(0, "IQmol", "The edited input has to contain the " 
+            + QString::number(atoms.size()) + " atoms of the molecule.  xtb was not run.");
+         s_xtbBusy = false;
+         return;
+      }
+      program->setInputText(text);
    }
 
    QString what("single point");
@@ -2199,11 +2228,6 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
       &XtbResultDialog::cancelRequested, [&xtb]() { xtb->cancel(); }));
    dialog->started(label, what, subject, input.charge, input.multiplicity);
 
-   // The orbitals belong to the final geometry: those of the frequency calculation if there
-   // is one, otherwise of the optimization or single point
-   bool const orbitals(Preferences::XtbOrbitals() && method != Calc::XtbProcess::GFNFF);
-   input.orbitals = orbitals && !frequencies;
-
    Calc::Result result;
    if (optimize) {
       result = xtb->optimize(input);
@@ -2216,6 +2240,7 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
    if (frequencies && (!optimize || result.success)) {
       input.orbitals = orbitals;
       if (optimize) {
+         if (program) program->setInputText(QString());   // the edited input was for the optimization
          input.coordinates = result.coordinates;
          dialog->appendOutput("\n------------------------  vibrational frequencies  ------------------------\n\n");
       }
