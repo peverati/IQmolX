@@ -688,6 +688,16 @@ void MainWindow::createMenus()
          connect(action, SIGNAL(triggered()), this, SLOT(setForceField()));
          if (Preferences::DefaultForceField() == ff) action->setChecked(true);
 
+         // The force field of xtb (it runs the xtb program, or libxtb, see xtb Setup)
+         ff = "GFN-FF";
+         action = subMenu->addAction(ff);
+         action->setCheckable(true);
+         action->setData(ff);
+         action->setToolTip("Force field of xtb, for most of the periodic table");
+         forceFieldGroup->addAction(action);
+         connect(action, SIGNAL(triggered()), this, SLOT(setForceField()));
+         if (Preferences::DefaultForceField() == ff) action->setChecked(true);
+
       name = "xtb Setup...";
       action = menu->addAction(name);
       action->setToolTip("Set up and run xtb calculations (GFN-xTB methods, solvents)");

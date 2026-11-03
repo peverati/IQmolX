@@ -34,7 +34,11 @@ namespace Calc {
       int             multiplicity;
       QString         solvent;       // implicit solvent (ALPB name), empty for gas phase
 
-      Input() : charge(0), multiplicity(1) { }
+      /// Electronic temperature of the Fermi smearing in K.  A negative value leaves the
+      /// choice to the program, which uses 300 K.  Only the xTB methods use it.
+      double          electronicTemperature;
+
+      Input() : charge(0), multiplicity(1), electronicTemperature(-1.0) { }
    };
 
    /// The result of a vibrational analysis

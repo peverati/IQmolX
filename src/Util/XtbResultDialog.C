@@ -16,6 +16,7 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QDoubleSpinBox>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QDesktopWidget>
@@ -47,7 +48,7 @@ XtbResultDialog* XtbResultDialog::instance()
 }
 
 
-XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0), m_multiplicity(1), m_running(false), m_started(false), m_placed(false)
+XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0), m_multiplicity(1), m_temperature(300.0), m_running(false), m_started(false), m_placed(false)
 {
    // An ordinary window (not Qt::Tool): tool windows on macOS cannot be restored
    // from the Dock once they have been minimized.
@@ -70,7 +71,6 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
    m_methodCombo = new QComboBox(m_settings);
    m_methodCombo->addItem("GFN2-xTB", "GFN2-xTB");
    m_methodCombo->addItem("GFN1-xTB", "GFN1-xTB");
-   m_methodCombo->addItem("GFN-FF (force field)", "GFN-FF");
    form->addRow("Method:", m_methodCombo);
 
    // The solvents of the ALPB implicit solvation model (xtb name, menu text)
@@ -112,6 +112,18 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
    m_multiplicitySpin->setEnabled(false);
    m_multiplicitySpin->setToolTip("Spin multiplicity 2S+1: 1 singlet, 2 doublet, 3 triplet, ...");
    form->addRow("Spin multiplicity:", m_multiplicitySpin);
+
+   // Fermi smearing of the orbital occupations.  It is a setting of the method, not of the
+   // molecule, so it is stored in the preferences.
+   m_temperatureSpin = new QDoubleSpinBox(m_settings);
+   m_temperatureSpin->setRange(0.0, 20000.0);
+   m_temperatureSpin->setDecimals(0);
+   m_temperatureSpin->setSingleStep(50.0);
+   m_temperatureSpin->setSuffix(" K");
+   m_temperatureSpin->setValue(300.0);
+   m_temperatureSpin->setToolTip("Electronic temperature of the Fermi smearing of the orbital occupations.\n"
+      "xtb uses 300 K.  Below a few K, molecules with a (nearly) degenerate HOMO and LUMO cannot be calculated.");
+   form->addRow("Electronic temperature:", m_temperatureSpin);
 
    QObject::connect(m_moleculeValues, &QCheckBox::toggled, [this](bool useMolecule) {
       m_chargeSpin->setEnabled(!useMolecule);
@@ -183,6 +195,7 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
    connect(m_methodCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(saveSettings()));
    connect(m_solventCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(saveSettings()));
    connect(m_backendCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(saveSettings()));
+   connect(m_temperatureSpin, SIGNAL(valueChanged(double)), this, SLOT(saveSettings()));
    connect(m_runButton, SIGNAL(clicked()), this, SLOT(run()));
    connect(m_cancelButton, SIGNAL(clicked()), this, SIGNAL(cancelRequested()));
    connect(m_saveButton, SIGNAL(clicked()), this, SLOT(save()));
@@ -215,13 +228,16 @@ void XtbResultDialog::loadSettings()
    QList<QComboBox*> combos;
    combos << m_jobCombo << m_methodCombo << m_solventCombo << m_backendCombo;
    for (QComboBox* combo : combos) combo->blockSignals(true);
+   m_temperatureSpin->blockSignals(true);
 
    select(m_jobCombo, Preferences::XtbJob());
    select(m_methodCombo, Preferences::XtbMethod());
    select(m_solventCombo, Preferences::XtbSolvent());
    select(m_backendCombo, Preferences::XtbBackend());
+   m_temperatureSpin->setValue(Preferences::XtbElectronicTemperature());
 
    for (QComboBox* combo : combos) combo->blockSignals(false);
+   m_temperatureSpin->blockSignals(false);
 }
 
 
@@ -231,6 +247,7 @@ void XtbResultDialog::saveSettings()
    Preferences::XtbMethod(m_methodCombo->currentData().toString());
    Preferences::XtbSolvent(m_solventCombo->currentData().toString());
    Preferences::XtbBackend(m_backendCombo->currentData().toString());
+   Preferences::XtbElectronicTemperature(m_temperatureSpin->value());
 }
 
 
@@ -261,6 +278,7 @@ void XtbResultDialog::started(QString const& method, QString const& what,
    // Show the values in use, so that unchecking the box starts from the molecule's values
    m_charge = charge;
    m_multiplicity = multiplicity;
+   m_temperature = m_temperatureSpin->value();
    if (m_moleculeValues->isChecked()) {
       m_chargeSpin->setValue(charge);
       m_multiplicitySpin->setValue(multiplicity);
@@ -271,7 +289,8 @@ void XtbResultDialog::started(QString const& method, QString const& what,
    m_fileName.replace(QRegularExpression("[^A-Za-z0-9._-]"), "_");
    m_title->setText(method + " " + what);
    m_summary->setText("Running on " + subject + ", charge " + QString::number(charge) 
-      + ", spin multiplicity " + QString::number(multiplicity) + "...");
+      + ", spin multiplicity " + QString::number(multiplicity)
+      + ", electronic temperature " + QString::number(m_temperature, 'f', 0) + " K...");
    m_output->clear();
    setRunning(true);
    // Remember the active window so that it can be reactivated when we close 
@@ -405,6 +424,7 @@ void XtbResultDialog::finished(Calc::Result const& result, QString const& method
    s += row("Charge, spin multiplicity", QString::number(m_charge) + ", " 
       + QString::number(m_multiplicity) + (m_moleculeValues->isChecked() ? "" 
       : " (entered in this window)"));
+   s += row("Electronic temperature", QString::number(m_temperature, 'f', 0) + " K");
    s += row("Energy", QString::number(result.energy, 'f', 6) + " E<sub>h</sub>");
    if (optimization && result.initialEnergy != 0.0) {
       double dE((result.energy - result.initialEnergy) * hartreeToKcal);

@@ -285,6 +285,8 @@ bool save(bool prompt = false);
 
          private:
             void runXtb(QString const& method, QString const& job);
+            void gfnffCalculation(bool minimize);
+            bool applyOptimizedGeometry(AtomList const&, Calc::Result const&, QString const&);
             static bool s_autoDetectSymmetry;
 
             QString constraintsAsString();

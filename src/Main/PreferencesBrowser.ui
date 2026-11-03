@@ -179,6 +179,11 @@ QToolButton:checked {
            <string>Gaff</string>
           </property>
          </item>
+         <item>
+          <property name="text">
+           <string>GFN-FF</string>
+          </property>
+         </item>
         </widget>
        </item>
        <item>

@@ -226,6 +226,9 @@ Result XtbProcess::run(Input const& input, Task task)
       case Hessian:      args << "--hess"; break;
    }
    if (!input.solvent.isEmpty()) args << "--alpb" << input.solvent;
+   if (input.electronicTemperature >= 0.0 && m_method != GFNFF) {
+      args << "--etemp" << QString::number(input.electronicTemperature, 'g', 10);
+   }
 
    QProcess process;
    process.setWorkingDirectory(dir.path());

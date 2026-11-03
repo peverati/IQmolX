@@ -123,13 +123,17 @@ namespace Preferences {
    QString XtbBackend();
    void    XtbBackend(QString const&);
 
-   // Method of the xtb window: "GFN2-xTB", "GFN1-xTB" or "GFN-FF"
+   // Method of the xtb window: "GFN2-xTB" or "GFN1-xTB"
    QString XtbMethod();
    void    XtbMethod(QString const&);
 
    // What the xtb window runs: "singlepoint", "optimize", "frequencies" or "optfreq"
    QString XtbJob();
    void    XtbJob(QString const&);
+
+   // Electronic temperature (Fermi smearing) of the xTB methods in K.  xtb uses 300 K.
+   double XtbElectronicTemperature();
+   void   XtbElectronicTemperature(double const);
 
    // Implicit solvent (ALPB name, e.g. "water") for the xtb methods.  Empty is gas phase.
    QString XtbSolvent();

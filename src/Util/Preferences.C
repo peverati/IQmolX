@@ -456,10 +456,24 @@ void XtbBackend(QString const& backend)
 }
 
 
+double XtbElectronicTemperature()
+{
+   QVariant value(Get("XtbElectronicTemperature"));
+   return value.isNull() ? 300.0 : value.toDouble();
+}
+
+void XtbElectronicTemperature(double const temperature)
+{
+   Set("XtbElectronicTemperature", QVariant::fromValue(temperature));
+}
+
+
 QString XtbMethod()
 {
    QVariant value(Get("XtbMethod"));
-   return value.isNull() ? QString("GFN2-xTB") : value.value<QString>();
+   // GFN-FF is a force field and is selected with the other force fields
+   if (value.isNull() || value.value<QString>() == "GFN-FF") return QString("GFN2-xTB");
+   return value.value<QString>();
 }
 
 void XtbMethod(QString const& method)
@@ -509,10 +523,10 @@ void XtbPath(QString const& filePath)
 QString DefaultForceField()
 {
    QVariant value(Get("DefaultForceField"));
-   // The xtb methods used to be listed as force fields.  They are now run from the
-   // xtb window, so a saved default of that kind is replaced.
-   if (value.isNull() || value.value<QString>().contains("xTB") 
-       || value.value<QString>().startsWith("GFN")) return QString("UFF");
+   // The GFN-xTB methods used to be listed as force fields.  They are now run from the
+   // xtb window (GFN-FF is a force field and stays), so a saved default of that kind 
+   // is replaced.
+   if (value.isNull() || value.value<QString>().contains("xTB")) return QString("UFF");
    return value.value<QString>();
 }
 

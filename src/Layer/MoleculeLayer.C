@@ -2083,6 +2083,13 @@ void Molecule::addHydrogens()
 }
 
 
+namespace {
+   // Only one xtb calculation at a time.  An energy update for the GFN-FF force field is
+   // skipped while a calculation started from the xtb window is running.
+   bool s_xtbBusy(false);
+}
+
+
 // Runs the calculation chosen in the xtb window (method, solvent, backend and job)
 // on this molecule
 void Molecule::runXtbJob()
@@ -2119,6 +2126,7 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
    input.charge       = totalCharge();
    input.multiplicity = multiplicity();
    input.solvent      = Preferences::XtbSolvent();
+   input.electronicTemperature = Preferences::XtbElectronicTemperature();
 
    // The xtb window can override the charge and spin of the molecule
    XtbResultDialog* dialog(XtbResultDialog::instance());
@@ -2149,8 +2157,6 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
       return;
    }
 
-   // Only one xtb calculation at a time
-   static bool s_xtbBusy(false);
    if (s_xtbBusy) return;
    s_xtbBusy = true;
 
@@ -2210,6 +2216,13 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
    }
 
    QObject::disconnect(cancelConnection);
+   if (!result.success && !result.cancelled && input.electronicTemperature < 50.0 
+       && method != Calc::XtbProcess::GFNFF) {
+      result.message += "\n\nThe electronic temperature is only " 
+         + QString::number(input.electronicTemperature, 'f', 0) + " K.  A low temperature cannot be "
+         "used when the highest occupied and lowest unoccupied orbitals are (nearly) degenerate. "
+         "Try a higher temperature; xtb uses 300 K.";
+   }
    dialog->finished(result, label, what, optimize);
    s_xtbBusy = false;
 
@@ -2225,44 +2238,118 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
    QString mesg(label + " energy: ");
    energyAvailable(result.energy, Info::Hartree, mesg);
 
-   if (optimize) {
-      // Guard against the molecule having been edited while xtb was running
-      if (findLayers<Atom>(Children) != atoms) {
-         QString msg("The molecule was modified while xtb was running.  "
-                     "The result has been discarded.");
-         QMsgBox::warning(0, "IQmol", msg);
-         return;
-      }
-
-      // The command records the initial positions on construction
-      Command::MinimizeStructure* cmd(new Command::MinimizeStructure(this));
-
-      int i(0);
-      for (iter = atoms.begin(); iter != atoms.end(); ++iter, ++i) {
-          (*iter)->setPosition(Vec(result.coordinates[3*i], result.coordinates[3*i+1], 
-             result.coordinates[3*i+2]));
-      }
-
-      cmd->setMessage(mesg + QString::number(result.energy, 'f', 6) + " Eh");
-
-      m_modified = true;
-      reindexAtomsAndBonds();
-      m_xtbSkipEnergy = true;
-      postCommand(cmd);
-      m_xtbSkipEnergy = false;
-
-      // As in minimizeEnergy these need to come after the command is posted
-      centerOfNuclearChargeAvailable(centerOfNuclearCharge());
-      setAtomicCharges(Data::Type::GasteigerCharge);
-      bool estimated(true);
-      dipoleAvailable(dipoleFromPointCharges(), estimated);
-   }
+   if (optimize && !applyOptimizedGeometry(atoms, result, mesg)) return;
 
    if (frequencies && result.hasVibrations) {
       if (findLayers<Atom>(Children).size() == result.vibrations.modes.value(0).size() / 3) {
          setVibrations(result.vibrations, label);
       }
    }
+}
+
+
+// Moves the atoms to the geometry of an optimization as an undoable command (animated),
+// and updates the quantities that depend on it.  Returns false if the molecule was
+// changed in the meantime, in which case nothing is applied.
+bool Molecule::applyOptimizedGeometry(AtomList const& atoms, Calc::Result const& result, 
+   QString const& message)
+{
+   // Guard against the molecule having been edited while the calculation was running
+   if (findLayers<Atom>(Children) != atoms) {
+      QString msg("The molecule was modified during the calculation.  "
+                  "The result has been discarded.");
+      QMsgBox::warning(0, "IQmol", msg);
+      return false;
+   }
+
+   // The command records the initial positions on construction
+   Command::MinimizeStructure* cmd(new Command::MinimizeStructure(this));
+
+   int i(0);
+   AtomList::const_iterator iter;
+   for (iter = atoms.begin(); iter != atoms.end(); ++iter, ++i) {
+       (*iter)->setPosition(Vec(result.coordinates[3*i], result.coordinates[3*i+1], 
+          result.coordinates[3*i+2]));
+   }
+
+   cmd->setMessage(message + QString::number(result.energy, 'f', 6) + " Eh");
+
+   m_modified = true;
+   reindexAtomsAndBonds();
+   m_xtbSkipEnergy = true;
+   postCommand(cmd);
+   m_xtbSkipEnergy = false;
+
+   // As in minimizeEnergy these need to come after the command is posted
+   centerOfNuclearChargeAvailable(centerOfNuclearCharge());
+   setAtomicCharges(Data::Type::GasteigerCharge);
+   bool estimated(true);
+   dipoleAvailable(dipoleFromPointCharges(), estimated);
+   return true;
+}
+
+
+// GFN-FF, the force field of xtb, used like the Open Babel force fields: an energy for
+// the automatic updates (which fail quietly, for example for atoms on top of each other
+// while hydrogens are being added) and a minimization for Minimize Structure.  It runs 
+// in the gas phase and does not support constraints.
+void Molecule::gfnffCalculation(bool minimize)
+{
+   if (s_xtbBusy) return;
+
+   AtomList atoms(findLayers<Atom>(Children));
+   if (atoms.isEmpty()) return;
+
+   Calc::Input input;
+   input.charge       = totalCharge();
+   input.multiplicity = multiplicity();     // GFN-FF does not use the spin
+   AtomList::iterator iter;
+   for (iter = atoms.begin(); iter != atoms.end(); ++iter) {
+       Vec position((*iter)->getPosition());
+       input.atomicNumbers.append((*iter)->getAtomicNumber());
+       input.coordinates << position.x << position.y << position.z;
+   }
+
+   if (minimize) {
+      ConstraintList constraints(findLayers<Constraint>(Visible | Children));
+      for (ConstraintList::iterator c = constraints.begin(); c != constraints.end(); ++c) {
+          if ((*c)->optimizeConstraint()) {
+             QMsgBox::information(0, "IQmol", "GFN-FF does not support constraints, "
+                "they are ignored in this minimization.");
+             break;
+          }
+      }
+   }
+
+   // The xtb program, or libxtb if that is selected in the xtb window
+   std::unique_ptr<Calc::Calculator> gfnff;
+#ifdef IQMOL_WITH_LIBXTB
+   if (Preferences::XtbBackend() == "library") gfnff.reset(new Calc::XtbLibrary(Calc::XtbProcess::GFNFF));
+#endif
+   if (!gfnff) gfnff.reset(new Calc::XtbProcess(Preferences::XtbPath(), Calc::XtbProcess::GFNFF));
+
+   s_xtbBusy = true;
+   if (minimize) QApplication::setOverrideCursor(Qt::WaitCursor);
+   Calc::Result result(minimize ? gfnff->optimize(input) : gfnff->energy(input));
+   if (minimize) QApplication::restoreOverrideCursor();
+   s_xtbBusy = false;
+
+   QLOG_DEBUG() << "GFN-FF" << (minimize ? "minimization" : "energy") << "charge" << input.charge
+                << "energy (Eh)" << result.energy << "success" << result.success;
+
+   if (!result.success) {
+      if (minimize) {
+         QMsgBox::warning(0, "IQmol", "GFN-FF failed for " + text() + "\n\n" + result.message);
+      }
+      return;
+   }
+
+   QString mesg("GFN-FF energy: ");
+   energyAvailable(result.energy, Info::Hartree, mesg);
+   if (!minimize) return;
+
+   if (!result.converged) QMsgBox::warning(0, "IQmol", result.message);
+   applyOptimizedGeometry(atoms, result, mesg);
 }
 
 
@@ -2322,6 +2409,11 @@ void Molecule::computeEnergy(QString const& forceFieldName)
    // triggers would replace it with the force field energy of the starting geometry
    if (m_xtbSkipEnergy) return;
 
+   if (forceFieldName == "GFN-FF") {
+      gfnffCalculation(false);
+      return;
+   }
+
    QLOG_DEBUG() << "Computing energy with forcefield" << forceFieldName;
    QByteArray ff(forceFieldName.toLatin1());
    const char* obff(ff.data());
@@ -2378,6 +2470,11 @@ void Molecule::computeEnergy(QString const& forceFieldName)
 
 void Molecule::minimizeEnergy(QString const& forceFieldName)
 {
+   if (forceFieldName == "GFN-FF") {
+      gfnffCalculation(true);
+      return;
+   }
+
    QLOG_DEBUG() << "Minimizing energy with forcefield" << forceFieldName;
    OBPlugin::List("forcefields");
    QByteArray ff(forceFieldName.toLatin1());

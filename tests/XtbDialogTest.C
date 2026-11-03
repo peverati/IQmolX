@@ -6,6 +6,7 @@
 #include "Util/XtbResultDialog.h"
 #include <QApplication>
 #include <QCheckBox>
+#include <QDoubleSpinBox>
 #include <QSpinBox>
 #include <QComboBox>
 #include <QDir>
@@ -60,7 +61,21 @@ int main(int argc, char** argv)
    {
       QComboBox* defaultMethod(comboWith(d, "GFN2-xTB"));
       check(Preferences::XtbMethod() == "GFN2-xTB", "the default method is GFN2-xTB");
-      check(defaultMethod && defaultMethod->currentData() == "GFN2-xTB", "the window starts with GFN2-xTB, not GFN-FF");
+      check(defaultMethod && defaultMethod->currentData() == "GFN2-xTB", "the window starts with GFN2-xTB");
+      check(defaultMethod && defaultMethod->count() == 2 && defaultMethod->findData("GFN-FF") < 0,
+         "GFN-FF is not an xtb window method any more (it is a force field)");
+      QList<QDoubleSpinBox*> temps(d->findChildren<QDoubleSpinBox*>());
+      check(temps.size() == 1 && temps[0]->value() == 300.0 && Preferences::XtbElectronicTemperature() == 300.0,
+         "the electronic temperature starts at the xtb default of 300 K");
+
+      // A stored GFN-FF method from earlier versions and xTB default force fields are replaced
+      Preferences::XtbMethod("GFN-FF");
+      check(Preferences::XtbMethod() == "GFN2-xTB", "a stored GFN-FF method falls back to GFN2-xTB");
+      Preferences::DefaultForceField("GFN2-xTB");
+      check(Preferences::DefaultForceField() == "UFF", "a stored xTB default force field falls back to UFF");
+      Preferences::DefaultForceField("GFN-FF");
+      check(Preferences::DefaultForceField() == "GFN-FF", "GFN-FF is a valid default force field");
+      Preferences::DefaultForceField("UFF");
       QComboBox* defaultJob(comboWith(d, "optimize"));
       check(defaultJob && defaultJob->currentData() == "optimize", "the window starts with a geometry optimization");
       QComboBox* defaultSolvent(comboWith(d, "water"));
@@ -90,10 +105,16 @@ int main(int argc, char** argv)
 
    // Changing a setting stores it
    solvent->setCurrentIndex(solvent->findData("methanol"));
-   method->setCurrentIndex(method->findData("GFN-FF"));
+   method->setCurrentIndex(method->findData("GFN2-xTB"));
    job->setCurrentIndex(job->findData("optimize"));
    check(Preferences::XtbSolvent() == "methanol", "solvent is stored when changed");
-   check(Preferences::XtbMethod() == "GFN-FF", "method is stored when changed");
+   check(Preferences::XtbMethod() == "GFN2-xTB", "method is stored when changed");
+
+   // The electronic temperature is next to the charge and spin, and stored when changed
+   QDoubleSpinBox* temperature(d->findChild<QDoubleSpinBox*>());
+   check(temperature && temperature->suffix() == " K" && temperature->minimum() == 0.0, "the electronic temperature is entered in K");
+   temperature->setValue(50.0);
+   check(Preferences::XtbElectronicTemperature() == 50.0, "the electronic temperature is stored when changed");
    check(Preferences::XtbJob() == "optimize", "job is stored when changed");
 
    // Charge and spin: the molecule's values by default, an override on request
@@ -134,6 +155,12 @@ int main(int argc, char** argv)
    check(!method->isEnabled() && !solvent->isEnabled() && !job->isEnabled(), "settings are locked while running");
 
    check(!useMolecule->isEnabled(), "the charge and spin choice is locked while running");
+   check(!temperature->isEnabled(), "the electronic temperature is locked while running");
+   {
+      QString running;
+      for (QLabel* l : d->findChildren<QLabel*>()) if (l->text().startsWith("Running on")) running = l->text();
+      check(running.contains("electronic temperature 50 K"), "the temperature in use is shown while running");
+   }
    d->appendOutput("cycle 1\n");
    d->appendOutput("cycle 2\n");
    QPlainTextEdit* output(d->findChild<QPlainTextEdit*>());
@@ -166,6 +193,11 @@ int main(int argc, char** argv)
        if (l->text().contains("Charge, spin multiplicity") && l->text().contains("0, 1")) hasChargeSpin = true;
    }
    check(hasChargeSpin, "the summary shows the charge and spin that were used");
+   bool hasTemperature(false);
+   for (QLabel* l : d->findChildren<QLabel*>()) {
+       if (l->text().contains("Electronic temperature") && l->text().contains("50 K")) hasTemperature = true;
+   }
+   check(hasTemperature, "the summary shows the electronic temperature that was used");
 
    // The values in use are shown, so that unchecking the box starts from them
    d->started("GFN2-xTB", "single point", "radical (4 atoms)", 0, 2);
@@ -234,8 +266,10 @@ int main(int argc, char** argv)
    d->close();
    check(!d->isVisible(), "the window closes when idle");
    Preferences::XtbSolvent("");
+   Preferences::XtbElectronicTemperature(120.0);
    d->showWindow();
    check(d->isVisible() && solvent->currentData() == "", "reopening shows the current settings");
+   check(temperature->value() == 120.0, "reopening shows the stored electronic temperature");
 
    // Remove the settings file of this test
    {

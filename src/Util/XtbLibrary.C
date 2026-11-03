@@ -59,6 +59,11 @@ class Session {
          }
          if (failed()) return;
 
+         // GFN-FF has no electronic structure, so no electronic temperature either
+         if (input.electronicTemperature >= 0.0 && method != XtbProcess::GFNFF) {
+            xtb_setElectronicTemp(m_env, m_calc, input.electronicTemperature);
+         }
+
          if (!input.solvent.isEmpty()) {
             // The solvent model has to be named, the library would otherwise use GBSA
             QByteArray solvent(input.solvent.toLatin1());
@@ -216,7 +221,8 @@ Result XtbLibrary::frequencies(Input const& input)
       result.message = "Invalid input: inconsistent number of atoms and coordinates";
       return result;
    }
-   QString spinError(checkSpin(input));
+   // GFN-FF does not use the electrons, so any spin is acceptable
+   QString spinError(m_method == XtbProcess::GFNFF ? QString() : checkSpin(input));
    if (!spinError.isEmpty()) {
       result.message = spinError;
       return result;
@@ -314,7 +320,8 @@ Result XtbLibrary::run(Input const& input, bool optimize)
       result.message = "Invalid spin multiplicity";
       return result;
    }
-   QString spinError(checkSpin(input));
+   // GFN-FF does not use the electrons, so any spin is acceptable
+   QString spinError(m_method == XtbProcess::GFNFF ? QString() : checkSpin(input));
    if (!spinError.isEmpty()) {
       result.message = spinError;
       return result;

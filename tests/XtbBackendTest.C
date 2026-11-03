@@ -204,6 +204,67 @@ int main(int argc, char** argv)
        check(freqL.gradientNorm >= 0.0 && freqL.gradientNorm < 2e-3, label + ": the geometry is stationary");
    }
 
+   // GFN-FF is a force field: it does not use the electrons, so any spin is accepted, 
+   // and the electronic temperature is ignored
+   {
+      Input methyl;
+      readXyz(dataDir + "/methyl.xyz", methyl);
+      XtbProcess program(xtbPath, XtbProcess::GFNFF);
+      XtbLibrary library(XtbProcess::GFNFF);
+      for (int multiplicity : { 1, 2 }) {
+         methyl.multiplicity = multiplicity;
+         Result p(program.energy(methyl)), l(library.energy(methyl));
+         check(p.success && l.success && qAbs(p.energy - l.energy) < 1e-6,
+            QString("GFN-FF energies agree for a radical with multiplicity %1").arg(multiplicity));
+      }
+      methyl.electronicTemperature = 1000.0;
+      Result hot(library.energy(methyl));
+      methyl.electronicTemperature = -1.0;
+      Result cold(library.energy(methyl));
+      check(hot.success && cold.success && qAbs(hot.energy - cold.energy) < 1e-10, "GFN-FF ignores the electronic temperature");
+
+      Input ammonium;
+      readXyz(dataDir + "/ammonium.xyz", ammonium);
+      ammonium.charge = 1;
+      Result charged(library.optimize(ammonium)), chargedP(program.optimize(ammonium));
+      check(charged.success && chargedP.success && qAbs(charged.energy - chargedP.energy) < 5e-5, "GFN-FF optimizations of a cation agree");
+      Input overlap;
+      overlap.atomicNumbers << 8 << 1 << 1;
+      overlap.coordinates << 0.0 << 0.0 << 0.0 << 0.5 << 0.0 << 0.0 << 0.5 << 0.0 << 0.0;
+      Result bad(library.energy(overlap));
+      check(!bad.success && !bad.message.isEmpty(), "GFN-FF reports atoms on top of each other instead of crashing");
+   }
+
+   // The electronic temperature of the xTB methods
+   {
+      Input water;
+      readXyz(dataDir + "/water.xyz", water);
+      XtbProcess program(xtbPath);
+      XtbLibrary library;
+      Result standard(library.energy(water));                // the program default, 300 K
+      water.electronicTemperature = 300.0;
+      Result explicit300(library.energy(water)), explicit300P(program.energy(water));
+      check(standard.success && qAbs(standard.energy - explicit300.energy) < 1e-10 && qAbs(explicit300P.energy - explicit300.energy) < 1e-6,
+         "300 K is the default, in the library and in the program");
+      water.electronicTemperature = 0.0;
+      Result zero(library.energy(water)), zeroP(program.energy(water));
+      check(zero.success && zeroP.success && qAbs(zero.energy - standard.energy) < 1e-8, "a closed-shell molecule is the same at 0 K");
+
+      // A (nearly) degenerate HOMO and LUMO needs smearing: this must fail cleanly, not crash
+      Input twisted;
+      readXyz(dataDir + "/twisted_ethylene.xyz", twisted);
+      twisted.electronicTemperature = 300.0;
+      Result warm(library.energy(twisted)), warmP(program.energy(twisted));
+      check(warm.success && warmP.success && qAbs(warm.energy - warmP.energy) < 1e-6, "twisted ethylene works at 300 K with both backends");
+      twisted.electronicTemperature = 100.0;
+      Result cooler(library.energy(twisted));
+      check(cooler.success && qAbs(cooler.energy - warm.energy) > 1e-4, "the electronic temperature changes the energy of a small gap molecule");
+      twisted.electronicTemperature = 0.0;
+      Result off(library.energy(twisted)), offP(program.energy(twisted));
+      check(!off.success && !off.message.isEmpty(), "at 0 K the library reports the failure instead of crashing: " + off.message.left(60));
+      check(!offP.success && !offP.message.isEmpty(), "at 0 K the program reports the failure");
+   }
+
    // Error handling and the features of the shared interface
    {
       Input water;

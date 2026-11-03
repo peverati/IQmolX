@@ -17,6 +17,7 @@
 
 class QCheckBox;
 class QComboBox;
+class QDoubleSpinBox;
 class QGroupBox;
 class QLabel;
 class QPlainTextEdit;
@@ -96,6 +97,8 @@ namespace IQmol {
          QCheckBox*      m_moleculeValues;
          QSpinBox*       m_chargeSpin;
          QSpinBox*       m_multiplicitySpin;
+         QDoubleSpinBox* m_temperatureSpin;
+         double          m_temperature;    // used by the current / last calculation
          int             m_charge;         // used by the current / last calculation
          int             m_multiplicity;
          QPushButton*    m_runButton;
