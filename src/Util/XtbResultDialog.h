@@ -19,7 +19,6 @@ class QCheckBox;
 class QComboBox;
 class QDoubleSpinBox;
 class QGroupBox;
-class QEventLoop;
 class QLabel;
 class QLineEdit;
 class QPlainTextEdit;
@@ -58,11 +57,6 @@ namespace IQmol {
 
          void appendOutput(QString const& text);
 
-         /// If the review is switched on in the window: shows the command line and the input
-         /// file of the xtb program, which can be edited, and waits for the user to submit or
-         /// cancel.  Returns false if the user cancelled.  On true, text is the input to use.
-         bool reviewInput(QString const& commandLine, QString& text);
-
          /// Switches to the 'finished' state and shows the summary of the result
          /// what is the type of calculation, e.g. 'single point' or 'vibrational frequencies'
          void finished(Calc::Result const&, QString const& method, QString const& what,
@@ -83,7 +77,6 @@ namespace IQmol {
          void run();
          void saveSettings();
       void updateProgramFields();
-      void cancelClicked();
       void browseForProgram();
       void browseForWorkDir();
 
@@ -97,7 +90,6 @@ namespace IQmol {
          explicit XtbResultDialog(QWidget* parent = 0);
 
          void setRunning(bool running);
-         void setReviewing(bool reviewing);
          void forgetTemporaryDirectory();
          void loadSettings();
          void placeWindow();
@@ -116,14 +108,6 @@ namespace IQmol {
    QWidget*        m_programRow;     // the fields that only apply to the xtb program
    QWidget*        m_optionsRow;
    QWidget*        m_workDirRow;
-   QCheckBox*      m_reviewCheck;
-   QWidget*        m_reviewRow;
-   QWidget*        m_reviewBox;
-   QLabel*         m_commandLabel;
-   QPlainTextEdit* m_inputEdit;
-   QEventLoop*     m_reviewLoop;     // running while the user reviews the input
-   bool            m_reviewAccepted;
-   bool            m_reviewCancelled;
    QLineEdit*      m_programEdit;
    QLineEdit*      m_optionsEdit;
    QLineEdit*      m_workDirEdit;

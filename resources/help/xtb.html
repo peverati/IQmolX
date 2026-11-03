@@ -92,7 +92,7 @@
    <br>
    <h3><a name="program"></a>xtb Program</h3>
 
-   <p> When the xtb program is the backend, four further settings appear:
+   <p> When the xtb program is the backend, three further settings appear:
 
    <ul>
       <li> <b>xtb program</b>: the location of the executable.  If empty, IQmol
@@ -108,19 +108,7 @@
            <tt>xtb_opt.out</tt> (<tt>xtb_sp.out</tt>, <tt>xtb_hess.out</tt>).
            Files from an earlier run are replaced.  If empty, a temporary
            directory is used. <br>
-      <li> <b>Review and edit the input file</b>: when ticked, pressing Run
-           first shows the command line and the input file for xtb.
    </ul>
-
-   <p><center><img src="images/XtbInput.png" width="470" /></center></p>
-
-   <p> The geometry in the input file can be edited; <b>Submit</b> runs xtb with
-   the text exactly as it appears, <b>Cancel</b> does not run it.  The number
-   of atoms has to stay the same.  The charge, spin and the other settings are
-   changed in the fields above, they are part of the command line shown.  For an
-   optimization followed by frequencies the edited input is used for the
-   optimization.
-
 
    <br>
    <h3><a name="results"></a>Results and Saving</h3>
@@ -188,7 +176,6 @@
       <li> Open the xtb window with the <img src="images/buttons/Xtb.png">
            button.  Leave the job on <i>Geometry optimization</i>, the method
            on GFN2-xTB and the solvent on gas phase, and press <b>Run</b>. <br>
-      <li> The input file is shown for review.  Press <b>Submit</b>. <br>
       <li> The calculation takes a fraction of a second and the molecule moves
            to the optimized structure (about -4.1752 E<sub>h</sub>; the energy
            change and the HOMO-LUMO gap of 17.35 eV are in the summary).  The

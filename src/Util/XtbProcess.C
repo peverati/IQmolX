@@ -222,12 +222,6 @@ Result XtbProcess::frequencies(Input const& input)
 }
 
 
-QString XtbProcess::inputText(Input const& input) const
-{
-   return m_inputText.isEmpty() ? xyzText(input) : m_inputText;
-}
-
-
 QStringList XtbProcess::arguments(Input const& input, Task task) const
 {
    QStringList args;
@@ -247,15 +241,6 @@ QStringList XtbProcess::arguments(Input const& input, Task task) const
    }
    applyUserOptions(args, m_extraArguments);
    return args;
-}
-
-
-QString XtbProcess::commandLine(Input const& input, Task task) const
-{
-   QString exe(findExecutable(m_executable));
-   QStringList parts;
-   parts << (exe.isEmpty() ? QString("xtb") : exe) << arguments(input, task);
-   return parts.join(' ');
 }
 
 
@@ -331,7 +316,7 @@ Result XtbProcess::run(Input const& input, Task task)
          result.message = "Failed to write xtb input file";
          return result;
       }
-      file.write(inputText(input).toLocal8Bit());
+      file.write(xyzText(input).toLocal8Bit());
    }
 
    QStringList args(arguments(input, task));

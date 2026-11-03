@@ -542,18 +542,6 @@ void XtbOptions(QString const& options)
 }
 
 
-bool XtbReviewInput()
-{
-   QVariant value(Get("XtbReviewInput"));
-   return value.isNull() ? true : value.toBool();
-}
-
-void XtbReviewInput(bool const review)
-{
-   Set("XtbReviewInput", QVariant::fromValue(review));
-}
-
-
 QString XtbWorkDir()
 {
    QVariant value(Get("XtbWorkDir"));

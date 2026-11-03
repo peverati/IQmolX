@@ -68,15 +68,6 @@ namespace Calc {
 
          enum Task { SinglePoint, Optimization, Hessian };
 
-         /// The input file (xyz) that is written for the calculation, and the command line 
-         /// that runs it, as they would be used by energy(), optimize() and frequencies()
-         QString inputText(Input const&) const;
-         QString commandLine(Input const&, Task) const;
-
-         /// Replaces the generated input file by this text (an edited version of inputText()).
-         /// An empty text goes back to the generated one.
-         void setInputText(QString const& text) { m_inputText = text; }
-
          /// By default the temporary directory is removed after each calculation.  When this
          /// is set it is kept (and reused by the following calculations of this object) and
          /// reported in Result::directory, whose owner then has to remove it.
@@ -94,7 +85,6 @@ namespace Calc {
          QString m_executable;
          QStringList m_extraArguments;
          QString m_workingDirectory;
-         QString m_inputText;
          bool m_keepTemporary;
          QString m_temporaryPath;
          Method  m_method;

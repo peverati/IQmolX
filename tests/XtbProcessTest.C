@@ -150,29 +150,6 @@ int main(int argc, char** argv)
    Result optWater(xtb.optimize(inWater));
    check(optWater.success && optWater.converged && optWater.hasGsolv, "optimization in ALPB(water) converges");
 
-   // Preview and editing of the input
-   {
-      XtbProcess p(argc > 1 ? argv[1] : "");
-      Input in(water);
-      in.charge = 0;
-      QString text(p.inputText(in));
-      check(text.startsWith("3\n") && text.contains("O ") && text.split('\n').size() >= 5, "the input file is generated for preview");
-      QString cmd(p.commandLine(in, XtbProcess::Optimization));
-      check(cmd.contains("input.xyz") && cmd.contains("--opt") && cmd.contains("--chrg 0") && cmd.contains("--uhf 0"),
-         "the command line is generated for preview");
-      check(p.commandLine(in, XtbProcess::Hessian).contains("--hess"), "the command line follows the job");
-
-      // an edited input is what is run: move a hydrogen away
-      Result before(p.energy(in));
-      QString edited(text);
-      edited.replace(QRegularExpression("\\nH ([^\\n]*)\\n"), "\nH 0.0 1.5 0.6\n");
-      p.setInputText(edited);
-      Result after(p.energy(in));
-      check(before.success && after.success && qAbs(after.energy - before.energy) > 1e-3, "an edited input file is submitted as it is");
-      p.setInputText(QString());
-      check(qAbs(p.energy(in).energy - before.energy) < 1e-9, "an empty text goes back to the generated input");
-   }
-
    // A temporary directory that is kept, for the xtb window to save its files
    {
       XtbProcess p(argc > 1 ? argv[1] : "");
