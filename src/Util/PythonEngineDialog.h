@@ -40,6 +40,7 @@ class QLineEdit;
 class QPlainTextEdit;
 class QProgressBar;
 class QPushButton;
+class QTextBrowser;
 class QSpinBox;
 
 /*!
@@ -142,11 +143,11 @@ namespace IQmol {
 
          QGroupBox*     m_settings;
          QLineEdit*     m_pythonEdit;
-         QLabel*        m_environmentInfo;
+         QTextBrowser*  m_environmentInfo;
          QPushButton*   m_setupButton;
          QPushButton*   m_installButton;
          QComboBox*     m_engineCombo;
-         QLabel*        m_engineInfo;
+         QTextBrowser*  m_engineInfo;
          QGroupBox*     m_optionsBox;
          QFormLayout*   m_optionsForm;
          QComboBox*     m_jobCombo;
