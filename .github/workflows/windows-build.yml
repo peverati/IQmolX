@@ -77,33 +77,15 @@ jobs:
         run: |
           # OpenBabel asks for the old behaviour of a macOS-only policy, which CMake 4 refuses
           sed -i 's/CMP0042 OLD/CMP0042 NEW/' modules/openbabel/CMakeLists.txt
+          # OpenBabel makes some headers by starting a Perl script directly, which Windows cannot do,
+          # and then writes an empty header when it fails; run it through perl instead
+          sed -i 's|COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/bin2hex.pl|COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/bin2hex.pl|' modules/openbabel/data/CMakeLists.txt
+          grep -n "bin2hex" modules/openbabel/data/CMakeLists.txt
           cmake -B build -G Ninja \
              -DBUILD_SHARED=OFF -DQARCHIVE=OFF -DCMAKE_BUILD_TYPE=Release \
              -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
              -DOPENSSL_ROOT_DIR="$MSYSTEM_PREFIX" \
              -DXTB_ROOT="$GITHUB_WORKSPACE/xtb-install"
-
-      - name: OpenBabel data headers
-        # OpenBabel makes these with a Perl script that it starts directly, which Windows
-        # cannot do, so they are made here with perl before the build
-        run: |
-          D=modules/openbabel/data
-          O=build/modules/openbabel/data
-          mkdir -p "$O"
-          while read -r input name header; do
-            perl "$D/bin2hex.pl" "$D/$input" "$name" "$name" > "$O/$header"
-          done <<'LIST'
-          atomtyp.txt AtomTypeData atomtyp.h
-          bondtyp.txt BondTypeData bondtyp.h
-          phmodel.txt PhModelData phmodeldata.h
-          resdata.txt ResidueData resdata.h
-          torlib.txt TorsionDefaults torlib.h
-          types.txt TypesData types.h
-          atomization-energies.txt AtomicHeatOfFormationData atomizationenergies.h
-          space-groups.txt SpaceGroupsData spacegroups.h
-          ringtyp.txt RingTypeData ringtyp.h
-          LIST
-          ls -la "$O"
 
       - name: Build IQMolX
         run: cmake --build build --target IQmol
