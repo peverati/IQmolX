@@ -77,7 +77,7 @@ def test_forces_match_finite_differences(engine):
 def test_hessian_matches_finite_differences_of_forces(engine):
     hess = run(engine, WATER_XYZ, ["energy", "hessian"])["hessian"]
     assert hess.shape == (9, 9) and np.allclose(hess, hess.T, atol=1e-6)
-    h = 1e-4
+    h = 1e-5     # the finite-difference error only vanishes for small steps (float64)
     fd = np.zeros((9, 9))
     for a in range(3):
         for k in range(3):
@@ -86,7 +86,7 @@ def test_hessian_matches_finite_differences_of_forces(engine):
             m[a, k] -= h
             fd[3 * a + k] = -(run(engine, p, ["forces"])["forces"]
                               - run(engine, m, ["forces"])["forces"]).ravel() / (2 * h)
-    assert np.allclose(hess, fd, atol=1e-2)
+    assert np.allclose(hess, fd, atol=1e-4)
 
 
 @needs_model
