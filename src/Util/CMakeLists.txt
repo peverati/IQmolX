@@ -36,6 +36,7 @@ set( SOURCES
    Timer.C
    WaitingSpinner.C
    WriteToTemporaryFile.C
+   XtbOutput.C
    XtbProcess.C
    XtbResultDialog.C
    Zip.C
@@ -46,6 +47,10 @@ set( UI_FILES
    LogMessageDialog.ui
    ProgressDialog.ui
 )
+
+if (XTB_LIBRARY)
+   list(APPEND SOURCES XtbLibrary.C)
+endif()
 
 qt5_wrap_ui(UI_HEADERS ${UI_FILES} )
 

@@ -114,6 +114,11 @@ namespace Preferences {
    QByteArray XtbWindowGeometry();
    void       XtbWindowGeometry(QByteArray const&);
 
+   // How the xtb methods are run: "program" starts the external xtb program, "library"
+   // calls libxtb inside IQmol (only available if IQmol was built with libxtb).
+   QString XtbBackend();
+   void    XtbBackend(QString const&);
+
    // Implicit solvent (ALPB name, e.g. "water") for the xtb methods.  Empty is gas phase.
    QString XtbSolvent();
    void    XtbSolvent(QString const&);

@@ -65,6 +65,9 @@
 #include "Util/Constants.h"
 #include "Util/Preferences.h"
 #include "Util/XtbProcess.h"
+#ifdef IQMOL_WITH_LIBXTB
+#include "Util/XtbLibrary.h"
+#endif
 #include "Util/XtbResultDialog.h"
 #include "Process/JobInfo.h" 
 #include "Parser/IQmolParser.h"
@@ -90,6 +93,7 @@
 #include <QDropEvent>
 #include <QProcess>
 #include <QApplication>
+#include <memory>
 #include <QElapsedTimer>
 #include <QMenu>
 #include <QUrl>
@@ -2127,7 +2131,17 @@ bool Molecule::runXtb(QString const& methodName, bool optimize, bool showDialog)
    if (s_xtbBusy) return true;
    s_xtbBusy = true;
 
-   Calc::XtbProcess xtb(Preferences::XtbPath(), method);
+   // The xtb program, or libxtb inside IQmol if that is selected and available
+   bool useLibrary(false);
+   std::unique_ptr<Calc::Calculator> xtb;
+#ifdef IQMOL_WITH_LIBXTB
+   if (Preferences::XtbBackend() == "library") {
+      xtb.reset(new Calc::XtbLibrary(method));
+      useLibrary = true;
+   }
+#endif
+   if (!xtb) xtb.reset(new Calc::XtbProcess(Preferences::XtbPath(), method));
+
    XtbResultDialog* dialog(0);
    QMetaObject::Connection cancelConnection;
 
@@ -2135,15 +2149,16 @@ bool Molecule::runXtb(QString const& methodName, bool optimize, bool showDialog)
       // Keep the GUI alive and show the progress in a window
       QString subject(text().isEmpty() ? "the molecule" : text());
       subject += " (" + QString::number(atoms.size()) + " atoms)";
+      subject += useLibrary ? " using libxtb" : " using the xtb program";
       dialog = XtbResultDialog::instance();
-      xtb.setInteractive(true);
-      xtb.setProgressCallback([dialog](QString const& chunk) { dialog->appendOutput(chunk); });
+      xtb->setInteractive(true);
+      xtb->setProgressCallback([dialog](QString const& chunk) { dialog->appendOutput(chunk); });
       cancelConnection = QObject::connect(dialog, &XtbResultDialog::cancelRequested, 
-         [&xtb]() { xtb.cancel(); });
+         [&xtb]() { xtb->cancel(); });
       dialog->started(label, optimize ? "geometry optimization" : "single point", subject);
    }
 
-   Calc::Result result(optimize ? xtb.optimize(input) : xtb.energy(input));
+   Calc::Result result(optimize ? xtb->optimize(input) : xtb->energy(input));
 
    if (dialog) {
       QObject::disconnect(cancelConnection);

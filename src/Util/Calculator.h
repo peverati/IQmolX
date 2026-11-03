@@ -13,6 +13,7 @@
 
 #include <QString>
 #include <QVector>
+#include <functional>
 
 /*!
  *  \file Calculator.h
@@ -71,6 +72,17 @@ namespace Calc {
 
          /// Geometry optimization
          virtual Result optimize(Input const&) = 0;
+
+         /// Text describing the progress of a calculation is passed to this function as 
+         /// it becomes available.  Only used together with setInteractive(true).
+         virtual void setProgressCallback(std::function<void(QString const&)>) { }
+
+         /// When true a GUI event loop keeps running during a calculation so that the
+         /// window stays responsive and cancel() can be called.  The default is to block.
+         virtual void setInteractive(bool) { }
+
+         /// Stops a running calculation (interactive mode only)
+         virtual void cancel() { }
    };
 
 } } // end namespace IQmol::Calc

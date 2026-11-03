@@ -33,7 +33,7 @@ namespace Calc {
 
          explicit XtbProcess(QString const& executable = QString(), Method = GFN2);
 
-         QString name() const;
+         QString name() const override;
 
          void setExecutable(QString const& path) { m_executable = path; }
          void setMethod(Method method) { m_method = method; }
@@ -41,24 +41,24 @@ namespace Calc {
 
          /// Called with each chunk of xtb output as it arrives.  This only has an effect
          /// together with setInteractive(true).
-         void setProgressCallback(std::function<void(QString const&)> callback) 
+         void setProgressCallback(std::function<void(QString const&)> callback) override
          { 
             m_progress = callback; 
          }
 
          /// When true the Qt event loop keeps running while xtb does, so a GUI stays
          /// responsive (and cancel() can be called).  The default is to block.
-         void setInteractive(bool interactive) { m_interactive = interactive; }
+         void setInteractive(bool interactive) override { m_interactive = interactive; }
 
          /// Kills a running calculation (interactive mode only)
-         void cancel();
+         void cancel() override;
 
          /// Looks for xtb: the given hint, then $XTB_PATH, then PATH.
          /// Returns an empty string if it cannot be found.
          static QString findExecutable(QString const& hint = QString());
 
-         Result energy(Input const&);
-         Result optimize(Input const&);
+         Result energy(Input const&) override;
+         Result optimize(Input const&) override;
 
       private:
          Result run(Input const&, bool optimize);

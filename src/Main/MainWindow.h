@@ -117,6 +117,7 @@ namespace Gmx {
 
          void setForceField();
          void setSolvent();
+         void setXtbBackend();
          void setLabel();
          void reindexAtoms();
 

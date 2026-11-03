@@ -704,6 +704,31 @@ void MainWindow::createMenus()
              if (Preferences::DefaultForceField() == method) action->setChecked(true);
          }
 
+#ifdef IQMOL_WITH_LIBXTB
+      name = "Select xTB Backend";
+      subMenu = menu->addMenu(name);
+      {
+         QActionGroup* backendGroup = new QActionGroup(this);
+         QString current(Preferences::XtbBackend());
+
+         action = subMenu->addAction("External xtb Program");
+         action->setCheckable(true);
+         action->setData("program");
+         action->setToolTip("Run the xtb program found at the path in the preferences");
+         backendGroup->addAction(action);
+         connect(action, SIGNAL(triggered()), this, SLOT(setXtbBackend()));
+         if (current != "library") action->setChecked(true);
+
+         action = subMenu->addAction("Built-in Library (libxtb)");
+         action->setCheckable(true);
+         action->setData("library");
+         action->setToolTip("Run xtb inside IQmol, with IQmol's own geometry optimizer");
+         backendGroup->addAction(action);
+         connect(action, SIGNAL(triggered()), this, SLOT(setXtbBackend()));
+         if (current == "library") action->setChecked(true);
+      }
+#endif
+
       name = "Select Solvent (xTB)";
       subMenu = menu->addMenu(name);
       subMenu->setToolTipsVisible(true);
@@ -991,6 +1016,16 @@ void MainWindow::setLabel()
    if (turnOn) action->setChecked(true);
 }
 
+
+
+// Selects whether the xtb methods run the xtb program or libxtb
+void MainWindow::setXtbBackend()
+{
+   QAction* action = qobject_cast<QAction*>(sender());
+   if (!action) return;
+   Preferences::XtbBackend(action->data().toString());
+   m_viewerModel.computeEnergy();
+}
 
 
 // Selects the implicit solvent used by the xtb methods

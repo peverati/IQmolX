@@ -3,6 +3,7 @@ find_package(Qt5 COMPONENTS Core REQUIRED)
 add_executable(XtbProcessTest EXCLUDE_FROM_ALL
    XtbProcessTest.C
    ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/XtbProcess.C
+   ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/XtbOutput.C
 )
 target_include_directories(XtbProcessTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
 target_link_libraries(XtbProcessTest PRIVATE Qt5::Core)
@@ -21,4 +22,25 @@ if (XTB_ROOT AND EXISTS ${XTB_ROOT}/include/xtb.h)
       target_link_libraries(XtbLibraryTest PRIVATE OpenMP::OpenMP_CXX)
    endif()
    add_test(NAME XtbLibraryTest COMMAND XtbLibraryTest)
+
+   # Both backends side by side
+   add_executable(XtbBackendTest EXCLUDE_FROM_ALL
+      XtbBackendTest.C
+      ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/XtbProcess.C
+      ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/XtbLibrary.C
+      ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/XtbOutput.C
+   )
+   target_include_directories(XtbBackendTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src ${XTB_ROOT}/include)
+   target_link_libraries(XtbBackendTest PRIVATE Qt5::Core ${XTB_ROOT}/lib/libxtb.dylib)
+   set_target_properties(XtbBackendTest PROPERTIES BUILD_RPATH ${XTB_ROOT}/lib)
+   if (OpenMP_CXX_FOUND)
+      target_link_libraries(XtbBackendTest PRIVATE OpenMP::OpenMP_CXX)
+   endif()
+   add_test(NAME XtbBackendTest COMMAND XtbBackendTest ${XTB_ROOT}/bin/xtb ${CMAKE_CURRENT_SOURCE_DIR}/data)
 endif()
+
+
+# Optimizer: no dependencies
+add_executable(OptimizerTest EXCLUDE_FROM_ALL OptimizerTest.C)
+target_include_directories(OptimizerTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+add_test(NAME OptimizerTest COMMAND OptimizerTest)
