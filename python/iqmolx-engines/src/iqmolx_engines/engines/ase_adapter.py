@@ -52,7 +52,8 @@ class AseEngine(Engine):
     properties = ("energy", "forces")
     requirements = ("ase",)
     options = (
-        option("calculator", "Calculator class", "string", "",
+        option("calculator", "Calculator class", "string", "", required=True,
+               placeholder="ase.calculators.emt:EMT",
                description="Python path 'package.module:Class'."),
         option("kwargs", "Constructor arguments (JSON)", "string", "{}",
                description='For example {"model_name": "x"}.'),

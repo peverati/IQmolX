@@ -98,6 +98,10 @@ makes a widget for each: `bool` a check box, `int` and `float` a spin box (with 
   by name.
 * Values are checked before your code runs (type, range, choice); a bad value is the error
   `bad_option`. Defaults are filled in, so `options` in `load` and `compute` is always complete.
+* An option that has no sensible default (a model name, a class to use) is declared with
+  `required=True` and a `placeholder="an example value"`: the window then shows the hint in the
+  empty field and keeps *Run* off until it is filled in, and the helper refuses an empty value for you
+  (`bad_option`, "'Title' is required"). The ASE adapter does this for its calculator class.
 
 ## `load` and `compute`
 

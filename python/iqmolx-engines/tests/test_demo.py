@@ -92,3 +92,17 @@ def test_option_checks():
         resolve_options(DemoEngine, {"nonsense": 1}, "load")
     assert e.value.code == "bad_option"
     assert resolve_options(DemoEngine, {}, "load") == {"well_depth": 4.0, "alpha": 1.8}
+
+
+def test_required_option_rules():
+    from iqmolx_engines.base import Engine, option
+
+    class Needy(Engine):
+        name = "needy"
+        options = (option("path", "Model path", "string", "", required=True),
+                   option("level", "Level", "int", 0, required=True))
+
+    with pytest.raises(EngineError) as e:
+        resolve_options(Needy, {}, "load")
+    assert e.value.code == "bad_option" and "Model path" in e.value.message
+    assert resolve_options(Needy, {"path": "x"}, "load") == {"path": "x", "level": 0}

@@ -47,7 +47,9 @@ class Context:
 
 
 def option(name, title, type, default, scope="load", **extra):
-    """Build an option description for the capabilities (min, max, choices, description)."""
+    """Build an option description for the capabilities.  `extra` may hold min, max, choices,
+    description, `required=True` (the option must not be empty: the window keeps Run off until it
+    is filled in) and `placeholder` (a hint shown in an empty text field)."""
     d = {"name": name, "title": title, "type": type, "default": default, "scope": scope}
     d.update(extra)
     return d
@@ -162,8 +164,13 @@ def resolve_options(engine_cls, given, scope):
     for key in given:
         if key not in known:
             raise EngineError("bad_option", "Unknown %s option '%s'" % (scope, key))
-    return {n: check_option_value(o, given[n]) if n in given else o["default"]
-            for n, o in known.items()}
+    values = {n: check_option_value(o, given[n]) if n in given else o["default"]
+              for n, o in known.items()}
+    for n, o in known.items():
+        value = values[n]
+        if o.get("required") and (value is None or (isinstance(value, str) and not value.strip())):
+            raise EngineError("bad_option", "'%s' is required" % o.get("title", n))
+    return values
 
 
 def as_system(numbers, coordinates):

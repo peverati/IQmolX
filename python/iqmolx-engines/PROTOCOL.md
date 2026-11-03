@@ -123,6 +123,10 @@ An **option** describes one setting in the window:
 * `scope`: `load` (applied when the model loads; changing it needs a new `load`) or `compute`
   (sent with every compute request). Default `load`.
 * `min`, `max`, `choices`, `description` are optional. `default` is always present.
+* `required` (boolean, default false): the option must not be empty. The window keeps *Run* off
+  until a required text field is filled in, and the helper refuses a `load` or `compute` with an
+  empty required value (error `bad_option`, whatever the engine) before the engine runs.
+* `placeholder` (text): a hint shown in an empty text field, for example an example value.
 
 ### `load`
 

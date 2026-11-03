@@ -175,3 +175,18 @@ def test_cli_describe_and_version():
     out = subprocess.run([sys.executable, "-m", "iqmolx_engines", "--version"],
                          capture_output=True, text=True, env=env, check=True).stdout
     assert "protocol 1" in out
+
+
+def test_required_option_is_listed(helper):
+    engines = {e["name"]: e for e in helper.call(1, "list_engines")["result"]["engines"]}
+    calc = next(o for o in engines["ase"]["options"] if o["name"] == "calculator")
+    assert calc["required"] is True and calc["placeholder"] == "ase.calculators.emt:EMT"
+
+
+def test_empty_required_option_is_refused_by_the_helper(helper):
+    engines = {e["name"]: e for e in helper.call(1, "list_engines")["result"]["engines"]}
+    if not engines["ase"]["available"]:
+        pytest.skip("needs ASE: the helper answers engine_unavailable first")
+    for options in ({}, {"calculator": ""}, {"calculator": "   "}):
+        err = helper.call(2, "load", engine="ase", options=options)["error"]
+        assert err["code"] == "bad_option" and "Calculator class" in err["message"]
