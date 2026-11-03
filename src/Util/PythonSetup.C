@@ -84,17 +84,31 @@ QString PythonSetup::pythonIn(QString const& environment)
 }
 
 
+QString PythonSetup::wheelIn(QString const& directory)
+{
+   QStringList wheels(QDir(directory).entryList(QStringList("iqmolx_engines-*.whl"), 
+      QDir::Files, QDir::Name | QDir::Reversed));
+   return wheels.isEmpty() ? QString() : QDir::cleanPath(QDir(directory).absoluteFilePath(wheels.first()));
+}
+
+
 QString PythonSetup::helperSource()
 {
-   QStringList candidates;
+   // A source folder given by the developer comes first
    QString fromEnvironment(qEnvironmentVariable("IQMOLX_ENGINES_PATH"));
-   if (!fromEnvironment.isEmpty()) candidates << fromEnvironment + "/..";
-   QString appDir(QCoreApplication::applicationDirPath());
-   if (!appDir.isEmpty()) candidates << appDir + "/../Resources/python/iqmolx-engines";
+   if (!fromEnvironment.isEmpty()) {
+      QFileInfo info(fromEnvironment + "/../pyproject.toml");
+      if (info.isFile()) return QDir::cleanPath(info.absolutePath());
+   }
 
-   for (QString const& path : candidates) {
-       QFileInfo info(path + "/pyproject.toml");
-       if (info.isFile()) return QDir::cleanPath(info.absolutePath());
+   // IQmol.app/Contents/MacOS/IQmol, with the helper in Contents/Resources/python
+   QString appDir(QCoreApplication::applicationDirPath());
+   if (!appDir.isEmpty()) {
+      QString resources(appDir + "/../Resources/python");
+      QString wheel(wheelIn(resources));
+      if (!wheel.isEmpty()) return wheel;
+      QFileInfo info(resources + "/iqmolx-engines/pyproject.toml");
+      if (info.isFile()) return QDir::cleanPath(info.absolutePath());
    }
    return QString();
 }
@@ -160,8 +174,8 @@ bool PythonSetup::createEnvironment(QString const& environment, QString& error)
    m_cancelled = false;
    QString source(helperSource());
    if (source.isEmpty()) {
-      error = "The iqmolx-engines package was not found (it is in the Resources folder of the "
-              "application, or set $IQMOLX_ENGINES_PATH to its src folder).";
+      error = "The iqmolx-engines package was not found (it is a wheel in the Resources folder "
+              "of the application, or set $IQMOLX_ENGINES_PATH to its src folder).";
       return false;
    }
 

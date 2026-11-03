@@ -59,9 +59,15 @@ namespace Calc {
          /// The interpreter of an environment folder (empty if there is none)
          static QString pythonIn(QString const& environment);
 
-         /// The folder of the iqmolx-engines package (with its pyproject.toml): from
-         /// $IQMOLX_ENGINES_PATH (its src folder) or the Resources folder of the application.
+         /// What to install as the helper: the folder of the iqmolx-engines package (with its
+         /// pyproject.toml) from $IQMOLX_ENGINES_PATH (its src folder), or the wheel (or the 
+         /// folder) in the Resources folder of the application.  A wheel is preferred inside 
+         /// the application, as installing from a folder builds in that folder, which must not 
+         /// happen inside a signed application.  Empty if there is nothing.
          static QString helperSource();
+
+         /// The iqmolx_engines wheel in a folder, empty if there is none
+         static QString wheelIn(QString const& directory);
 
          void setUv(QString const& path) { m_uv = path; }
          void setInteractive(bool interactive) { m_interactive = interactive; }

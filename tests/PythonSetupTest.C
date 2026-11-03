@@ -80,6 +80,15 @@ int main(int argc, char** argv)
    qputenv("IQMOLX_ENGINES_PATH", QString(root + "/pkg/src").toLocal8Bit());
    check(PythonSetup::helperSource() == QDir::cleanPath(root + "/pkg"), "helperSource is the folder with pyproject.toml");
 
+   // The wheel of the application: the newest one in the folder, none otherwise
+   check(PythonSetup::wheelIn(root).isEmpty(), "no wheel, no wheelIn");
+   QDir().mkpath(root + "/res");
+   writeFile(root + "/res/iqmolx_engines-0.1.0-py3-none-any.whl", "x");
+   writeFile(root + "/res/iqmolx_engines-0.2.0-py3-none-any.whl", "x");
+   writeFile(root + "/res/other-9.0-py3-none-any.whl", "x");
+   check(PythonSetup::wheelIn(root + "/res") == QDir::cleanPath(root + "/res/iqmolx_engines-0.2.0-py3-none-any.whl"),
+      "wheelIn finds the newest iqmolx_engines wheel only: " + PythonSetup::wheelIn(root + "/res"));
+
    // Creating an environment: the right commands in the right order
    {
       PythonSetup setup;
