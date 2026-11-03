@@ -148,6 +148,8 @@ def test_stdout_stays_clean_when_engine_prints(helper, tmp_path):
         "    name = 'noisy'\n"
         "    def compute(self, *a):\n"
         "        print('hello from the engine')\n"
+        "        import os\n"
+        "        os.write(1, b'hello from native code\\n')\n"
         "        return super().compute(*a)\n")
     helper.close()
     env = dict(os.environ, PYTHONPATH=os.pathsep.join([SRC, str(tmp_path)]))
@@ -165,6 +167,7 @@ def test_stdout_stays_clean_when_engine_prints(helper, tmp_path):
     lines = [json.loads(line) for line in out.splitlines()]
     assert lines[0]["event"] == "ready" and lines[2]["ok"]
     assert "hello from the engine" in err
+    assert "hello from native code" in err         # written to descriptor 1, as C and Fortran do
 
 
 def test_cli_describe_and_version():

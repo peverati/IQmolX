@@ -11,6 +11,7 @@
 
 import argparse
 import json
+import os
 import sys
 
 
@@ -39,9 +40,13 @@ def main(argv=None):
                          indent=2))
         return 0
 
-    # Only protocol messages may reach stdout: engine code that prints goes to stderr.
-    out, sys.stdout = sys.stdout, sys.stderr
-    return Server(sys.stdin, out).run()
+    # Only protocol messages may reach stdout.  Engine code that prints goes to stderr, and so does
+    # native code (C or Fortran libraries write to file descriptor 1 directly): the protocol keeps
+    # a private copy of the real stdout and descriptor 1 is pointed at stderr.
+    protocol = os.fdopen(os.dup(1), "w", buffering=1, encoding="utf-8")
+    os.dup2(2, 1)
+    sys.stdout = sys.stderr
+    return Server(sys.stdin, protocol).run()
 
 
 if __name__ == "__main__":
