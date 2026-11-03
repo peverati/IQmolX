@@ -85,6 +85,10 @@ InputDialog::InputDialog(QWidget* parent) : QMainWindow(parent),
    setWindowTitle("QChem Input File Editor - " + file.fileName());
    m_ui.previewText->setCurrentFont(Preferences::PreviewFont());
 
+   // The preview is written in black and dark grey, so it needs a light background also when
+   // the system uses a dark appearance
+   m_ui.previewText->setStyleSheet("QTextEdit { background-color: white; color: black; }");
+
    setStatusBar(&m_statusBar);
 }
 
