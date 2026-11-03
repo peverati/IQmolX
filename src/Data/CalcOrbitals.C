@@ -18,8 +18,7 @@ namespace IQmol {
 namespace Data {
 
 CanonicalOrbitals* makeCanonicalOrbitals(Calc::OrbitalData const& orbitals, 
-   QList<qglviewer::Vec> const& positions, unsigned nAlpha, unsigned nBeta, 
-   QString const& label)
+   QList<qglviewer::Vec> const& positions, int multiplicity, QString const& label)
 {
    if (orbitals.coefficients.isEmpty() || orbitals.energies.size() != orbitals.coefficients.size()) {
       return 0;
@@ -43,6 +42,14 @@ CanonicalOrbitals* makeCanonicalOrbitals(Calc::OrbitalData const& orbitals,
        shells.append(new Shell(momentum[shell.angularMomentum], shell.atom, 
           positions[shell.atom], exponents, coefficients));
    }
+
+   // The occupations add up to the number of electrons also with a smeared occupation
+   double occupation(0.0);
+   for (double n : orbitals.occupations) occupation += n;
+   int electrons(qRound(occupation));
+   int nBeta((electrons - (multiplicity - 1)) / 2);
+   int nAlpha(electrons - nBeta);
+   if (nBeta < 0 || nAlpha > orbitals.coefficients.size()) return 0;
 
    QList<double> coefficients, energies;
    for (int i = 0; i < orbitals.coefficients.size(); ++i) {

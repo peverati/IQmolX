@@ -2265,7 +2265,7 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
       }
    }
 
-   if (result.hasOrbitals) setOrbitals(result.orbitals, input.charge, input.multiplicity, label);
+   if (result.hasOrbitals) setOrbitals(result.orbitals, input.multiplicity, label);
 }
 
 
@@ -2426,8 +2426,7 @@ void Molecule::setVibrations(Calc::VibrationalData const& vibrations, QString co
 
 // Adds the orbitals of an xtb calculation to the molecule, for the orbital viewer.  They 
 // replace those of an earlier xtb calculation.
-void Molecule::setOrbitals(Calc::OrbitalData const& orbitals, int charge, int multiplicity,
-   QString const& label)
+void Molecule::setOrbitals(Calc::OrbitalData const& orbitals, int multiplicity, QString const& label)
 {
    AtomList atoms(findLayers<Atom>(Children));
    int const nBasis(orbitals.nBasis());
@@ -2437,15 +2436,8 @@ void Molecule::setOrbitals(Calc::OrbitalData const& orbitals, int charge, int mu
    QList<Vec> positions;
    for (Atom* atom : atoms) positions.append(atom->getPosition());
 
-   // xtb uses the same spatial orbitals for both spins, with the occupations of the spins
-   // (charge and multiplicity) deciding how many of each are filled
-   int electrons(-charge);
-   for (Atom* atom : atoms) electrons += atom->getAtomicNumber();
-   int nBeta((electrons - (multiplicity - 1)) / 2);
-   int nAlpha(electrons - nBeta);
-
    Data::CanonicalOrbitals* canonical(Data::makeCanonicalOrbitals(orbitals, positions, 
-      nAlpha, nBeta, "Canonical Orbitals"));
+      multiplicity, "Canonical Orbitals"));
    if (!canonical) {
       QLOG_WARN() << "The xtb orbitals are inconsistent with their basis set";
       return;

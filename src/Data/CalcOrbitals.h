@@ -19,10 +19,10 @@ namespace IQmol {
 namespace Data {
 
    /// Converts the orbitals of a Calc::Result (bohr exponents, one set of spatial orbitals)
-   /// to IQmol's canonical orbitals.  The positions of the atoms are in Angstrom.
-   /// Returns 0 if the data are inconsistent.
+   /// to IQmol's canonical orbitals.  The positions of the atoms are in Angstrom.  The
+   /// numbers of alpha and beta electrons follow from the occupations (the valence electrons
+   /// of the xTB methods) and the spin multiplicity.  Returns 0 if the data are inconsistent.
    CanonicalOrbitals* makeCanonicalOrbitals(Calc::OrbitalData const&, 
-      QList<qglviewer::Vec> const& positions, unsigned nAlpha, unsigned nBeta, 
-      QString const& label);
+      QList<qglviewer::Vec> const& positions, int multiplicity, QString const& label);
 
 } } // end namespace IQmol::Data

@@ -21,13 +21,13 @@ static void check(bool ok, char const* what)
 }
 
 // returns the largest deviation of <i|j> from the unit matrix for the lowest nCheck orbitals
-static double orthonormality(Calc::Result const& r, int nCheck, unsigned nAlpha)
+static double orthonormality(Calc::Result const& r, int nCheck, unsigned nAlpha, int multiplicity = 1)
 {
    QList<qglviewer::Vec> positions;
    for (int i = 0; i < r.coordinates.size() / 3; ++i) {
        positions.append(qglviewer::Vec(r.coordinates[3*i], r.coordinates[3*i+1], r.coordinates[3*i+2]));
    }
-   Data::CanonicalOrbitals* orbs(Data::makeCanonicalOrbitals(r.orbitals, positions, nAlpha, nAlpha, "test"));
+   Data::CanonicalOrbitals* orbs(Data::makeCanonicalOrbitals(r.orbitals, positions, multiplicity, "test"));
    if (!orbs) return 1e9;
 
    Data::ShellList& shells(orbs->shellList());
@@ -74,6 +74,8 @@ static double orthonormality(Calc::Result const& r, int nCheck, unsigned nAlpha)
        double expected(i == j ? 1.0 : 0.0);
        worst = std::max(worst, std::abs(S[i*nCheck+j]*dv - expected));
    }
+   check(orbs->nAlpha() == nAlpha && orbs->nBeta() == nAlpha - (multiplicity - 1),
+      "the numbers of alpha and beta electrons are those of the valence electrons");
    delete orbs;
    return worst;
 }
@@ -96,7 +98,7 @@ int main(int argc, char** argv)
       check(r.orbitals.coefficients.size() == 6, "water: 6 orbitals");
       check(r.orbitals.energies[0] < r.orbitals.energies[1] && r.orbitals.occupations[3] > 1.9
          && r.orbitals.occupations[4] < 0.1, "water: ordered by energy, four valence orbitals occupied");
-      double dev(orthonormality(r, 6, 5));
+      double dev(orthonormality(r, 6, 4));
       std::printf("   largest deviation from orthonormality: %.2e\n", dev);
       check(dev < 5e-3, "water: all orbitals are orthonormal (s and p functions)");
    }
@@ -109,7 +111,7 @@ int main(int argc, char** argv)
    Calc::Result s(xtb.energy(h2s));
    check(s.success && s.hasOrbitals && s.orbitals.nBasis() == 12, "H2S: 12 basis functions with d");
    if (s.hasOrbitals) {
-      double dev(orthonormality(s, 8, 9));
+      double dev(orthonormality(s, 8, 4));
       std::printf("   largest deviation from orthonormality: %.2e\n", dev);
       check(dev < 5e-3, "H2S: the orbitals are orthonormal (Cartesian d functions)");
    }

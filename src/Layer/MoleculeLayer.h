@@ -125,8 +125,7 @@ bool save(bool prompt = false);
 
             // Adds vibrations as a Frequencies layer, replacing those of an earlier xtb run
             void setVibrations(Calc::VibrationalData const&, QString const& label);
-            void setOrbitals(Calc::OrbitalData const&, int charge, int multiplicity,
-               QString const& label);
+            void setOrbitals(Calc::OrbitalData const&, int multiplicity, QString const& label);
 
             void symmetrize(double tolerance, bool updateCoordinates = true);
 
