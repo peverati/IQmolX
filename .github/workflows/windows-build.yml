@@ -96,7 +96,14 @@ jobs:
           ninja -C build $TARGETS
 
       - name: Build IQMolX
-        run: cmake --build build --target IQmol
+        # Some parts include files that other parts generate without saying so (for example
+        # Layer needs the header that Grid makes).  Make orders that right by luck, Ninja's
+        # parallel build does not, so keep going after a failure and go round again: the files
+        # exist by the second pass.  The last pass reports any real error.
+        run: |
+          ninja -C build -k 0 IQmol || true
+          ninja -C build -k 0 IQmol || true
+          ninja -C build IQmol
 
       - name: Tests
         continue-on-error: true
