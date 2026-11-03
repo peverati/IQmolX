@@ -1,3 +1,8 @@
-build
+# build directories and logs
+/build*/
+/*.log
+/*.status
+
+# editors and macOS
 .*.swp
 .DS_Store
