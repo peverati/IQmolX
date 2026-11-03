@@ -150,6 +150,14 @@ set(CMAKE_AUTOMOC ON)
 
 add_subdirectory(src)
 
+if (WIN32)
+   # The libraries that call OpenGL carry the dependency, so that opengl32 follows every place
+   # where they appear in the link line (the linker only looks backwards)
+   foreach (lib Layer Viewer)
+      target_link_libraries(${lib} PUBLIC opengl32 glu32)
+   endforeach()
+endif()
+
 if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests)
    enable_testing()
    add_subdirectory(tests)
