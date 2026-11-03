@@ -1205,6 +1205,13 @@ void ViewerModel::runXtb()
 }
 
 
+// Runs the calculation that is selected in the Python engines window
+void ViewerModel::runPython()
+{
+   forAllMolecules(std::bind(&Layer::Molecule::runPythonJob, std::placeholders::_1));
+}
+
+
 void ViewerModel::minimizeEnergy()
 {
    forAllMolecules(

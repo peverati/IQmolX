@@ -72,6 +72,8 @@
 #ifdef IQMOL_WITH_LIBXTB
 #include "Util/XtbLibrary.h"
 #endif
+#include "Util/PythonEngineDialog.h"
+#include "Util/PythonEngine.h"
 #include "Util/XtbResultDialog.h"
 #include "Process/JobInfo.h" 
 #include "Parser/IQmolParser.h"
@@ -2267,6 +2269,114 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
    }
 
    if (result.hasOrbitals) setOrbitals(result.orbitals, input.multiplicity, label);
+}
+
+
+// Runs the job chosen in the Python engines window with the engine chosen there, and
+// reports in that window.  The jobs are those of runXtb.  The model stays loaded in the
+// helper process between calculations.
+void Molecule::runPythonJob()
+{
+   PythonEngineDialog* dialog(PythonEngineDialog::instance());
+   QString const job(dialog->job());
+   bool const optimize(job == "optimize" || job == "optfreq");
+   bool const frequencies(job == "frequencies" || job == "optfreq");
+
+   AtomList atoms(findLayers<Atom>(Children));
+   if (atoms.isEmpty()) {
+      QMsgBox::information(0, "IQmol", "There are no atoms to run a Python engine on");
+      return;
+   }
+
+   QString problem;
+   if (!dialog->prepare(problem)) {
+      QMsgBox::warning(0, "IQmol", problem);
+      return;
+   }
+
+   Calc::Input input;
+   input.charge       = totalCharge();
+   input.multiplicity = multiplicity();
+   dialog->chargeAndSpin(input.charge, input.multiplicity);
+
+   AtomList::iterator iter;
+   for (iter = atoms.begin(); iter != atoms.end(); ++iter) {
+       Vec position((*iter)->getPosition());
+       input.atomicNumbers.append((*iter)->getAtomicNumber());
+       input.coordinates << position.x << position.y << position.z;
+   }
+
+   if (s_xtbBusy) return;
+   s_xtbBusy = true;
+
+   QString const label(dialog->engineTitle());
+   QString what("single point");
+   if (optimize && frequencies) {
+      what = "geometry optimization and frequencies";
+   }else if (optimize) {
+      what = "geometry optimization";
+   }else if (frequencies) {
+      what = "vibrational frequencies";
+   }
+
+   QString subject(text().isEmpty() ? "the molecule" : text());
+   subject += " (" + QString::number(atoms.size()) + " atoms)";
+
+   Calc::PythonEngine& engine(dialog->engine());
+   engine.setInteractive(true);
+   engine.setProgressCallback([dialog](QString const& chunk) { dialog->appendOutput(chunk); });
+   QMetaObject::Connection cancelConnection(QObject::connect(dialog, 
+      &PythonEngineDialog::cancelRequested, [&engine]() { engine.cancel(); }));
+   dialog->started(label, what, subject, input.charge, input.multiplicity);
+
+   Calc::Result result;
+   if (optimize) {
+      result = engine.optimize(input);
+   }else if (!frequencies) {
+      result = engine.energy(input);
+   }
+
+   // The frequencies are those of the optimized geometry
+   if (frequencies && (!optimize || result.success)) {
+      if (optimize) {
+         input.coordinates = result.coordinates;
+         dialog->appendOutput("\n------------------------  vibrational frequencies  ------------------------\n\n");
+      }
+      Calc::Result frequencyResult(engine.frequencies(input));
+      if (!optimize) {
+         result = frequencyResult;
+      }else if (frequencyResult.success) {
+         result.vibrations   = frequencyResult.vibrations;
+         result.hasVibrations = true;
+         result.gradientNorm = frequencyResult.gradientNorm;
+         result.seconds     += frequencyResult.seconds;
+      }
+   }
+
+   QObject::disconnect(cancelConnection);
+   engine.setProgressCallback(nullptr);
+   engine.setInteractive(false);
+   dialog->finished(result, label, what, optimize);
+   s_xtbBusy = false;
+
+   QLOG_DEBUG() << "python engine" << label << job << "charge" << input.charge << "multiplicity" 
+                << input.multiplicity << "energy (Eh)" << result.energy 
+                << "success" << result.success << "converged" << result.converged;
+   if (!result.success || !result.converged) QLOG_DEBUG() << result.log;
+
+   // Failures and cancellation are reported in the window
+   if (!result.success) return;
+
+   QString mesg(label + " energy: ");
+   energyAvailable(result.energy, Info::Hartree, mesg);
+
+   if (optimize && !applyOptimizedGeometry(atoms, result, mesg)) return;
+
+   if (frequencies && result.hasVibrations) {
+      if (findLayers<Atom>(Children).size() == result.vibrations.modes.value(0).size() / 3) {
+         setVibrations(result.vibrations, label);
+      }
+   }
 }
 
 

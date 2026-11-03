@@ -20,6 +20,7 @@
 
 ********************************************************************************/
 
+#include "Util/PythonEngineDialog.h"
 #include "Util/XtbResultDialog.h"
 #include "MainWindow.h"
 #include "ServerConfigurationListDialog.h"
@@ -165,6 +166,7 @@ void MainWindow::createConnections()
    connect(&m_toolBar, SIGNAL(minimizeEnergy()),  &m_viewerModel, SLOT(minimizeEnergy()));
    connect(&m_toolBar, SIGNAL(xtbSetup()), XtbResultDialog::instance(), SLOT(showWindow()));
    connect(XtbResultDialog::instance(), SIGNAL(runRequested()), &m_viewerModel, SLOT(runXtb()));
+   connect(PythonEngineDialog::instance(), SIGNAL(runRequested()), &m_viewerModel, SLOT(runPython()));
    connect(&m_toolBar, SIGNAL(deleteSelection()), &m_viewerModel, SLOT(deleteSelection()));
    connect(&m_toolBar, SIGNAL(takeSnapshot()),    m_viewer,       SLOT(takeSnapshot()));
    connect(&m_toolBar, SIGNAL(record(bool)),      this,           SLOT(setRecord(bool)));
@@ -736,6 +738,11 @@ void MainWindow::createMenus()
       action->setToolTip("Set up and run xtb calculations (GFN-xTB methods, solvents)");
       action->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_X);
       connect(action, &QAction::triggered, []() { XtbResultDialog::instance()->showWindow(); });
+
+      name = "Python Engines";
+      action = menu->addAction(name);
+      action->setToolTip("Calculate with a Python engine (machine learning potentials, ASE calculators)");
+      connect(action, &QAction::triggered, []() { PythonEngineDialog::instance()->showWindow(); });
 
       name = "Job Monitor";
       action = menu->addAction(name);

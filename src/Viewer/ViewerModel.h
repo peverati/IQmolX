@@ -114,6 +114,7 @@ namespace IQmol {
          void minimizeEnergy();
          void computeEnergy();
          void runXtb();
+         void runPython();
          void insertMoleculeById(QString identifier);
          void newMoleculeFromSelection(QModelIndexList const&);
          void deleteSelection(QModelIndexList const&);

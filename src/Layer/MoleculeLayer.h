@@ -123,6 +123,10 @@ bool save(bool prompt = false);
             // optimization) that is selected in the xtb window.
             void runXtbJob();
 
+            // Runs the job (single point, optimization, frequencies) that is selected in the
+            // Python engines window with the engine selected there.
+            void runPythonJob();
+
             // Adds vibrations as a Frequencies layer, replacing those of an earlier xtb run
             void setVibrations(Calc::VibrationalData const&, QString const& label);
             void setOrbitals(Calc::OrbitalData const&, int multiplicity, QString const& label);
