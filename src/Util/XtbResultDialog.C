@@ -113,6 +113,13 @@ void XtbResultDialog::started(QString const& method, QString const& what,
    m_summary->setText("Running on " + subject + "...");
    m_output->clear();
    setRunning(true);
+   // Remember the active window so that it can be reactivated when we close 
+   QWidget* active(QApplication::activeWindow());
+   if (active && active != this) m_previous = active;
+
+   // Modality must not be changed while the window is visible, otherwise Qt 
+   // can leave the main window disabled behind a modal state that no longer exists
+   if (isVisible()) hide();
    setModal(true);   // blocks edits to the molecule while the calculation runs
    placeWindow();
    show();
@@ -180,8 +187,9 @@ void XtbResultDialog::finished(Calc::Result const& result, QString const& method
    bool optimization)
 {
    setRunning(false);
+   hide();            // see the note in started()
    setModal(false);
-   show();      // setModal hides the window
+   show();
    raise();
 
    QString what(optimization ? "geometry optimization" : "single point");
@@ -262,6 +270,16 @@ void XtbResultDialog::save()
    out.flush();
 
    dir = QFileInfo(path).absolutePath();
+}
+
+
+void XtbResultDialog::done(int result)
+{
+   QDialog::done(result);
+   if (m_previous) {
+      m_previous->raise();
+      m_previous->activateWindow();
+   }
 }
 
 
