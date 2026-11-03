@@ -8,5 +8,6 @@ see [PROTOCOL.md](PROTOCOL.md).
     iqmolx-engines --describe        # list engines and their capabilities
     pytest                           # tests (the ASE adapter tests skip without ASE)
 
-Engines: `demo` (Morse toy potential, numpy only, for tests) and `ase` (generic adapter
+Engines: `demo` (Morse toy potential, numpy only, for tests), `torchani` (ANI-2x, needs torch and
+torchani; the parameters are downloaded on first use) and `ase` (generic adapter
 for any ASE calculator). Weights and PyTorch are never bundled with IQMolX.
