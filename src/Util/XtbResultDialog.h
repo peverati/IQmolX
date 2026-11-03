@@ -48,6 +48,9 @@ namespace IQmol {
       Q_SIGNALS:
          void cancelRequested();
 
+      private Q_SLOTS:
+         void save();
+
       protected:
          void reject();   // Escape or window close while running means cancel
 
@@ -61,7 +64,9 @@ namespace IQmol {
          QPlainTextEdit* m_output;
          QProgressBar*   m_progress;
          QPushButton*    m_cancelButton;
+         QPushButton*    m_saveButton;
          QPushButton*    m_closeButton;
+         QString         m_fileName;   // suggested name for the saved output
          bool            m_running;
    };
 

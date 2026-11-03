@@ -11,7 +11,13 @@
 ********************************************************************************/
 
 #include "XtbResultDialog.h"
+#include "FileDialog.h"
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
 #include <QFontDatabase>
+#include <QMessageBox>
+#include <QTextStream>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPlainTextEdit>
@@ -59,12 +65,14 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_running(f
    m_output->setMaximumBlockCount(20000);
 
    m_cancelButton = new QPushButton("Cancel", this);
+   m_saveButton   = new QPushButton("Save...", this);
    m_closeButton  = new QPushButton("Close", this);
    m_closeButton->setDefault(true);
 
    QHBoxLayout* buttons(new QHBoxLayout());
    buttons->addStretch();
    buttons->addWidget(m_cancelButton);
+   buttons->addWidget(m_saveButton);
    buttons->addWidget(m_closeButton);
 
    QVBoxLayout* layout(new QVBoxLayout(this));
@@ -75,6 +83,7 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_running(f
    layout->addLayout(buttons);
 
    connect(m_cancelButton, SIGNAL(clicked()), this, SIGNAL(cancelRequested()));
+   connect(m_saveButton, SIGNAL(clicked()), this, SLOT(save()));
    connect(m_closeButton, SIGNAL(clicked()), this, SLOT(close()));
 }
 
@@ -84,6 +93,7 @@ void XtbResultDialog::setRunning(bool running)
    m_running = running;
    m_progress->setVisible(running);
    m_cancelButton->setVisible(running);
+   m_saveButton->setVisible(!running);
    m_closeButton->setVisible(!running);
    if (running) m_cancelButton->setFocus(); else m_closeButton->setFocus();
 }
@@ -92,6 +102,8 @@ void XtbResultDialog::setRunning(bool running)
 void XtbResultDialog::started(QString const& method, QString const& what,
    QString const& subject)
 {
+   m_fileName = method + (what.contains("optim") ? "_opt" : "_sp") + ".out";
+   m_fileName.replace(" ", "_");
    m_title->setText(method + " " + what);
    m_summary->setText("Running on " + subject + "...");
    m_output->clear();
@@ -176,6 +188,31 @@ void XtbResultDialog::finished(Calc::Result const& result, QString const& method
            "but it is not fully optimized.</p>";
    }
    m_summary->setText(s);
+}
+
+
+void XtbResultDialog::save()
+{
+   // Remember the folder for the rest of the session
+   static QString dir(QDir::homePath());
+
+   QString path(FileDialog::getSaveFileName(this, "Save xtb output", 
+      QDir(dir).filePath(m_fileName), "xtb output (*.out *.log *.txt);;All files (*)"));
+   if (path.isEmpty()) return;
+
+   QFile file(path);
+   if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+      QMessageBox::warning(this, "IQmol", "Unable to write to " + path + "\n" 
+         + file.errorString());
+      return;
+   }
+
+   QTextStream out(&file);
+   out << m_output->toPlainText();
+   if (!m_output->toPlainText().endsWith('\n')) out << "\n";
+   out.flush();
+
+   dir = QFileInfo(path).absolutePath();
 }
 
 
