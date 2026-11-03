@@ -206,7 +206,11 @@ QString XtbProcess::findExecutable(QString const& hint)
    }
 
    // The xtb program that is delivered inside the application
+#ifdef Q_OS_WIN
+   QFileInfo bundled(QDir(QCoreApplication::applicationDirPath()).filePath("xtb.exe"));
+#else
    QFileInfo bundled(QDir(QCoreApplication::applicationDirPath()).filePath("xtb"));
+#endif
    if (bundled.isFile() && bundled.isExecutable()) return bundled.absoluteFilePath();
 
    // A GUI application on macOS may not inherit the shell PATH, so also

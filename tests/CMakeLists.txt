@@ -16,7 +16,7 @@ add_test(NAME XtbProcessTest COMMAND XtbProcessTest)
 if (XTB_ROOT AND EXISTS ${XTB_ROOT}/include/xtb.h)
    add_executable(XtbLibraryTest EXCLUDE_FROM_ALL XtbLibraryTest.C)
    target_include_directories(XtbLibraryTest PRIVATE ${XTB_ROOT}/include)
-   target_link_libraries(XtbLibraryTest PRIVATE ${XTB_ROOT}/lib/libxtb.dylib)
+   target_link_libraries(XtbLibraryTest PRIVATE ${XTB_LIBRARY})
    set_target_properties(XtbLibraryTest PROPERTIES BUILD_RPATH ${XTB_ROOT}/lib)
    if (OpenMP_CXX_FOUND)
       # Same OpenMP runtime as IQmol itself, to test that it coexists with libxtb's libgomp
@@ -33,12 +33,12 @@ if (XTB_ROOT AND EXISTS ${XTB_ROOT}/include/xtb.h)
       ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/XtbOutput.C
    )
    target_include_directories(XtbBackendTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src ${XTB_ROOT}/include)
-   target_link_libraries(XtbBackendTest PRIVATE Qt5::Core ${XTB_ROOT}/lib/libxtb.dylib)
+   target_link_libraries(XtbBackendTest PRIVATE Qt5::Core ${XTB_LIBRARY})
    set_target_properties(XtbBackendTest PROPERTIES BUILD_RPATH ${XTB_ROOT}/lib)
    if (OpenMP_CXX_FOUND)
       target_link_libraries(XtbBackendTest PRIVATE OpenMP::OpenMP_CXX)
    endif()
-   add_test(NAME XtbBackendTest COMMAND XtbBackendTest ${XTB_ROOT}/bin/xtb ${CMAKE_CURRENT_SOURCE_DIR}/data)
+   add_test(NAME XtbBackendTest COMMAND XtbBackendTest ${XTB_ROOT}/bin/xtb${CMAKE_EXECUTABLE_SUFFIX} ${CMAKE_CURRENT_SOURCE_DIR}/data)
 endif()
 
 
@@ -76,4 +76,4 @@ add_executable(XtbOrbitalsTest EXCLUDE_FROM_ALL
 target_include_directories(XtbOrbitalsTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
 target_link_libraries(XtbOrbitalsTest PRIVATE Parser Data Util Math yaml-cpp openbabel ${OPENMESH_LIBRARIES}
    Qt5::Widgets Qt5::Core Qt5::Xml Qt5::OpenGL Qt5::Gui Qt5::Sql Qt5::PrintSupport)
-add_test(NAME XtbOrbitalsTest COMMAND XtbOrbitalsTest ${XTB_ROOT}/bin/xtb)
+add_test(NAME XtbOrbitalsTest COMMAND XtbOrbitalsTest ${XTB_ROOT}/bin/xtb${CMAKE_EXECUTABLE_SUFFIX})
