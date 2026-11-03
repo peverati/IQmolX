@@ -20,6 +20,7 @@
 #include <QPushButton>
 #include <QSettings>
 #include <QFile>
+#include <QFileDialog>
 #include <cstdio>
 
 using namespace IQmol;
@@ -362,6 +363,24 @@ int main(int argc, char** argv)
          }
          Preferences::XtbOptions(QString()); Preferences::XtbWorkDir(QString()); Preferences::XtbPath(QString());
       }
+   }
+
+   // Cancelling a file dialog must leave the xtb window open (the native file panel of macOS closed it)
+   {
+      d->showWindow();
+      int opened(0);
+      for (QPushButton* b : d->findChildren<QPushButton*>()) {
+         if (b->text() != "Browse..." || !b->isVisible()) continue;
+         QTimer::singleShot(400, [&]() {
+            for (QWidget* w : QApplication::topLevelWidgets()) {
+               QFileDialog* f(qobject_cast<QFileDialog*>(w));
+               if (f && f->isVisible()) { ++opened; f->reject(); }
+            }
+         });
+         b->click();
+         check(d->isVisible(), "the xtb window is still open after cancelling a file dialog");
+      }
+      check(opened >= 1, "the Browse buttons open a file dialog");
    }
 
    // Remove the settings file of this test

@@ -371,7 +371,7 @@ void XtbResultDialog::updateProgramFields()
 void XtbResultDialog::browseForProgram()
 {
    QString start(m_programEdit->text().isEmpty() ? QDir::homePath() : m_programEdit->text());
-   QString path(QFileDialog::getOpenFileName(this, "Select the xtb executable", start));
+   QString path(FileDialog::getOpenFileName(this, "Select the xtb executable", start));
    if (!path.isEmpty()) {
       m_programEdit->setText(path);
       saveSettings();
@@ -382,7 +382,7 @@ void XtbResultDialog::browseForProgram()
 void XtbResultDialog::browseForWorkDir()
 {
    QString start(m_workDirEdit->text().isEmpty() ? QDir::homePath() : m_workDirEdit->text());
-   QString path(QFileDialog::getExistingDirectory(this, "Select the working directory", start));
+   QString path(FileDialog::getExistingDirectory(this, "Select the working directory", start));
    if (!path.isEmpty()) {
       m_workDirEdit->setText(path);
       saveSettings();
@@ -542,7 +542,7 @@ void XtbResultDialog::saveAll()
       return;
    }
 
-   QString target(QFileDialog::getExistingDirectory(this, 
+   QString target(FileDialog::getExistingDirectory(this, 
       "Save all the xtb files to this folder (it can be created here)", dir));
    if (target.isEmpty()) return;
    dir = target;
