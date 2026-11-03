@@ -16,9 +16,10 @@ from inside the program:
   optimizations, vibrational frequencies and optimization plus frequencies.  Charge and
   spin multiplicity, the ALPB implicit solvents and the electronic temperature can be
   chosen, and the live xtb output and a summary of the result are shown in the window.
-* **Two backends**: the built-in library (libxtb, with its own geometry optimizer) or the
-  external xtb program.  For the program the window also offers extra command line
-  options and a working directory, and *Save All Files* copies every file xtb wrote.
+* **Two backends**: the built-in library (libxtb, with its own geometry optimizer; the
+  default) or the external xtb program.  The program adds the electronic temperature, the
+  molecular orbitals, extra command line options and a working directory, and *Save All
+  Files* copies every file xtb wrote.
 * **Results in the usual tools**: the optimized geometry (undoable), the vibrational
   modes and IR intensities (in the Frequencies viewer) and the molecular orbitals (in
   the orbital viewer, with the program backend) are added to the molecule.
@@ -29,6 +30,8 @@ from inside the program:
   one of several orbital surfaces shows it alone, a readable (white) Q-Chem input
   preview in dark mode, and the def2-QZVP, def2-QZVPP, def2-QZVPD and def2-QZVPPD basis
   sets in the Q-Chem basis list.
+
+<p align="center"><img src="resources/help/images/XtbProgram.png" width="420" alt="The xtb window with the xtb program as backend"></p>
 
 The xtb help page is part of the built-in help (Help → Show Help).  The changes are on
 top of IQmol 3.2.x; internally the program, its settings and its source folders keep the

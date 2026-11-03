@@ -7,13 +7,13 @@
 
    <center> <h1> Semiempirical Calculations with xtb <br> </h1> </center><p></p>
 
-   <p> IQmol can run the semiempirical tight-binding methods GFN2-xTB and
+   <p> IQMolX can run the semiempirical tight-binding methods GFN2-xTB and
    GFN1-xTB of the <a href="https://github.com/grimme-lab/xtb">xtb</a> package
    (Grimme group) directly on the molecule in the Viewer.  The calculations are
    fast enough to be run interactively and can optimize the geometry, calculate
    energies, vibrational frequencies and molecular orbitals, with or without an
    implicit solvent.  The results are added to the molecule and can be
-   examined with the usual IQmol tools.  The force field GFN-FF is also available
+   examined with the usual IQMolX tools.  The force field GFN-FF is also available
    for <a href="#gfnff">building and minimizing</a> structures.
 
    <p> All settings are collected in the xtb window, which is opened with the
@@ -23,35 +23,41 @@
 
    <p><center><img src="images/XtbWindow.png" width="470" /></center></p>
 
+   <p> The window as it opens: a geometry optimization with GFN2-xTB in the gas
+   phase, using the built-in library.
+
 
    <br>
    <h3><a name="backends"></a>Backends</h3>
 
    <p> The calculation is carried out either by
    <ul>
-      <li> the <b>xtb program</b>, an executable that IQmol runs in the
+      <li> the <b>built-in library</b> (libxtb), which runs inside IQMolX and is
+           the default.  This choice only appears if IQMolX was built with libxtb.
+           The geometry optimization uses IQMolX's own optimizer with the xtb
+           convergence criteria, or <br>
+      <li> the <b>xtb program</b>, an executable that IQMolX runs in the
            background (it must be installed separately, see
-           <a href="#installation">Installation</a>), or <br>
-      <li> the <b>built-in library</b> (libxtb), which runs inside IQmol.  This
-           choice only appears if IQmol was built with libxtb.  The geometry
-           optimization uses IQmol's own optimizer with the xtb convergence
-           criteria. 
+           <a href="#installation">Installation</a>).
    </ul>
 
    <p> Both give the same energies and frequencies (the frequencies differ by
    about 0.05%).  The program is the more flexible of the two, as it offers the
    options described under <a href="#program">xtb Program</a>.  The library
-   does not provide the basis set of the orbitals, so orbitals are only
-   available with the xtb program.
+   does not provide the basis set of the orbitals or read the electronic
+   temperature, so these are only available with the xtb program; choosing the
+   program adds their settings to the window.
 
 
    <br>
    <h3><a name="settings"></a>Calculation Settings</h3>
 
-   <p> Each session starts with the defaults: a geometry optimization with
-   GFN2-xTB in the gas phase, the charge and spin of the molecule, an electronic
-   temperature of 300 K, and the built-in library (the xtb program if IQmol was built without it).  Changes are
-   kept until IQmol is closed.
+   <p> Each session starts with the same defaults: a geometry optimization with
+   GFN2-xTB in the gas phase, the charge and spin of the molecule, the built-in
+   library (the xtb program if IQMolX was built without it) and, for the program,
+   an electronic temperature of 300 K.  Changes are kept until IQMolX is closed.
+   Only the location of the xtb program, the extra options and the working
+   directory are remembered from one session to the next.
 
    <table>
       <tr><td valign="top"><b>Job</b></td>
@@ -95,10 +101,14 @@
    <br>
    <h3><a name="program"></a>xtb Program</h3>
 
-   <p> When the xtb program is the backend, three further settings appear:
+   <p> When the xtb program is the backend, further settings appear at the bottom
+   of the window: its location, extra options and a working directory (below), the
+   electronic temperature and the option to calculate the orbitals (see above).
+
+   <p><center><img src="images/XtbProgram.png" width="470" /></center></p>
 
    <ul>
-      <li> <b>xtb program</b>: the location of the executable.  If empty, IQmol
+      <li> <b>xtb program</b>: the location of the executable.  If empty, IQMolX
            looks in the environment variable XTB_PATH and in the PATH.  This is
            the same setting as in the Preferences. <br>
       <li> <b>xtb options</b>: further command line options for xtb, for
@@ -128,7 +138,7 @@
    All Files...</b> copies every file the xtb program produced (input, output,
    optimized geometry, orbitals, ...) to a folder of your choice.  When no
    working directory has been set the files are kept until the next run or until
-   IQmol is closed.  A calculation can be stopped with <b>Cancel</b>.
+   IQMolX is closed.  A calculation can be stopped with <b>Cancel</b>.
 
 
    <br>
@@ -150,10 +160,18 @@
    <p> The orbitals of the final geometry are added to the molecule as an
    Orbitals layer under Surfaces, named after the method.  They are plotted with
    the same tools as other orbitals: double click the layer to open the surface
-   dialog and select, for example, the HOMO, as described in
-   <a href="surfaces.html#wavefunctionSurfaces">Plotting Surfaces</a>.  Several orbitals can be calculated at once; clicking one of the
+   dialog, which shows the orbital energies, and select, for example, the HOMO,
+   as described in
+   <a href="surfaces.html#wavefunctionSurfaces">Plotting Surfaces</a>.
+
+   <p><center><img src="images/XtbOrbitalsDialog.png" width="470" /></center></p>
+  Several orbitals can be calculated at once; clicking one of the
    resulting surfaces in the Model View shows that orbital on its own, and the check boxes next to the surfaces show or
-   hide each of them.  Orbital
+   hide each of them.
+
+   <p><center><img src="images/XtbOrbitals.png" width="470" /></center></p>
+
+   <p> Orbital
    energies, densities and Mulliken densities are available also.  The orbitals
    are those of the minimal valence basis of the xTB methods; the same spatial
    orbitals are used for both spins.  The orbitals of an earlier run are
@@ -173,14 +191,17 @@
    <br>
    <h3><a name="example"></a>Example</h3>
 
-   <p> Optimizing methane and plotting its HOMO:
+   <p> Optimizing methane and plotting its HOMO (the orbitals need the xtb
+   program, so it is selected in step 2):
 
    <ol>
       <li> Click in the Viewer in build mode to place a carbon atom and use
            Build&rarr;Fill Valencies With Hydrogens to add the hydrogens. <br>
       <li> Open the xtb window with the <img src="images/buttons/Xtb.png">
-           button.  Leave the job on <i>Geometry optimization</i>, the method
-           on GFN2-xTB and the solvent on gas phase, and press <b>Run</b>. <br>
+           button or Calculation&rarr;xtb Setup...  Leave the job on <i>Geometry
+           optimization</i>, the method on GFN2-xTB and the solvent on gas phase,
+           set the backend to <i>xtb program</i> and press <b>Run</b>.  (With the
+           built-in library the calculation is the same, but without orbitals.) <br>
       <li> The calculation takes a fraction of a second and the molecule moves
            to the optimized structure (about -4.1752 E<sub>h</sub>; the energy
            change and the HOMO-LUMO gap of 17.35 eV are in the summary).  The
@@ -198,11 +219,11 @@
    <br>
    <h3><a name="installation"></a>Installation</h3>
 
-   <p> The xtb program is not part of IQmol.  It can be obtained from the xtb
+   <p> The xtb program is not part of IQMolX.  It can be obtained from the xtb
    <a href="https://github.com/grimme-lab/xtb/releases">releases</a> or built
-   with the script <tt>build-xtb-macos.sh</tt> that comes with the IQmol source
+   with the script <tt>build-xtb-macos.sh</tt> that comes with the IQMolX source
    (it needs Homebrew's cmake, gcc and openblas).  Set its location in the xtb
-   window or in the Preferences.  To build IQmol with the built-in library, point
+   window or in the Preferences.  To build IQMolX with the built-in library, point
    <tt>XTB_ROOT</tt> to the xtb installation when running
    <tt>build-macos.sh</tt>.
 
