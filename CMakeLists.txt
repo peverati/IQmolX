@@ -101,10 +101,15 @@ endif()
 if (LINUX)
    find_package(OpenMesh REQUIRED) 
    set(OPENMESH_LIBRARIES OpenMeshCore OpenMeshTools)
-elseif (APPLE OR WIN32)
+elseif (APPLE)
    include_directories(modules/openmesh/src)
    add_subdirectory(modules/openmesh  EXCLUDE_FROM_ALL)
    set(OPENMESH_LIBRARIES OpenMeshCoreStatic OpenMeshToolsStatic)
+elseif (WIN32)
+   # the targets have these names with MinGW
+   include_directories(modules/openmesh/src)
+   add_subdirectory(modules/openmesh  EXCLUDE_FROM_ALL)
+   set(OPENMESH_LIBRARIES OpenMeshCore OpenMeshTools)
 endif()
 
 
