@@ -118,6 +118,10 @@ namespace Preferences {
    QByteArray XtbWindowGeometry();
    void       XtbWindowGeometry(QByteArray const&);
 
+   // Size of the Python Engines window, kept from one session to the next
+   QSize PythonEngineWindowSize();
+   void  PythonEngineWindowSize(QSize const&);
+
    // How the xtb methods are run: "program" starts the external xtb program, "library"
    // calls libxtb inside IQmol (only available if IQmol was built with libxtb).
    QString XtbBackend();

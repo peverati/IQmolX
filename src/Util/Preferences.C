@@ -432,6 +432,18 @@ void FFmpegPath(QString const& filePath)
 }
 
 
+QSize PythonEngineWindowSize()
+{
+   QVariant value(Get("PythonEngineWindowSize"));
+   return value.isNull() ? QSize(720, 880) : value.value<QSize>();
+}
+
+void PythonEngineWindowSize(QSize const& size)
+{
+   Set("PythonEngineWindowSize", QVariant::fromValue(size));
+}
+
+
 QByteArray XtbWindowGeometry()
 {
    QVariant value(Get("XtbWindowGeometry"));

@@ -116,6 +116,7 @@ namespace IQmol {
 
       protected:
          void reject();
+         void resizeEvent(QResizeEvent*);
          void done(int result);
 
       private:

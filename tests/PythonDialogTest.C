@@ -138,6 +138,17 @@ int main(int argc, char** argv)
    check(!button(d, "Run")->isEnabled(), "Run is disabled when the helper cannot start");
    check(!d->prepare(problem) && problem.contains("Python"), "prepare explains: " + problem);
 
+   // --- the size: room for the output, and the size the user chose is remembered ---
+   {
+      QPlainTextEdit* output(d->findChild<QPlainTextEdit*>());
+      check(output && output->minimumHeight() >= 120, "the output area has room to be read");
+      d->resize(800, 760);
+      QCoreApplication::processEvents();
+      QSize stored(Preferences::PythonEngineWindowSize());
+      check(stored == d->size(), QString("the window size is stored (%1x%2, window %3x%4)").arg(stored.width()).arg(stored.height()).arg(d->width()).arg(d->height()));
+      check(d->width() >= 600 && d->height() >= 600, "the window is not small");
+   }
+
    // --- a required option: Run stays off until it is filled in (needs the ASE engine) ---
    {
       if (pythonEdit) pythonEdit->setText(argv[1]);

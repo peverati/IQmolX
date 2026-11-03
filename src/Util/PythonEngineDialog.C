@@ -40,6 +40,8 @@
 #include <QLineEdit>
 #include <QPlainTextEdit>
 #include <QProgressBar>
+#include <QDesktopWidget>
+#include <QResizeEvent>
 #include <QPushButton>
 #include <QRegularExpression>
 #include <QScrollBar>
@@ -197,6 +199,7 @@ PythonEngineDialog::PythonEngineDialog(QWidget* parent) : QDialog(parent),
    m_output->setLineWrapMode(QPlainTextEdit::NoWrap);
    m_output->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
    m_output->setMaximumBlockCount(20000);
+   m_output->setMinimumHeight(130);        // room to read what the engine and uv write; more when the window is larger
 
    m_runButton    = new QPushButton("Run", this);
    m_cancelButton = new QPushButton("Cancel", this);
@@ -248,6 +251,17 @@ PythonEngineDialog::PythonEngineDialog(QWidget* parent) : QDialog(parent),
 
    updateEnvironmentRow();
    showEngine();
+
+   QSize size(Preferences::PythonEngineWindowSize());
+   QRect screen(QApplication::desktop()->availableGeometry(this));
+   resize(qMax(size.width(), 600), qMin(qMax(size.height(), 600), screen.height() - 40));
+}
+
+
+void PythonEngineDialog::resizeEvent(QResizeEvent* event)
+{
+   QDialog::resizeEvent(event);
+   if (isVisible()) Preferences::PythonEngineWindowSize(size());   // kept for the next session
 }
 
 
