@@ -50,6 +50,7 @@ class AseEngine(Engine):
     charge = True
     multiplicity = True
     properties = ("energy", "forces")
+    requirements = ("ase",)
     options = (
         option("calculator", "Calculator class", "string", "",
                description="Python path 'package.module:Class'."),

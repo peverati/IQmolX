@@ -100,12 +100,19 @@ The IQMolX window is built entirely from this object; IQMolX has no engine-speci
       "properties": ["energy", "forces", "hessian", "dipole", "charges"],
       "options": [ <option>, ... ],
       "requires_download": false,        // load may fetch weights (progress events follow)
-      "requires_login": false            // gated weights (e.g. Hugging Face), see below
+      "requires_login": false,           // gated weights (e.g. Hugging Face), see below
+      "requirements": []                 // pip requirements of the engine, e.g. ["torch", "torchani"]
     }
 
 `properties` lists what `compute` may be asked for. `energy` and `forces` are mandatory for
 every engine. Without `hessian`, IQMolX builds a numerical Hessian from forces
 (`Vibrations`); with it, the helper's analytic Hessian is used.
+
+`requirements` lists what has to be installed in the Python environment for the engine to
+become available (empty when the helper itself is enough). IQMolX uses it to offer the
+installation of an unavailable engine: it runs the package installer of the environment on
+exactly these strings and then asks for `list_engines` again. The strings are plain pip
+requirement specifiers and are never executed by the helper.
 
 An **option** describes one setting in the window:
 

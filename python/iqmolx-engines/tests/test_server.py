@@ -75,6 +75,10 @@ def test_list_engines_has_capabilities(helper):
     demo = next(e for e in r["result"]["engines"] if e["name"] == "demo")
     assert demo["available"] and "hessian" in demo["properties"]
     assert {o["name"] for o in demo["options"]} == {"well_depth", "alpha", "delay_ms"}
+    assert demo["requirements"] == []
+    by_name = {e["name"]: e for e in r["result"]["engines"]}
+    assert by_name["torchani"]["requirements"] == ["torch", "torchani"]
+    assert by_name["ase"]["requirements"] == ["ase"]
 
 
 def test_compute_flow(helper):

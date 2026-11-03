@@ -41,6 +41,7 @@ class TorchAniEngine(Engine):
     multiplicity = False
     properties = ("energy", "forces", "hessian")
     requires_download = True
+    requirements = ("torch", "torchani")
     options = (
         option("model_index", "Network (-1 for the ensemble)", "int", -1, min=-1, max=7,
                description="ANI-2x is an ensemble of 8 networks. -1 averages all of them "

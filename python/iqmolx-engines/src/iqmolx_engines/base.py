@@ -70,6 +70,7 @@ class Engine:
     options = ()               # tuple of option() dicts
     requires_download = False
     requires_login = False
+    requirements = ()          # pip requirement strings the engine needs, for the setup step
 
     @classmethod
     def unavailable_reason(cls):
@@ -89,6 +90,7 @@ class Engine:
             "options": [dict(o) for o in cls.options],
             "requires_download": cls.requires_download,
             "requires_login": cls.requires_login,
+            "requirements": list(cls.requirements),
         }
 
     def load(self, options, ctx):
