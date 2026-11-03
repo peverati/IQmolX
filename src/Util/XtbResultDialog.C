@@ -161,7 +161,8 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
       return row;
    };
    m_programRow = fileRow(m_programEdit, SLOT(browseForProgram()),
-      "The xtb executable.  If empty, xtb is looked for in $XTB_PATH and the PATH.");
+      "The xtb executable.  If empty, the copy inside the application is used if there is one,\n"
+      "otherwise xtb is looked for in $XTB_PATH and the PATH.");
    m_programEdit->setPlaceholderText("path of the xtb executable");
    form->addRow("xtb program:", m_programRow);
 

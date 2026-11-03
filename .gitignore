@@ -6,3 +6,4 @@
 # editors and macOS
 .*.swp
 .DS_Store
+/dist/

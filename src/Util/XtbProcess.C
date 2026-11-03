@@ -23,6 +23,7 @@
 
 #include "XtbProcess.h"
 #include "XtbOutput.h"
+#include <QCoreApplication>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QEventLoop>
@@ -203,6 +204,10 @@ QString XtbProcess::findExecutable(QString const& hint)
        if (info.isDir()) info.setFile(QDir(path).filePath("xtb"));
        if (info.isFile() && info.isExecutable()) return info.absoluteFilePath();
    }
+
+   // The xtb program that is delivered inside the application
+   QFileInfo bundled(QDir(QCoreApplication::applicationDirPath()).filePath("xtb"));
+   if (bundled.isFile() && bundled.isExecutable()) return bundled.absoluteFilePath();
 
    // A GUI application on macOS may not inherit the shell PATH, so also
    // look in the usual locations.
