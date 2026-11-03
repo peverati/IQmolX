@@ -75,6 +75,8 @@ jobs:
 
       - name: Configure IQMolX
         run: |
+          # OpenBabel asks for the old behaviour of a macOS-only policy, which CMake 4 refuses
+          sed -i 's/CMP0042 OLD/CMP0042 NEW/' modules/openbabel/CMakeLists.txt
           cmake -B build -G Ninja \
              -DBUILD_SHARED=OFF -DQARCHIVE=OFF -DCMAKE_BUILD_TYPE=Release \
              -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
