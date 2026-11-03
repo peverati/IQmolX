@@ -65,8 +65,9 @@ if (LINUX)
 else ()
    include_directories(modules/libQGLViewer)
    if (WIN32)
-      # libQGLViewer is linked in as a static library: without this its headers ask for a DLL
-      add_compile_definitions(QGLVIEWER_STATIC)
+      # libQGLViewer and yaml-cpp are linked in as static libraries: without these their headers
+      # ask for DLLs
+      add_compile_definitions(QGLVIEWER_STATIC YAML_CPP_STATIC_DEFINE)
    endif()
    add_subdirectory(modules  EXCLUDE_FROM_ALL)
    set(QGLVIEWER_LIBRARY QGLViewer)
@@ -250,5 +251,6 @@ target_link_libraries (${targetName}
 )
 
 if (WIN32)
-   target_link_libraries (${targetName} ws2_32)
+   # OpenGL last: the static libraries before it call into it
+   target_link_libraries (${targetName} ws2_32 opengl32 glu32)
 endif ()
