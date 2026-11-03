@@ -42,6 +42,22 @@ if (XTB_ROOT AND EXISTS ${XTB_ROOT}/include/xtb.h)
 endif()
 
 
+# Python engine helper: the C++ client, tested against the demo engine
+# (needs a Python with numpy; the test is given the interpreter and the helper's source folder)
+find_package(Python3 COMPONENTS Interpreter)
+add_executable(PythonEngineTest EXCLUDE_FROM_ALL
+   PythonEngineTest.C
+   ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/PythonEngine.C
+   ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/Vibrations.C
+)
+target_include_directories(PythonEngineTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+target_link_libraries(PythonEngineTest PRIVATE Qt5::Core)
+if (Python3_EXECUTABLE)
+   add_test(NAME PythonEngineTest COMMAND PythonEngineTest ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/../python/iqmolx-engines/src)
+endif()
+
+
 # Optimizer: no dependencies
 add_executable(OptimizerTest EXCLUDE_FROM_ALL OptimizerTest.C)
 target_include_directories(OptimizerTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
