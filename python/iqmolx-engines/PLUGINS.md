@@ -275,6 +275,25 @@ Built-in names (`demo`, `ase`, `torchani`) win. Pick a different name.
 
 ## Weights and licences
 
+### Downloading model files
+
+If your library fetches its own weights (TorchANI does), let it. If the weights are plain files at a
+URL, use `iqmolx_engines.download.fetch(url, dest, ctx, label, size, blob_sha1)`: it downloads with
+`ctx.progress` and `ctx.check_cancel`, writes to a temporary file and renames it when complete (so a
+cancel or a failure never leaves a half file), checks the size and the hash, and does not download
+again when the cached file matches. `download.cache_dir()` is where files belong (the user's cache
+folder, or `$IQMOLX_ENGINES_CACHE`), never the program or the Python environment.
+
+Take the file from a **pinned** version, not from "latest": for a GitHub repository use the URL of a
+commit (`raw.githubusercontent.com/<owner>/<repo>/<commit>/<path>`), and pin the hash that GitHub's API
+lists for the file (`git_blob_sha1` computes the same hash, so a download can be checked against it).
+`engines/egret_engine.py` is the example: the commit, and for each file its size and git blob hash,
+are constants in the code, so what is downloaded cannot change under you. Check that the license of
+the weights allows what you do, and say it in `license` (Egret: MIT, per the repository's license
+file, its README and the preprint; the MACE-OFF models, for contrast, forbid commercial use).
+
+### General rules
+
 * **Never put weights or big libraries in the plugin or in IQMolX.** Download them when the
   engine loads, tell the user (`requires_download = True`, and `ctx.progress` while downloading,
   with `ctx.check_cancel()` between chunks) and let the library cache them. TorchANI is the

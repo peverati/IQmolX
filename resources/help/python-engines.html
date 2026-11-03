@@ -102,6 +102,14 @@
                ANI-2x to a model with implicit solvents, see <a href="#ani">below</a>.
                They need the packages <i>torch</i> and <i>torchani</i> (together
                about 1 GB of disk space). </td></tr>
+      <tr><td valign="top"><b>Egret models (Rowan, MACE)</b></td>
+          <td> Five neural network potentials for organic molecules, see
+               <a href="#egret">below</a>.  They need the package
+               <i>mace-torch</i> (which brings PyTorch). </td></tr>
+      <tr><td valign="top"><b>PySCF</b></td>
+          <td> Real Hartree-Fock and density functional calculations, see
+               <a href="#pyscf">below</a>.  Needs the package <i>pyscf</i>
+               (about 100 MB with its dependencies). </td></tr>
       <tr><td valign="top"><b>ASE calculator</b></td>
           <td> Uses any calculator of ASE, see <a href="#ase">below</a>.  Needs
                the package <i>ase</i>. </td></tr>
@@ -237,6 +245,118 @@
 
 
    <br>
+   <h3><a name="egret"></a>Egret Models</h3>
+
+   <p> Egret is a family of neural network potentials made by Rowan Scientific
+   with the MACE architecture, for organic and bioorganic molecules.  The code
+   and the model files are <b>MIT licensed</b> (the license file and the
+   description of the
+   <a href="https://github.com/rowansci/egret-public">Egret repository</a> and
+   the preprint say so).  Each model is an engine of its own:
+
+   <table border="1" cellpadding="5" cellspacing="0" width="100%">
+      <tr><th>Engine</th><th>What it is</th><th>Elements</th><th>Download</th><th>Checked here</th></tr>
+      <tr><td valign="top"><b>Egret-1</b></td>
+          <td valign="top"> The general-purpose model, optimized for bioorganic molecules </td>
+          <td valign="top"> H, C, N, O, F, P, S, Cl, Br, I </td>
+          <td valign="top"> 23 MB </td>
+          <td valign="top"> not run yet </td></tr>
+      <tr><td valign="top"><b>Egret-1e</b></td>
+          <td valign="top"> Egret-1 with main-group chemistry added; better thermochemistry </td>
+          <td valign="top"> the same and Si </td>
+          <td valign="top"> 24 MB </td>
+          <td valign="top"> not run yet </td></tr>
+      <tr><td valign="top"><b>Egret-1t</b></td>
+          <td valign="top"> Egret-1 with transition states added; for chemical reactivity </td>
+          <td valign="top"> H, C, N, O, F, P, S, Cl, Br, I </td>
+          <td valign="top"> 23 MB </td>
+          <td valign="top"> not run yet </td></tr>
+      <tr><td valign="top"><b>Egret-1M</b></td>
+          <td valign="top"> A smaller Egret-1 with a lower-resolution equivariance: fast, with a smaller memory footprint </td>
+          <td valign="top"> H, C, N, O, F, P, S, Cl, Br, I </td>
+          <td valign="top"> 9 MB </td>
+          <td valign="top"> not run yet </td></tr>
+      <tr><td valign="top"><b>Egret-1S</b></td>
+          <td valign="top"> A smaller Egret-1 that is invariant only: the fastest and smallest </td>
+          <td valign="top"> H, C, N, O, F, P, S, Cl, Br, I </td>
+          <td valign="top"> 4 MB </td>
+          <td valign="top"> not run yet </td></tr>
+   </table>
+
+   <p> The models are for <b>neutral molecules in the gas phase</b>: they have no
+   input for a charge or a spin, so charged and open-shell molecules, and
+   other elements, are refused with a message.  (The elements are those of the
+   preprint for Egret-1, -1e and -1t; for the two smaller models they are those of
+   Egret-1, which they are derived from.)  The settings are the
+   <i>Precision</i> (float64 gives smoother forces than float32).
+
+   <p> The model file is downloaded the first time a model is used, from a fixed
+   version of the Egret repository on GitHub, and checked against the hash that
+   GitHub lists for the file.  It is kept in
+   <tt>~/Library/Caches/IQMolX/engines</tt>, which can be deleted at any time.
+   The package <i>mace-torch</i> is needed (it needs Python 3.11 or newer, which the
+   IQMolX environment has) and is installed with the <b>Install</b> button.
+
+   <p> Please cite the preprint <i>Egret-1: Pretrained Neural Network Potentials
+   for Efficient and Accurate Bioorganic Simulation</i> (Rowan Scientific, 2025,
+   rowansci.com/publications/egret-1-pretrained-neural-network-potentials) and
+   MACE: I. Batatia et al., NeurIPS 2022.
+
+
+   <br>
+   <h3><a name="pyscf"></a>PySCF: Hartree-Fock and DFT</h3>
+
+   <p> <a href="https://pyscf.org">PySCF</a> (Apache 2.0 license) is a quantum
+   chemistry program written in Python.  This engine gives IQMolX real
+   <i>ab initio</i> calculations: Hartree-Fock or a density functional with a
+   Gaussian basis set, for any charge and any spin multiplicity (restricted for
+   closed shells, unrestricted for open shells).  It provides the energy, the
+   forces, the Hessian (so optimizations and frequencies), the dipole moment and
+   Mulliken charges.  Nothing is downloaded except the package itself (about 100
+   MB with its dependencies, installed with the <b>Install</b> button).
+
+   <p> The settings:
+
+   <ul>
+      <li> <i>Method</i>: <tt>hf</tt>, <tt>b3lyp</tt> (the default), <tt>pbe0</tt>,
+           <tt>pbe</tt>, <tt>bp86</tt>, <tt>tpss</tt>, <tt>m06-2x</tt>,
+           <tt>wb97x</tt> or <tt>r2scan</tt>.  <br>
+      <li> <i>Basis set</i>, which must be filled in: the name of any basis set of
+           PySCF, for example <tt>sto-3g</tt>, <tt>6-31g*</tt>, <tt>def2-svp</tt>
+           (the default), <tt>def2-tzvp</tt>, <tt>cc-pvdz</tt> or
+           <tt>aug-cc-pvdz</tt>.  Heavy elements such as iodine work with the
+           def2 sets (they use effective core potentials). <br>
+      <li> <i>Density fitting</i> (on by default) speeds the calculation up with a
+           small error, about 0.1 mE<sub>h</sub> for water. <br>
+      <li> <i>Integration grid</i> of the density functionals, and the maximum
+           number of SCF cycles.
+   </ul>
+
+   <p> How slow is it?  On an Apple Silicon Mac a water molecule takes about a
+   second for the energy and forces with B3LYP/def2-SVP; iodomethane takes several
+   seconds.  The cost grows quickly with the size of the molecule and of the basis
+   set, so this engine is for small molecules; a geometry optimization needs one
+   calculation per step and frequencies need the second derivatives.  For the
+   <tt>tpss</tt>, <tt>m06-2x</tt> and <tt>r2scan</tt> functionals the Hessian is
+   built from differences of forces (the analytic one of the PySCF version
+   used here is not accurate for them), which takes about 6N calculations.
+
+   <p> Some functionals of PySCF are not offered: wB97M-V takes minutes for a
+   water molecule, wB97X-D is not implemented, and the dispersion-corrected
+   variants (such as b97-d3bj) need the extra package <i>pyscf-dispersion</i>.  If
+   the SCF does not converge the engine says so; a smaller basis set or no density
+   fitting can help.
+
+   <p> It was checked against the textbook Hartree-Fock energy of H<sub>2</sub> in
+   the STO-3G basis (&minus;1.116759 E<sub>h</sub> at 0.74 &Aring;), against finite
+   differences of its energies and forces, and with the ionization energy of
+   water (B3LYP/def2-SVP gives 12.4 eV, the experiment 12.6 eV).
+
+   <p> Please cite Q. Sun et al., J. Chem. Phys. 153, 024109 (2020) and
+   Q. Sun, WIREs Comput. Mol. Sci. 8, e1340 (2018).
+
+
+   <br>
    <h3><a name="ase"></a>ASE Calculators</h3>
 
    <p> The ASE engine runs any calculator of the
@@ -339,8 +459,11 @@
    <h4>Machine learning potentials</h4>
 
    <p> These need PyTorch, which is large (about 1 GB), and download their model
-   the first time.  ANI-2x has an engine of its own, <a href="#ani">above</a>, which
-   is the quickest way to start.
+   the first time.  ANI-2x and the other ANI models have engines of their own,
+   <a href="#ani">above</a>, which is the quickest way to start, and so do the
+   <a href="#egret">Egret</a> models, which are comparable models for organic
+   molecules under the MIT license (the MACE-OFF models are under a license that
+   does not permit commercial use).
 
    <table border="1" cellpadding="5" cellspacing="0" width="100%">
       <tr><th width="52%">Calculator</th><th>What to fill in</th></tr>

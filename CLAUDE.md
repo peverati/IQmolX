@@ -135,6 +135,20 @@ QTextBrowser, not seen in the app's Help window).  Each later engine adds its se
 guides.  The release gate in the plan ("step 5 and the user guide") is now met for the guide; the
 open items before a release are the ones listed above (CI run, helper update after an app update,
 ANI-2x frequencies tried in the window).
+**Engines added after step 5 (user's order: TorchANI models, Egret, PySCF).**  All are in
+`python/iqmolx-engines/src/iqmolx_engines/engines/`.  *TorchANI* (`torchani_engine.py`): one engine
+per model on a shared base (ANI-2x keeps the name `torchani`; ani1x, ani1ccx, ani1xnr, ani2xr, ani2dr,
+anir2s with a solvent option, animbis with charges); all weights are MIT on Hugging Face except
+`snn-ani2xr`, whose repository states no license, so it is left out.  *Egret* (`egret_engine.py`, five
+engines egret1, egret1e, egret1t, egret1m, egret1s): licenses read from the primary sources (repository
+LICENSE, README, preprint: MIT; mace-torch MIT), weights are single files downloaded by
+`download.py` from a pinned commit and checked against the git blob hash; elements from the preprint.
+*PySCF* (`pyscf_engine.py`): HF and eight DFT functionals; **PySCF 2.14's analytic Hessian is wrong for
+meta-GGAs (TPSS, M06-2X, r2SCAN), so those use finite differences of the analytic forces**.  What was
+run for real: ANI-2x, ANI-1x and PySCF; the download helper against a local server.  **Not run: the
+other six TorchANI models, and the five Egret models (they need weights, and mace-torch)**.  The Help
+page marks each model "run" or "not run yet": update it when they are run.  The user's environment keeps
+the helper it was made with: reinstall it to get new engines (see the earlier note).
 Tests: `PythonEngineTest`, `PythonSetupTest`, `PythonDialogTest` (C++), `pytest` in the helper
 (`IQMOLX_TEST_DOWNLOADS=1` runs the TorchANI model tests).  Never run `XtbProcessTest` in a
 folder with content: it removes its working directory when xtb is not found.
