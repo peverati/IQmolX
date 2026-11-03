@@ -43,8 +43,10 @@ XtbResultDialog* XtbResultDialog::instance()
 
 XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_running(false), m_placed(false)
 {
-   // Qt::Tool keeps the window above the main window on macOS
-   setWindowFlags(Qt::Tool | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
+   // An ordinary window (not Qt::Tool): tool windows on macOS cannot be restored
+   // from the Dock once they have been minimized.
+   setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::WindowSystemMenuHint | 
+      Qt::WindowMinimizeButtonHint | Qt::WindowCloseButtonHint);
    setWindowTitle("xtb");
    resize(640, 480);
 
@@ -120,6 +122,7 @@ void XtbResultDialog::started(QString const& method, QString const& what,
    // Modality must not be changed while the window is visible, otherwise Qt 
    // can leave the main window disabled behind a modal state that no longer exists
    if (isVisible()) hide();
+   setWindowState(windowState() & ~Qt::WindowMinimized);   // may be left over from last time
    setModal(true);   // blocks edits to the molecule while the calculation runs
    placeWindow();
    show();
@@ -188,9 +191,11 @@ void XtbResultDialog::finished(Calc::Result const& result, QString const& method
 {
    setRunning(false);
    hide();            // see the note in started()
+   setWindowState(windowState() & ~Qt::WindowMinimized);
    setModal(false);
-   show();
+   showNormal();
    raise();
+   activateWindow();
 
    QString what(optimization ? "geometry optimization" : "single point");
    QString s;
