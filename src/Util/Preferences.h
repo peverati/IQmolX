@@ -43,6 +43,10 @@ namespace Preferences {
 
    double DefaultSceneRadius();
 
+   /// Stores the preferences under another organization and application name. Only for
+   /// tests, so that they cannot change the user's real preferences.
+   void UseSettingsName(QString const& organization, QString const& application);
+
    QSize ViewerWindowSize();
    void  ViewerWindowSize(QSize const&);
    

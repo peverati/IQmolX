@@ -1,5 +1,5 @@
 // Tests the logic of the xtb window (settings, Run/Cancel, running and finished states)
-// on Qt's offscreen platform.  Settings are redirected to a temporary folder so the
+// on Qt's offscreen platform.  The settings are stored under a different name, so the
 // real IQmol preferences are not touched.
 
 #include "Util/Preferences.h"
@@ -13,7 +13,7 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QSettings>
-#include <QTemporaryDir>
+#include <QFile>
 #include <cstdio>
 
 using namespace IQmol;
@@ -48,16 +48,30 @@ int main(int argc, char** argv)
    qputenv("QT_QPA_PLATFORM", "offscreen");
    QApplication app(argc, argv);
 
-   QTemporaryDir dir;
-   QSettings::setDefaultFormat(QSettings::IniFormat);
-   QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, dir.path());
+   // Settings are stored under a name of their own, never in the real IQmol preferences
+   // (QSettings::setPath does not apply to the native format used on macOS)
+   QString const organization("iqmol-test.invalid");
+   QString const application("IQmolXtbDialogTest" + QString::number(QCoreApplication::applicationPid()));
+   Preferences::UseSettingsName(organization, application);
+   QSettings(QSettings::UserScope, organization, application).clear();
+
+   // With nothing stored the window starts with GFN2-xTB, a geometry optimization in the gas phase
+   XtbResultDialog* d(XtbResultDialog::instance());
+   {
+      QComboBox* defaultMethod(comboWith(d, "GFN2-xTB"));
+      check(Preferences::XtbMethod() == "GFN2-xTB", "the default method is GFN2-xTB");
+      check(defaultMethod && defaultMethod->currentData() == "GFN2-xTB", "the window starts with GFN2-xTB, not GFN-FF");
+      QComboBox* defaultJob(comboWith(d, "optimize"));
+      check(defaultJob && defaultJob->currentData() == "optimize", "the window starts with a geometry optimization");
+      QComboBox* defaultSolvent(comboWith(d, "water"));
+      check(defaultSolvent && defaultSolvent->currentData() == "", "the window starts in the gas phase");
+   }
 
    // Stored settings are shown when the window opens
    Preferences::XtbMethod("GFN1-xTB");
    Preferences::XtbSolvent("water");
    Preferences::XtbJob("singlepoint");
 
-   XtbResultDialog* d(XtbResultDialog::instance());
    d->showWindow();
    check(d->isVisible(), "the window opens");
 
@@ -179,6 +193,14 @@ int main(int argc, char** argv)
    Preferences::XtbSolvent("");
    d->showWindow();
    check(d->isVisible() && solvent->currentData() == "", "reopening shows the current settings");
+
+   // Remove the settings file of this test
+   {
+      QSettings settings(QSettings::UserScope, organization, application);
+      settings.clear();
+      settings.sync();
+      QFile::remove(settings.fileName());
+   }
 
    std::printf("%d failure(s)\n", s_failures);
    return s_failures == 0 ? 0 : 1;

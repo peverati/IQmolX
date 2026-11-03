@@ -46,6 +46,14 @@ static int s_maxRecentFiles = 10;
 static QMap<QString, QVariant> s_preferencesCache;
 
 
+void UseSettingsName(QString const& organization, QString const& application)
+{
+   s_organization = organization;
+   s_application  = application;
+   s_preferencesCache.clear();
+}
+
+
 // **********  Non-member Access Functions  ********* //
 // The following functions give access to individual options and provide the
 // interface for changing options.  When adding preferences, a new (overloaded)
