@@ -534,6 +534,7 @@ void PythonEngineDialog::buildOptions(QJsonObject const& descriptor)
        m_options.append(entry);
    }
    m_optionsBox->setVisible(!m_options.isEmpty());
+   updateOptionVisibility();
 }
 
 
@@ -560,8 +561,54 @@ QJsonObject PythonEngineDialog::optionValues(QString const& scope) const
 }
 
 
+/// The current value of an option as text, to compare with the conditions of `show_if`
+QString PythonEngineDialog::optionText(QString const& name) const
+{
+   for (OptionWidget const& o : m_options) {
+       if (o.spec.value("name").toString() != name) continue;
+       QString type(o.spec.value("type").toString());
+       if (type == "bool") return static_cast<QCheckBox*>(o.widget)->isChecked() ? "true" : "false";
+       if (type == "int") return QString::number(static_cast<QSpinBox*>(o.widget)->value());
+       if (type == "float") return QString::number(static_cast<QDoubleSpinBox*>(o.widget)->value());
+       if (type == "choice") return static_cast<QComboBox*>(o.widget)->currentText();
+       return static_cast<QLineEdit*>(o.widget)->text();
+   }
+   return QString();
+}
+
+
+/// An option with `show_if` is only shown, and only required, when the other options it names have
+/// one of the given values (a value or a list of values for each, all of which must match)
+bool PythonEngineDialog::optionShown(OptionWidget const& o) const
+{
+   QJsonObject conditions(o.spec.value("show_if").toObject());
+   for (QString const& key : conditions.keys()) {
+       QJsonValue wanted(conditions.value(key));
+       QJsonArray allowed(wanted.isArray() ? wanted.toArray() : QJsonArray() << wanted);
+       QString current(optionText(key));
+       bool match(false);
+       for (QJsonValue const& value : allowed) if (value.toVariant().toString() == current) match = true;
+       if (!match) return false;
+   }
+   return true;
+}
+
+
+void PythonEngineDialog::updateOptionVisibility()
+{
+   for (OptionWidget const& o : m_options) {
+       bool const shown(optionShown(o));
+       o.widget->setVisible(shown);
+       QWidget* label(m_optionsForm->labelForField(o.widget));
+       if (label) label->setVisible(shown);
+   }
+}
+
+
 void PythonEngineDialog::saveSettings()
 {
+   updateOptionVisibility();                // a changed menu can show or hide a field
+   updateRunButton();
    Preferences::PythonEnginePath(m_pythonEdit->text().trimmed());
    Preferences::PythonEngineJob(job());
 
@@ -605,6 +652,7 @@ void PythonEngineDialog::updateRunButton()
    QStringList missing;
    for (OptionWidget const& o : m_options) {
        if (!o.spec.value("required").toBool() || o.spec.value("type").toString() != "string") continue;
+       if (!optionShown(o)) continue;                      // a hidden field is not needed
        if (static_cast<QLineEdit*>(o.widget)->text().trimmed().isEmpty()) {
           missing << o.spec.value("title").toString(o.spec.value("name").toString());
        }

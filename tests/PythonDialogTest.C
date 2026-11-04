@@ -176,6 +176,56 @@ int main(int argc, char** argv)
       }
    }
 
+   // --- options that depend on others: the Functional field appears for "other" (PySCF) ---
+   {
+      QComboBox* engineCombo(0);
+      for (QComboBox* c : d->findChildren<QComboBox*>()) if (c->findData("pyscf") >= 0) engineCombo = c;
+      int index(engineCombo ? engineCombo->findData("pyscf") : -1);
+      if (index < 0 || engineCombo->itemText(index).contains("not available")) {
+         std::printf("SKIP: dependent options (PySCF is not available in this Python)\n");
+      }else {
+         engineCombo->setCurrentIndex(index);
+         d->showWindow();
+         QComboBox* method(0);
+         for (QComboBox* c : d->findChildren<QComboBox*>()) if (c->findText("wb97m-v") >= 0 && c->findText("other") >= 0) method = c;
+         check(method != 0, "the method menu has wb97m-v and other");
+         auto field = [&](QString const& placeholder) -> QLineEdit* {
+            for (QLineEdit* e : d->findChildren<QLineEdit*>()) if (e->placeholderText() == placeholder) return e;
+            return 0;
+         };
+         auto gridSpin = [&]() -> QSpinBox* {
+            for (QLabel* l : d->findChildren<QLabel*>()) if (l->text().startsWith("Grid of the VV10 part")) {
+               for (QSpinBox* s : d->findChildren<QSpinBox*>()) if (s->toolTip().contains("nonlocal (VV10)")) return s;
+            }
+            return 0;
+         };
+         method->setCurrentText("b3lyp");
+         QLineEdit* name(field("cam-b3lyp"));
+         check(name != 0 && !name->isVisibleTo(d), "the Functional field is hidden for b3lyp");
+         check(gridSpin() && !gridSpin()->isVisibleTo(d), "the grid of the VV10 part is hidden for b3lyp");
+         check(button(d, "Run")->isEnabled(), "Run is on for b3lyp");
+
+         method->setCurrentText("other");
+         name = field("cam-b3lyp");
+         check(name != 0 && name->isVisibleTo(d), "the Functional field appears when other is chosen");
+         check(gridSpin() && gridSpin()->isVisibleTo(d), "the VV10 grid is shown for other too");
+         check(!button(d, "Run")->isEnabled(), "Run waits for the name");
+         QString hint;
+         for (QLabel* l : d->findChildren<QLabel*>()) if (l->text().contains("Fill in")) hint = l->text();
+         check(hint.contains("Functional"), "the window says what to fill in: " + hint);
+         name->setText("cam-b3lyp");
+         check(button(d, "Run")->isEnabled(), "Run is on once the functional is named");
+
+         method->setCurrentText("wb97m-v");
+         name = field("cam-b3lyp");
+         check(name && !name->isVisibleTo(d) && button(d, "Run")->isEnabled(),
+            "choosing wb97m-v hides the name again and Run stays on (its text is kept but not needed)");
+         check(gridSpin() && gridSpin()->isVisibleTo(d), "the VV10 grid is shown for wb97m-v");
+         method->setCurrentText("b3lyp");
+         engineCombo->setCurrentIndex(engineCombo->findData("demo"));
+      }
+   }
+
    // --- Save Output...: cancelling the file dialog must leave the window open ---
    {
       QPushButton* save(button(d, "Save Output..."));

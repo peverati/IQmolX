@@ -137,6 +137,9 @@ namespace IQmol {
          void showEngine();
          void buildOptions(QJsonObject const& descriptor);
          QJsonObject optionValues(QString const& scope) const;
+         QString optionText(QString const& name) const;
+         bool optionShown(OptionWidget const&) const;
+         void updateOptionVisibility();
          QJsonObject storedOptions(QString const& engine) const;
          static QString describeElements(QJsonValue const&);
 
