@@ -23,6 +23,7 @@
 
 #include "XtbProcess.h"
 #include "XtbOutput.h"
+#include "GxtbSetup.h"
 #include <QCoreApplication>
 #include <QDir>
 #include <QElapsedTimer>
@@ -124,7 +125,7 @@ void applyUserOptions(QStringList& args, QStringList const& user)
       { { "--gfnff" },                             false },
       { { "--chrg", "-c" },                        true },
       { { "--uhf", "-u" },                         true },
-      { { "--alpb", "--gbsa" },                    true },
+      { { "--alpb", "--gbsa", "--gbe", "--cosmo" }, true },
       { { "--etemp" },                             true }
    };
 
@@ -156,7 +157,8 @@ void applyUserOptions(QStringList& args, QStringList const& user)
 
 
 XtbProcess::XtbProcess(QString const& executable, Method method)
- : m_executable(executable), m_method(method), m_timeout(600), m_interactive(false),
+ : m_executable(executable), m_method(method), m_solvationModel("gbe"), m_timeout(600), 
+   m_interactive(false),
    m_keepTemporary(false),
    m_cancelled(false), m_process(0)
 {
@@ -176,6 +178,7 @@ QString XtbProcess::name() const
       case GFN2:  return "GFN2-xTB";
       case GFN1:  return "GFN1-xTB";
       case GFNFF: return "GFN-FF";
+      case GXTB:  return "g-xTB";
    }
    return "xTB";
 }
@@ -187,6 +190,7 @@ QStringList XtbProcess::methodArguments() const
       case GFN2:  return QStringList() << "--gfn" << "2";
       case GFN1:  return QStringList() << "--gfn" << "1";
       case GFNFF: return QStringList() << "--gfnff";
+      case GXTB:  return QStringList() << "--gxtb";
    }
    return QStringList();
 }
@@ -244,15 +248,23 @@ QStringList XtbProcess::arguments(Input const& input, Task task) const
    args << "input.xyz";
    args << methodArguments();
    args << "--chrg" << QString::number(input.charge);
-   args << "--uhf"  << QString::number(input.multiplicity - 1);
+   // g-xTB runs unrestricted as soon as --uhf is given, even for zero unpaired electrons, which
+   // would make every closed-shell calculation unrestricted (slower, with other orbitals)
+   if (m_method != GXTB || input.multiplicity > 1) args << "--uhf" << QString::number(input.multiplicity - 1);
    switch (task) {
       case SinglePoint:  args << "--sp";   break;
       case Optimization: args << "--opt";  break;
       case Hessian:      args << "--hess"; break;
    }
-   if (!input.solvent.isEmpty()) args << "--alpb" << input.solvent;
+   if (!input.solvent.isEmpty()) {
+      if (m_method == GXTB) {
+         args << (m_solvationModel == "cosmo" ? "--cosmo" : "--gbe") << input.solvent;
+      }else {
+         args << "--alpb" << input.solvent;
+      }
+   }
    if (input.orbitals && m_method != GFNFF) args << "--molden";
-   if (input.electronicTemperature >= 0.0 && m_method != GFNFF) {
+   if (input.electronicTemperature >= 0.0 && m_method != GFNFF && m_method != GXTB) {
       args << "--etemp" << QString::number(input.electronicTemperature, 'g', 10);
    }
    applyUserOptions(args, m_extraArguments);
@@ -274,7 +286,13 @@ Result XtbProcess::run(Input const& input, Task task)
       return result;
    }
 
-   QString exe(findExecutable(m_executable));
+   // g-xTB is only in its own build of xtb, never in the one found on the PATH
+   QString exe(m_method == GXTB ? GxtbSetup::findExecutable(m_executable) : findExecutable(m_executable));
+   if (exe.isEmpty() && m_method == GXTB) {
+      result.message = "Unable to find the g-xTB program.  Press Download in the xtb window, or "
+                       "choose the xtb program of a g-xTB build with Browse.";
+      return result;
+   }
    if (exe.isEmpty()) {
       result.message = "Unable to find the xtb executable.  Set its location in the "
                        "preferences or in the XTB_PATH environment variable.";
@@ -342,6 +360,9 @@ Result XtbProcess::run(Input const& input, Task task)
    process.setProcessChannelMode(QProcess::MergedChannels);
    QProcessEnvironment env(QProcessEnvironment::systemEnvironment());
    env.insert("OMP_STACKSIZE", "1G");
+   // The numerical Hessian of the macOS build of g-xTB is wrong when it runs on several threads
+   // (absurd frequencies, and it is slow), as its README warns
+   if (m_method == GXTB && task == Hessian) env.insert("OMP_NUM_THREADS", "1");
    process.setProcessEnvironment(env);
 
    QElapsedTimer clock;
@@ -471,7 +492,7 @@ Result XtbProcess::run(Input const& input, Task task)
       QFile molden(dir.filePath("molden.input"));
       QString moldenText;
       if (molden.open(QIODevice::ReadOnly)) moldenText = QString::fromLocal8Bit(molden.readAll());
-      if (parseMolden(moldenText, result.orbitals)) {
+      if (parseMolden(moldenText, result.orbitals, m_method == GXTB)) {
          result.hasOrbitals = true;
       }else {
          result.log += "--- the orbitals could not be read from molden.input ---\n";

@@ -166,7 +166,7 @@ bool parseG98(QString const& text, QVector<int> const& atomicNumbers, Vibrationa
 }
 
 
-bool parseMolden(QString const& text, OrbitalData& data)
+bool parseMolden(QString const& text, OrbitalData& data, bool tbliteConvention)
 {
    data = OrbitalData();
 
@@ -266,6 +266,21 @@ bool parseMolden(QString const& text, OrbitalData& data)
    if (data.shells.isEmpty() || data.coefficients.isEmpty()) return false;
    for (QVector<double> const& c : data.coefficients) {
        if (c.size() != nBasis) return false;
+   }
+
+   // The Molden file of g-xTB (written by tblite) gives the Cartesian d functions with the
+   // normalization of dx2: its xy, xz and yz coefficients are those of functions that are 
+   // sqrt(3) times larger than IQmol's (normalized as dxy).  Found by requiring the orbitals 
+   // to be orthonormal in IQmol's basis, see GxtbTest and XtbOrbitalsTest.
+   if (tbliteConvention) {
+      static double const factor(1.0/std::sqrt(3.0));
+      for (QVector<double>& c : data.coefficients) {
+         int k(0);
+         for (OrbitalShell const& shell : data.shells) {
+             if (shell.angularMomentum == 2) { c[k+3] *= factor; c[k+4] *= factor; c[k+5] *= factor; }
+             k += nFunctions[shell.angularMomentum];
+         }
+      }
    }
    return true;
 }

@@ -3,6 +3,7 @@ find_package(Qt5 COMPONENTS Core REQUIRED)
 add_executable(XtbProcessTest EXCLUDE_FROM_ALL
    XtbProcessTest.C
    ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/XtbProcess.C
+   ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/GxtbSetup.C
    ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/XtbOutput.C
    ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/Vibrations.C
 )
@@ -28,6 +29,7 @@ if (XTB_ROOT AND EXISTS ${XTB_ROOT}/include/xtb.h)
    add_executable(XtbBackendTest EXCLUDE_FROM_ALL
       XtbBackendTest.C
       ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/XtbProcess.C
+      ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/GxtbSetup.C
       ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/XtbLibrary.C
       ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/Vibrations.C
       ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/XtbOutput.C
@@ -56,6 +58,19 @@ if (Python3_EXECUTABLE)
    add_test(NAME PythonEngineTest COMMAND PythonEngineTest ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/../python/iqmolx-engines/src)
 endif()
+
+
+# The g-xTB backend: the download (a local archive), the command line, and a real g-xTB if given
+add_executable(GxtbTest EXCLUDE_FROM_ALL
+   GxtbTest.C
+   ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/XtbProcess.C
+   ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/GxtbSetup.C
+   ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/XtbOutput.C
+   ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/Vibrations.C
+)
+target_include_directories(GxtbTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+target_link_libraries(GxtbTest PRIVATE Qt5::Core)
+add_test(NAME GxtbTest COMMAND GxtbTest)
 
 
 # The creation of the Python environment with uv, tested with a fake uv
@@ -106,6 +121,7 @@ find_package(Qt5 COMPONENTS Xml OpenGL Gui REQUIRED)
 add_executable(XtbOrbitalsTest EXCLUDE_FROM_ALL
    XtbOrbitalsTest.C
    ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/XtbProcess.C
+   ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/GxtbSetup.C
    ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/XtbOutput.C
    ${CMAKE_CURRENT_SOURCE_DIR}/../src/Util/Vibrations.C
 )

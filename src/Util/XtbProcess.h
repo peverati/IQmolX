@@ -41,7 +41,7 @@ namespace Calc {
 
    class XtbProcess : public Calculator {
       public:
-         enum Method { GFN2, GFN1, GFNFF };
+         enum Method { GFN2, GFN1, GFNFF, GXTB };
 
          explicit XtbProcess(QString const& executable = QString(), Method = GFN2);
 
@@ -49,6 +49,10 @@ namespace Calc {
 
          void setExecutable(QString const& path) { m_executable = path; }
          void setMethod(Method method) { m_method = method; }
+
+         /// The implicit solvation model of g-xTB, "gbe" (generalized Born) or "cosmo" (ddCOSMO).
+         /// The ALPB model of the other methods is not available for g-xTB.
+         void setSolvationModel(QString const& model) { m_solvationModel = model; }
          void setTimeoutSeconds(int seconds) { m_timeout = seconds; }
 
          /// Further command line options, added after those IQmol sets so they can override them
@@ -99,6 +103,7 @@ namespace Calc {
          bool m_keepTemporary;
          QString m_temporaryPath;
          Method  m_method;
+         QString m_solvationModel;
          int     m_timeout;
          bool    m_interactive;
          bool    m_cancelled;

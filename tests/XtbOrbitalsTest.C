@@ -86,7 +86,9 @@ static double orthonormality(Calc::Result const& r, int nCheck, unsigned nAlpha,
 int main(int argc, char** argv)
 {
    QCoreApplication app(argc, argv);
-   Calc::XtbProcess xtb(argc > 1 ? argv[1] : "");
+   // a second argument "gxtb" runs the same checks with g-xTB (argv[1] is then the xtb program of a g-xTB build)
+   bool const gxtb(argc > 2 && QString(argv[2]) == "gxtb");
+   Calc::XtbProcess xtb(argc > 1 ? argv[1] : "", gxtb ? Calc::XtbProcess::GXTB : Calc::XtbProcess::GFN2);
 
    Calc::Input water;
    water.atomicNumbers << 8 << 1 << 1;

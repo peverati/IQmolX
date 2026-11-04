@@ -71,7 +71,7 @@ jobs:
         run: |
           cd build-clean
           make -j4 OptimizerTest VibrationsTest XtbProcessTest XtbBackendTest XtbDialogTest XtbOrbitalsTest \
-             PythonSetupTest PythonEngineTest PythonDialogTest
+             PythonSetupTest PythonEngineTest PythonDialogTest GxtbTest
           XTB="$GITHUB_WORKSPACE/../xtb-install/bin/xtb"
           bin/OptimizerTest
           bin/VibrationsTest
@@ -80,6 +80,7 @@ jobs:
           bin/XtbOrbitalsTest "$XTB"
           QT_QPA_PLATFORM=offscreen bin/XtbDialogTest
           bin/PythonSetupTest
+          bin/GxtbTest
           bin/PythonEngineTest "$PY_ENGINES" ../python/iqmolx-engines/src
           QT_QPA_PLATFORM=offscreen bin/PythonDialogTest "$PY_ENGINES" ../python/iqmolx-engines/src
           "$PY_ENGINES" -m pytest -q ../python/iqmolx-engines

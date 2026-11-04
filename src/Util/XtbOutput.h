@@ -54,7 +54,8 @@ namespace Calc {
    /// Reads the molecular orbitals from the molden.input file that xtb writes with --molden.
    /// xtb gives the contraction coefficients for unnormalized primitives, they are converted
    /// to those of normalized primitives here.  Only the first set of orbitals (alpha) is read;
-   /// xtb uses the same spatial orbitals for both spins.
-   bool parseMolden(QString const& text, OrbitalData& data);
+   /// xtb uses the same spatial orbitals for both spins.  With tbliteConvention the file is
+   /// that of g-xTB, whose Cartesian d functions are normalized differently.
+   bool parseMolden(QString const& text, OrbitalData& data, bool tbliteConvention = false);
 
 } } // end namespace IQmol::Calc

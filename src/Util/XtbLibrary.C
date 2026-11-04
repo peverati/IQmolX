@@ -67,6 +67,7 @@ class Session {
             case XtbProcess::GFN2:  xtb_loadGFN2xTB(m_env, m_mol, m_calc, 0); break;
             case XtbProcess::GFN1:  xtb_loadGFN1xTB(m_env, m_mol, m_calc, 0); break;
             case XtbProcess::GFNFF: xtb_loadGFNFF(m_env, m_mol, m_calc, 0);   break;
+            case XtbProcess::GXTB:  xtb_loadGFN2xTB(m_env, m_mol, m_calc, 0); break;   // not in libxtb
          }
          if (failed()) return;
 
@@ -252,6 +253,7 @@ QString XtbLibrary::name() const
       case XtbProcess::GFN2:  return "GFN2-xTB";
       case XtbProcess::GFN1:  return "GFN1-xTB";
       case XtbProcess::GFNFF: return "GFN-FF";
+      case XtbProcess::GXTB:  return "g-xTB";
    }
    return "xTB";
 }
