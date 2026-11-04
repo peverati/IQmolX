@@ -145,12 +145,16 @@ PythonEngineDialog::PythonEngineDialog(QWidget* parent) : QDialog(parent),
    m_pythonEdit->setToolTip("The Python interpreter, or environment, in which iqmolx-engines is "
       "installed.\nThe engines and their models live there, not in IQmol.");
    QPushButton* browse(new QPushButton("Browse...", this));
+   QPushButton* plugin(new QPushButton("Install Plugin...", this));
+   plugin->setToolTip("Install an engine plugin (a Python package) into this Python: a package "
+      "name, a folder, a wheel or a Git address");
    QPushButton* refresh(new QPushButton("Find Engines", this));
    refresh->setToolTip("Start the helper and list the engines it offers");
    QHBoxLayout* pythonRow(new QHBoxLayout());
    pythonRow->setContentsMargins(0, 0, 0, 0);
    pythonRow->addWidget(m_pythonEdit, 1);
    pythonRow->addWidget(browse);
+   pythonRow->addWidget(plugin);
    pythonRow->addWidget(refresh);
    form->addRow("Python:", pythonRow);
 
@@ -269,6 +273,7 @@ PythonEngineDialog::PythonEngineDialog(QWidget* parent) : QDialog(parent),
    if (job >= 0) m_jobCombo->setCurrentIndex(job);
 
    connect(browse, SIGNAL(clicked()), this, SLOT(browseForPython()));
+   connect(plugin, SIGNAL(clicked()), this, SLOT(installPlugin()));
    connect(refresh, SIGNAL(clicked()), this, SLOT(refreshEngines()));
    connect(m_setupButton, SIGNAL(clicked()), this, SLOT(setUpEnvironment()));
    connect(m_installButton, SIGNAL(clicked()), this, SLOT(installPackages()));
@@ -827,6 +832,107 @@ void PythonEngineDialog::installPackages()
       return setup.install(python, requirements, error);
    }));
    if (ok) refreshEngines();
+}
+
+
+QString PythonEngineDialog::pluginSpecification(QString const& text, QString& error)
+{
+   QString spec(text.trimmed());
+   if (spec.isEmpty()) {
+      error = "Type the name of a package, or choose a folder or a wheel.";
+      return QString();
+   }
+   if (spec.contains('\n') || spec.contains('\r')) {
+      error = "Give one package at a time.";
+      return QString();
+   }
+   // a leading dash would be taken for an option of the installer (another package index, for example)
+   if (spec.startsWith('-')) {
+      error = "A package name cannot start with a dash.";
+      return QString();
+   }
+   QFileInfo info(spec);
+   if (info.exists()) return QDir::cleanPath(info.absoluteFilePath());   // a folder or a wheel
+   return spec;
+}
+
+
+/// Asks what to install: a package name, a folder or a wheel
+void PythonEngineDialog::installPlugin()
+{
+   QDialog dialog(this);
+   dialog.setWindowTitle("Install an engine plugin");
+   QVBoxLayout* layout(new QVBoxLayout(&dialog));
+   QLabel* intro(new QLabel("Install an engine plugin into the Python of this window: "
+      "the name of a package (for example from PyPI), a Git address, or a folder or wheel on "
+      "this computer.", &dialog));
+   intro->setWordWrap(true);
+   layout->addWidget(intro);
+
+   QLineEdit* edit(new QLineEdit(&dialog));
+   edit->setPlaceholderText("package name, git+https://..., or the path of a folder or wheel");
+   edit->setMinimumWidth(460);
+   QPushButton* folder(new QPushButton("Folder...", &dialog));
+   QPushButton* file(new QPushButton("File...", &dialog));
+   QHBoxLayout* row(new QHBoxLayout());
+   row->addWidget(edit, 1);
+   row->addWidget(folder);
+   row->addWidget(file);
+   layout->addLayout(row);
+
+   QLabel* warning(new QLabel("<small><b>Only install plugins from sources you trust.</b>  "
+      "Installing a package runs its code, and the engine runs on your computer with your "
+      "files.  Python: " + plain(effectivePython().isEmpty() ? QString("(none yet)") : effectivePython())
+      + "</small>", &dialog));
+   warning->setWordWrap(true);
+   layout->addWidget(warning);
+
+   QHBoxLayout* buttons(new QHBoxLayout());
+   buttons->addStretch();
+   QPushButton* install(new QPushButton("Install", &dialog));
+   install->setDefault(true);
+   QPushButton* cancel(new QPushButton("Cancel", &dialog));
+   buttons->addWidget(install);
+   buttons->addWidget(cancel);
+   layout->addLayout(buttons);
+
+   connect(folder, &QPushButton::clicked, [&]() {
+      QString path(FileDialog::getExistingDirectory(&dialog, "Plugin folder", QDir::homePath()));
+      if (!path.isEmpty()) edit->setText(path);
+   });
+   connect(file, &QPushButton::clicked, [&]() {
+      QString path(FileDialog::getOpenFileName(&dialog, "Plugin wheel or archive", QDir::homePath(), 
+         "Python packages (*.whl *.tar.gz *.zip);;All files (*)"));
+      if (!path.isEmpty()) edit->setText(path);
+   });
+   connect(install, SIGNAL(clicked()), &dialog, SLOT(accept()));
+   connect(cancel, SIGNAL(clicked()), &dialog, SLOT(reject()));
+   connect(edit, SIGNAL(returnPressed()), &dialog, SLOT(accept()));
+
+   if (dialog.exec() != QDialog::Accepted) return;
+   installPluginFrom(edit->text());
+}
+
+
+void PythonEngineDialog::installPluginFrom(QString const& specification)
+{
+   QString error;
+   QString spec(pluginSpecification(specification, error));
+   QString python(effectivePython());
+   if (spec.isEmpty() || python.isEmpty()) {
+      m_title->setText("Plugin not installed");
+      m_summary->setText(plain(spec.isEmpty() ? error : QString("There is no Python yet: press Set Up "
+         "Environment first, or choose a Python.")));
+      return;
+   }
+   bool ok(runSetup("Installing " + spec, [python, spec](Calc::PythonSetup& setup, QString& message) {
+      return setup.install(python, QStringList() << spec, message);
+   }));
+   if (!ok) return;
+   QString title(m_title->text()), summary(m_summary->text());
+   refreshEngines();
+   m_title->setText(title);
+   m_summary->setText("Done.  The engines of the plugin are in the Engine list now.");
 }
 
 

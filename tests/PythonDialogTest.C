@@ -382,6 +382,35 @@ int main(int argc, char** argv)
          check(!button(d, "Update Helper") || button(d, "Update Helper")->isHidden(), "the button goes away when the helper is current");
       }
 
+      // Installing a plugin: what is typed becomes the argument of the installer
+      {
+         QString problem;
+         check(PythonEngineDialog::pluginSpecification("  my-plugin==1.2  ", problem) == "my-plugin==1.2", "a package name is trimmed");
+         check(PythonEngineDialog::pluginSpecification("git+https://github.com/x/y", problem) == "git+https://github.com/x/y", "a Git address is kept");
+         check(PythonEngineDialog::pluginSpecification("", problem).isEmpty() && !problem.isEmpty(), "nothing typed is refused: " + problem);
+         check(PythonEngineDialog::pluginSpecification("--index-url http://evil", problem).isEmpty(), "an option of the installer is refused");
+         check(PythonEngineDialog::pluginSpecification("a\nb", problem).isEmpty(), "two lines are refused");
+         QTemporaryDir folder;
+         check(PythonEngineDialog::pluginSpecification(folder.path() + "/../" + QFileInfo(folder.path()).fileName(), problem) 
+            == QDir::cleanPath(folder.path()), "a folder becomes its absolute path");
+
+         logFile.close();
+         QFile::remove(uvLog);
+         d->installPluginFrom("--evil");
+         check(!QFile::exists(uvLog), "an option is never passed to uv");
+         d->installPluginFrom("my-plugin==1.2");
+         logFile.open(QIODevice::ReadOnly);
+         QString calls(QString::fromLocal8Bit(logFile.readAll()));
+         logFile.close();
+         check(calls.contains("pip install --python " + environment + "/bin/python my-plugin==1.2"), 
+            "uv installs the plugin into the Python of the window: " + calls.trimmed());
+         check(button(d, "Run") && button(d, "Run")->isEnabled(), "the engines are listed again after the install");
+         QString shown;
+         for (QPlainTextEdit* t : d->findChildren<QPlainTextEdit*>()) shown += t->toPlainText();
+         check(shown.contains("my-plugin==1.2"), "the output of the install is shown");
+         logFile.open(QIODevice::ReadOnly);
+      }
+
       // An engine whose packages are missing: selectable, with an install button
       QComboBox* combo(0);
       for (QComboBox* c : d->findChildren<QComboBox*>()) if (c->findData("ase") >= 0) combo = c;

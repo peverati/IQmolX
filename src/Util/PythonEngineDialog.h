@@ -99,6 +99,16 @@ namespace IQmol {
          /// Asks the helper for its engines and shows them
          void refreshEngines();
 
+         /// What to give to the package installer for text typed as a plugin: a package name
+         /// (with a version if wanted), a Git URL, or the path of a folder or wheel, which is
+         /// made absolute.  Empty, with the reason in 'error', if it cannot be used (empty,
+         /// several lines, or an option of the installer).
+         static QString pluginSpecification(QString const& text, QString& error);
+
+         /// Installs a plugin into the Python of the window and lists the engines again.
+         /// installPlugin() first asks for what to install.
+         void installPluginFrom(QString const& specification);
+
       Q_SIGNALS:
          /// The Run button was pressed, the settings are in the preferences
          void runRequested();
@@ -111,6 +121,7 @@ namespace IQmol {
          void browseForPython();
          void setUpEnvironment();
          void installPackages();
+         void installPlugin();
          void updateHelper();
          void updateRunButton();
          void save();
