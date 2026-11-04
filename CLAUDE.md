@@ -160,6 +160,24 @@ Tests: `PythonEngineTest`, `PythonSetupTest`, `PythonDialogTest` (C++), `pytest`
 (`IQMOLX_TEST_DOWNLOADS=1` runs the TorchANI model tests).  Never run `XtbProcessTest` in a
 folder with content: it removes its working directory when xtb is not found.
 
+## g-xTB backend (development version)
+
+A third backend of the xtb window (`Preferences::XtbBackend() == "gxtb"`), added because g-xTB
+(github.com/grimme-lab/g-xtb) is a modified xtb 6.7.1 build run with `--gxtb`, preliminary and
+changing; it never replaces the normal backends.  `Calc::XtbProcess::GXTB` (command line `--gxtb`;
+solvent as `--gbe`/`--cosmo`, ALPB does not work with it; no `--etemp`; **no `--uhf` for singlets**,
+which would force an unrestricted wavefunction; **`OMP_NUM_THREADS=1` for Hessians**, the macOS build's
+threaded numerical Hessian is wrong).  `Calc::GxtbSetup` (Util/GxtbSetup.{h,C}) is the Download
+button: curl + SHA-256 check + tar into `AppDataLocation/g-xtb`, pinned to a repository commit and the
+v2.0.1 build (14 May 2026, macOS arm64 and x86_64 only); to move to a newer g-xTB change the commit,
+the file names and the sums in `GxtbSetup.C` together, rerun `GxtbTest` with a real program and
+`XtbOrbitalsTest <g-xtb xtb> gxtb`.  Not bundled in the dmg: the license of the parameters is not stated.
+The Molden file is written by tblite: its Cartesian d coefficients (xy, xz, yz) are sqrt(3) larger than
+IQmol's, handled by `parseMolden(..., tbliteConvention)`.  Tests: `GxtbTest` (fake archive, command line,
+threads; with a g-xtb xtb as argument also a real run; `GXTB_REAL_DOWNLOAD=1` downloads from GitHub),
+`XtbOrbitalsTest <xtb> gxtb`, `XtbDialogTest`.  Windows/Linux: no download yet (macOS only), a
+user-chosen g-xtb program works anywhere.
+
 ## What was verified and what was not
 
 * The macOS app builds, passes its tests and has been packaged into a signed disk image; a

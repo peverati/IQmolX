@@ -23,6 +23,10 @@ from inside the program:
 * **Results in the usual tools**: the optimized geometry (undoable), the vibrational
   modes and IR intensities (in the Frequencies viewer) and the molecular orbitals (in
   the orbital viewer, with the program backend) are added to the molecule.
+* **g-xTB (development version)** as a third backend of the xtb window, for the new
+  [g-xTB](https://github.com/grimme-lab/g-xtb) method of the Grimme group: a Download button
+  fetches the g-xTB build of xtb (about 41 MB, checked against its SHA-256 sum) the first time.
+  It is a preliminary version and is kept apart from the normal xtb backends.
 * **GFN-FF as a force field**, next to UFF and the others in Build → Select Force Field.
 * **Python engines window** (Calculation → Python Engines, Ctrl+Shift+E) to calculate with
   machine learning potentials and other Python methods through one small helper
