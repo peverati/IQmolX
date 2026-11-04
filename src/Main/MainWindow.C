@@ -742,6 +742,7 @@ void MainWindow::createMenus()
       name = "Python Engines";
       action = menu->addAction(name);
       action->setToolTip("Calculate with a Python engine (machine learning potentials, ASE calculators)");
+      action->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_E);
       connect(action, &QAction::triggered, []() { PythonEngineDialog::instance()->showWindow(); });
 
       name = "Job Monitor";
