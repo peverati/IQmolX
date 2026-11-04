@@ -260,6 +260,7 @@ PythonEngineDialog::PythonEngineDialog(QWidget* parent) : QDialog(parent),
    m_cancelButton->hide();
 
    m_pythonEdit->setText(Preferences::PythonEnginePath());
+   m_shownPython = m_pythonEdit->text();
    int job(m_jobCombo->findData(Preferences::PythonEngineJob()));
    if (job >= 0) m_jobCombo->setCurrentIndex(job);
 
@@ -268,7 +269,12 @@ PythonEngineDialog::PythonEngineDialog(QWidget* parent) : QDialog(parent),
    connect(m_setupButton, SIGNAL(clicked()), this, SLOT(setUpEnvironment()));
    connect(m_installButton, SIGNAL(clicked()), this, SLOT(installPackages()));
    connect(m_pythonEdit, SIGNAL(editingFinished()), this, SLOT(saveSettings()));
-   connect(m_pythonEdit, &QLineEdit::editingFinished, [this]() { updateEnvironmentRow(); engineChanged(); });
+   connect(m_pythonEdit, &QLineEdit::editingFinished, [this]() {
+      updateEnvironmentRow();
+      if (m_pythonEdit->text() == m_shownPython) return;     // nothing changed: leave the settings alone
+      m_shownPython = m_pythonEdit->text();
+      engineChanged();
+   });
    connect(m_engineCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(engineChanged()));
    connect(m_jobCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(saveSettings()));
    connect(m_runButton, SIGNAL(clicked()), this, SLOT(run()));
@@ -478,7 +484,16 @@ QJsonObject PythonEngineDialog::storedOptions(QString const& engine) const
 /// Makes one input widget for each option of the engine, as its descriptor says
 void PythonEngineDialog::buildOptions(QJsonObject const& descriptor)
 {
-   while (m_optionsForm->rowCount() > 0) m_optionsForm->removeRow(0);
+   // The old widgets are deleted later, not here: this runs when the Python field loses the focus,
+   // and the click that did it may be about to give the focus to one of these very widgets.
+   while (m_optionsForm->rowCount() > 0) {
+      QFormLayout::TakeRowResult row(m_optionsForm->takeRow(0));
+      for (QLayoutItem* item : {row.labelItem, row.fieldItem}) {
+          if (!item) continue;
+          if (QWidget* w = item->widget()) { w->hide(); w->deleteLater(); }
+          delete item;
+      }
+   }
    m_options.clear();
 
    QJsonObject stored(storedOptions(descriptor.value("name").toString()));

@@ -150,6 +150,7 @@ namespace IQmol {
 
          QGroupBox*     m_settings;
          QLineEdit*     m_pythonEdit;
+         QString        m_shownPython;   // the Python path the settings on view were made for
          QTextBrowser*  m_environmentInfo;
          QPushButton*   m_setupButton;
          QPushButton*   m_installButton;

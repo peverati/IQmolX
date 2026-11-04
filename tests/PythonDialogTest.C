@@ -176,6 +176,32 @@ int main(int argc, char** argv)
       }
    }
 
+   // --- moving the focus from the Python field into a setting must not crash: leaving the Python field
+   //     used to rebuild the settings, deleting the very widget that was about to get the focus ---
+   {
+      if (pythonEdit) pythonEdit->setText(argv[1]);
+      Preferences::PythonEnginePath(argv[1]);
+      d->refreshEngines();
+      d->showWindow();
+      QApplication::setActiveWindow(d);
+      QCoreApplication::sendPostedEvents(0, QEvent::DeferredDelete);   // the old settings go away on the next pass of the event loop
+      QDoubleSpinBox* setting(0);                         // a setting of the demo engine
+      for (QDoubleSpinBox* s : d->findChildren<QDoubleSpinBox*>()) if (s->isVisibleTo(d) && true) setting = s;
+      check(pythonEdit != 0 && setting != 0, "there is a Python field and a setting to move the focus between");
+      if (pythonEdit && setting) {
+         for (int i = 0; i < 3; ++i) {
+            pythonEdit->setFocus(Qt::MouseFocusReason);
+            QCoreApplication::processEvents();
+            QDoubleSpinBox* target(0);                  // look the widget up again each time, as a click would
+            for (QDoubleSpinBox* s : d->findChildren<QDoubleSpinBox*>()) if (s->isVisibleTo(d) && true) target = s;
+            if (!target) break;
+            target->setFocus(Qt::MouseFocusReason);     // the focus leaves the Python field here
+            QCoreApplication::processEvents();
+         }
+         check(true, "the focus moved from the Python field into a setting three times without a crash");
+      }
+   }
+
    // --- options that depend on others: the Functional field appears for "other" (PySCF) ---
    {
       QComboBox* engineCombo(0);
