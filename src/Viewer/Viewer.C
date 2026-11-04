@@ -1413,6 +1413,14 @@ void Viewer::keyPressEvent(QKeyEvent *e)
          m_viewerModel.toggleAxes(); 
          e->accept();
          break;
+      // The same as the Delete Selection button of the tool bar: the selected atoms and their
+      // bonds are removed, in a command that can be undone.  On a Mac the key marked delete is
+      // Backspace, the one with fn is Delete.
+      case Qt::Key_Delete:
+      case Qt::Key_Backspace:
+         m_viewerModel.deleteSelection();
+         e->accept();
+         break;
    }
 
    // Offload to the current handler
