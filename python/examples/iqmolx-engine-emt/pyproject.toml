@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "iqmolx-engine-emt"
+version = "0.1.0"
+description = "Example plugin for IQMolX: the effective medium theory (EMT) calculator of ASE"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "GPL-3.0-or-later" }
+# ASE is what this plugin adds to the environment.  The helper (iqmolx-engines) is already
+# there and is not listed, see PLUGINS.md.
+dependencies = ["ase"]
+
+# This is what makes the helper find the plugin: the group is "iqmolx_engines", the value
+# points at an Engine subclass.  The name on the left of the = is free.
+[project.entry-points."iqmolx_engines"]
+emt = "iqmolx_engine_emt:EmtEngine"
+
+[tool.setuptools.packages.find]
+where = ["src"]
