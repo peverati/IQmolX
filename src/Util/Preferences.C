@@ -432,15 +432,17 @@ void FFmpegPath(QString const& filePath)
 }
 
 
+// A new key: the first version stored every size, also its own default of 880 pixels, which
+// was taller than the free part of a screen with a large Dock
 QSize PythonEngineWindowSize()
 {
-   QVariant value(Get("PythonEngineWindowSize"));
-   return value.isNull() ? QSize(720, 880) : value.value<QSize>();
+   QVariant value(Get("PythonEngineWindowSizeChosen"));
+   return value.isNull() ? QSize() : value.value<QSize>();
 }
 
 void PythonEngineWindowSize(QSize const& size)
 {
-   Set("PythonEngineWindowSize", QVariant::fromValue(size));
+   Set("PythonEngineWindowSizeChosen", QVariant::fromValue(size));
 }
 
 

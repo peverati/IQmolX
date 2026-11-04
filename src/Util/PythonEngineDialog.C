@@ -130,7 +130,7 @@ PythonEngineDialog* PythonEngineDialog::instance()
 
 
 PythonEngineDialog::PythonEngineDialog(QWidget* parent) : QDialog(parent), 
-   m_running(false), m_started(false), m_listed(false)
+   m_running(false), m_started(false), m_listed(false), m_userSized(false)
 {
    setWindowTitle("Python Engines");
    setMinimumWidth(560);
@@ -281,16 +281,35 @@ PythonEngineDialog::PythonEngineDialog(QWidget* parent) : QDialog(parent),
    updateEnvironmentRow();
    showEngine();
 
-   QSize size(Preferences::PythonEngineWindowSize());
-   QRect screen(QApplication::desktop()->availableGeometry(this));
-   resize(qMax(size.width(), 600), qMin(qMax(size.height(), 600), screen.height() - 40));
+   // The size: the one the user chose, else 75% of the height of the screen.  Qt reports the free
+   // part of the screen without the whole of the Dock (with a large Dock and magnification, windows
+   // were taller than what is visible and the buttons hid behind it), so by default the window stays
+   // well clear of the bottom.
+   QSize chosen(Preferences::PythonEngineWindowSize());
+   m_userSized = chosen.isValid();
+   QRect full(QApplication::desktop()->screenGeometry(this));
+   sizeTo(qMax(m_userSized ? chosen.width() : 720, 600), 
+          qMax(m_userSized ? chosen.height() : qRound(0.75 * full.height()), 460));
+   fitToScreen();
 }
 
 
 void PythonEngineDialog::resizeEvent(QResizeEvent* event)
 {
    QDialog::resizeEvent(event);
-   if (isVisible()) Preferences::PythonEngineWindowSize(size());   // kept for the next session
+   // A size that is not the one the window gave itself was chosen by the user (dragging the edge)
+   if (isVisible() && event->size() != m_ownSize) {
+      m_userSized = true;
+      Preferences::PythonEngineWindowSize(event->size());         // kept for the next session
+   }
+}
+
+
+/// The window sizing itself, which is not a choice of the user
+void PythonEngineDialog::sizeTo(int width, int height)
+{
+   m_ownSize = QSize(width, height);
+   resize(width, height);
 }
 
 
@@ -767,17 +786,24 @@ void PythonEngineDialog::started(QString const& method, QString const& what,
 }
 
 
-/// Keeps the window on the part of the screen that is free of the menu bar and the Dock
+/// Keeps the window clear of the menu bar and the Dock.  Qt's idea of the free part of the screen
+/// does not include the whole Dock, so unless the user chose a size, the bottom edge also stays
+/// within the upper 80% of the screen (the largest Dock is about 150 points high).
 void PythonEngineDialog::fitToScreen()
 {
+   QRect full(QApplication::desktop()->screenGeometry(this));
    QRect screen(QApplication::desktop()->availableGeometry(this));
+   int bottomLimit(screen.bottom());
+   if (!m_userSized) bottomLimit = qMin(bottomLimit, full.top() + qRound(0.80 * full.height()));
+
    int decoration(frameGeometry().height() - height());          // the title bar, once the window is shown
    if (decoration <= 0) decoration = 30;
-   if (height() + decoration > screen.height()) resize(width(), screen.height() - decoration);
+   int maxHeight(bottomLimit - screen.top() + 1 - decoration);
+   if (height() > maxHeight) sizeTo(width(), maxHeight);
 
    QRect frame(frameGeometry());
    int x(frame.left()), y(frame.top());
-   if (frame.bottom() > screen.bottom()) y = screen.bottom() - frame.height() + 1;
+   if (frame.bottom() > bottomLimit) y = bottomLimit - frame.height() + 1;
    if (frame.right() > screen.right()) x = screen.right() - frame.width() + 1;
    x = qMax(x, screen.left());
    y = qMax(y, screen.top());
@@ -792,11 +818,12 @@ void PythonEngineDialog::showWindow()
       activateWindow();
       return;
    }
+   bool const wasOpen(isVisible());
    setRunning(false);
    updateEnvironmentRow();
    setWindowState(windowState() & ~Qt::WindowMinimized);
    showNormal();
-   fitToScreen();
+   if (!wasOpen) fitToScreen();
    raise();
    activateWindow();
    if (!m_listed) refreshEngines();

@@ -22,6 +22,7 @@
 #include <QLineEdit>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QResizeEvent>
 #include <QSettings>
 #include <QSpinBox>
 #include <QStandardPaths>
@@ -162,6 +163,9 @@ int main(int argc, char** argv)
                .arg(d->minimumSizeHint().height()).arg(screen.height()));
          check(screen.contains(d->frameGeometry().bottomLeft()) && d->frameGeometry().bottom() <= screen.bottom(),
             "the whole window is on the screen");
+         QRect full(QApplication::desktop()->screenGeometry(d));
+         check(d->frameGeometry().bottom() <= full.top() + qRound(0.80 * full.height()),
+            "the window stays in the upper 80% of the screen, clear of a large Dock");
          QPushButton* run(button(d, "Run"));
          check(run && screen.contains(run->mapToGlobal(run->rect().bottomRight())), 
             "the Run button is on the screen, not behind the Dock");
@@ -192,10 +196,12 @@ int main(int argc, char** argv)
    {
       QPlainTextEdit* output(d->findChild<QPlainTextEdit*>());
       check(output && output->minimumHeight() >= 120, "the output area has room to be read");
-      d->resize(800, 760);
       QCoreApplication::processEvents();
-      QSize stored(Preferences::PythonEngineWindowSize());
-      check(stored == d->size(), QString("the window size is stored (%1x%2, window %3x%4)").arg(stored.width()).arg(stored.height()).arg(d->width()).arg(d->height()));
+      check(!Preferences::PythonEngineWindowSize().isValid(), 
+         "the size the window gave itself (at the start, when shown) is not stored as the user's choice");
+      d->resize(800, 700);                                  // the user dragging the window
+      QCoreApplication::processEvents();
+      check(Preferences::PythonEngineWindowSize() == d->size(), "the size the user chose is stored");
       check(d->width() >= 600 && d->height() >= 600, "the window is not small");
    }
 

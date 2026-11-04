@@ -118,7 +118,8 @@ namespace Preferences {
    QByteArray XtbWindowGeometry();
    void       XtbWindowGeometry(QByteArray const&);
 
-   // Size of the Python Engines window, kept from one session to the next
+   // Size of the Python Engines window that the user chose by dragging, kept from one session to
+   // the next.  Invalid (a null size) if the user never did.
    QSize PythonEngineWindowSize();
    void  PythonEngineWindowSize(QSize const&);
 

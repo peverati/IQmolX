@@ -129,6 +129,7 @@ namespace IQmol {
 
          void setRunning(bool running);
          void fitToScreen();
+         void sizeTo(int width, int height);
          QString effectivePython() const;
          void updateEnvironmentRow();
          bool runSetup(QString const& title, 
@@ -170,6 +171,8 @@ namespace IQmol {
          bool           m_running;
          bool           m_started;       // set by started(), to detect that nothing was run
          bool           m_listed;        // the engines were requested at least once
+         bool           m_userSized;     // the user dragged the window to a size of their own
+         QSize          m_ownSize;       // the size the window gave itself last
          QPointer<QWidget> m_previous;   // window that was active before we opened
    };
 
