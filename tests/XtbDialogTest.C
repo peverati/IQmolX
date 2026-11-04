@@ -382,6 +382,12 @@ int main(int argc, char** argv)
             check(optionsEdit->isVisible() && workEdit->isVisible() && orbitals->isVisible(), "options, directory and orbitals are available");
             check(method && !method->isVisible(), "there is no choice of method: it is g-xTB");
             check(note->text().contains("chemrxiv-2025-bjxvt"), "the warning has the citation");
+            // XTB_TEST_SCREENSHOT=<file.png> saves a picture of the window, to look at it
+            if (!qEnvironmentVariable("XTB_TEST_SCREENSHOT").isEmpty()) {
+               d->resize(700, d->sizeHint().height());
+               QApplication::processEvents();
+               d->grab().save(qEnvironmentVariable("XTB_TEST_SCREENSHOT"));
+            }
             gxtbEdit->setText("/opt/gxtb/bin/xtb");
             gxtbEdit->editingFinished();
             check(Preferences::XtbGxtbPath() == "/opt/gxtb/bin/xtb", "the g-xTB program path is stored");

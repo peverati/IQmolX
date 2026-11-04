@@ -42,7 +42,7 @@ namespace {
 // The release of https://github.com/grimme-lab/g-xtb that is fetched: the binaries folder at
 // one commit (v2.0.1, 14 May 2026), so that the sums below stay valid when the repository changes.
 char const* const s_commit  = "23f81c2db64fa4272c25b86f8776ce862aeb59e2";
-char const* const s_release = "g-xTB v2.0.1 (xtb 6.7.1, build of 14 May 2026)";
+char const* const s_release = "g-xTB v2.0.1, xtb 6.7.1 build of 14 May 2026";
 
 struct Archive { char const* name; char const* sha256; qint64 bytes; };
 
