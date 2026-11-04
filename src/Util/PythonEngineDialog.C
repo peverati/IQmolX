@@ -822,6 +822,14 @@ void PythonEngineDialog::showWindow()
    setRunning(false);
    updateEnvironmentRow();
    setWindowState(windowState() & ~Qt::WindowMinimized);
+   if (!wasOpen) {
+      // Opened for the first time: centred over the IQmol window and at the top of the free screen,
+      // which is where a tall window can be kept clear of the Dock
+      QWidget* anchor(QApplication::activeWindow());
+      QRect around(anchor && anchor != this ? anchor->frameGeometry() 
+                                            : QApplication::desktop()->availableGeometry(this));
+      move(around.center().x() - width() / 2, QApplication::desktop()->availableGeometry(this).top());
+   }
    showNormal();
    if (!wasOpen) fitToScreen();
    raise();
