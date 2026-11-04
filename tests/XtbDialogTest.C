@@ -97,14 +97,15 @@ int main(int argc, char** argv)
       check(Preferences::XtbMethod() == "GFN2-xTB" && Preferences::XtbSolvent().isEmpty(),
          "method and solvent of an earlier session are replaced by the defaults");
       QComboBox* defaultBackend(comboWith(d, "program"));
-      check(defaultBackend && defaultBackend->currentData() == (defaultBackend->count() > 1 ? "library" : "program"),
+      bool const haveLibrary(defaultBackend && defaultBackend->findData("library") >= 0);
+      check(defaultBackend && defaultBackend->currentData() == (haveLibrary ? "library" : "program"),
          "the window starts with the built-in library when there is one");
       QCheckBox* molecule(0);
       for (QCheckBox* c : d->findChildren<QCheckBox*>()) if (c->text().contains("charge and spin")) molecule = c;
       check(molecule && molecule->isChecked(), "the charge and spin of the molecule are used by default");
       QDoubleSpinBox* temp(d->findChild<QDoubleSpinBox*>());
       d->show();
-      check(temp && (defaultBackend->count() > 1) == !temp->isVisible(),
+      check(temp && haveLibrary == !temp->isVisible(),
          "the electronic temperature is only shown for the xtb program");
    }
    Preferences::XtbBackend("program");
@@ -355,11 +356,45 @@ int main(int argc, char** argv)
          check(Preferences::XtbOptions() == "--etemp 500 --verbose", "the options are stored");
          check(Preferences::XtbWorkDir() == "/tmp/xtb-work", "the working directory is stored");
          check(Preferences::XtbPath() == "/opt/xtb/bin/xtb", "the program path is stored");
-         if (backend && backend->count() > 1) {
-            backend->setCurrentIndex(1);   // library
+         if (backend && backend->findData("library") >= 0) {
+            backend->setCurrentIndex(backend->findData("library"));
             check(!programEdit->isVisible() && !optionsEdit->isVisible() && !workEdit->isVisible() && !orbitals->isVisible(),
                "the fields are hidden for the library");
             backend->setCurrentIndex(0);
+         }
+
+         // g-xTB, the development version, is a backend of its own
+         check(backend && backend->findData("gxtb") >= 0, "g-xTB is one of the backends");
+         if (backend && backend->findData("gxtb") >= 0) {
+            QComboBox* method(comboWith(d, "GFN1-xTB"));
+            QLineEdit* gxtbEdit(0);
+            for (QLineEdit* e : d->findChildren<QLineEdit*>()) if (e->placeholderText().contains("downloaded g-xTB")) gxtbEdit = e;
+            QPushButton* download(0);
+            for (QPushButton* b : d->findChildren<QPushButton*>()) if (b->text().startsWith("Download")) download = b;
+            QLabel* note(0);
+            for (QLabel* l : d->findChildren<QLabel*>()) if (l->text().contains("preliminary development version")) note = l;
+            check(gxtbEdit && download && note, "the g-xTB program field, the Download button and the warning exist");
+            check(gxtbEdit && !gxtbEdit->isVisible() && note && !note->isVisible(), "they are hidden for the xtb program");
+            backend->setCurrentIndex(backend->findData("gxtb"));
+            check(Preferences::XtbBackend() == "gxtb", "the g-xTB backend is stored");
+            check(gxtbEdit->isVisible() && download->isVisible() && note->isVisible(), "the g-xTB fields and the warning are shown");
+            check(!programEdit->isVisible(), "the xtb program field is hidden for g-xTB");
+            check(optionsEdit->isVisible() && workEdit->isVisible() && orbitals->isVisible(), "options, directory and orbitals are available");
+            check(method && !method->isVisible(), "there is no choice of method: it is g-xTB");
+            check(note->text().contains("chemrxiv-2025-bjxvt"), "the warning has the citation");
+            gxtbEdit->setText("/opt/gxtb/bin/xtb");
+            gxtbEdit->editingFinished();
+            check(Preferences::XtbGxtbPath() == "/opt/gxtb/bin/xtb", "the g-xTB program path is stored");
+            QComboBox* model(comboWith(d, "cosmo"));
+            check(model && model->isVisible(), "the solvation model (GBE, COSMO) is shown for g-xTB");
+            if (model) {
+               model->setCurrentIndex(model->findData("cosmo"));
+               check(Preferences::XtbGxtbSolvation() == "cosmo", "the solvation model is stored");
+               model->setCurrentIndex(model->findData("gbe"));
+            }
+            backend->setCurrentIndex(0);
+            check(!gxtbEdit->isVisible() && method && method->isVisible(), "back to the xtb program: g-xTB fields hidden, method shown");
+            Preferences::XtbGxtbPath(QString());
          }
          Preferences::XtbOptions(QString()); Preferences::XtbWorkDir(QString()); Preferences::XtbPath(QString());
       }

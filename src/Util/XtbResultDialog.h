@@ -89,6 +89,8 @@ namespace IQmol {
          void saveSettings();
       void updateProgramFields();
       void browseForProgram();
+      void browseForGxtb();
+      void downloadGxtb();
       void browseForWorkDir();
 
       protected:
@@ -120,6 +122,11 @@ namespace IQmol {
    QWidget*        m_optionsRow;
    QWidget*        m_workDirRow;
    QLineEdit*      m_programEdit;
+   QWidget*        m_gxtbRow;        // the g-xTB development backend: program, download, solvation model
+   QLineEdit*      m_gxtbEdit;
+   QPushButton*    m_gxtbDownloadButton;
+   QComboBox*      m_gxtbModelCombo;
+   QLabel*         m_gxtbNote;
    QLineEdit*      m_optionsEdit;
    QLineEdit*      m_workDirEdit;
          double          m_temperature;    // used by the current / last calculation

@@ -548,6 +548,30 @@ void XtbPath(QString const& filePath)
 }
 
 
+QString XtbGxtbPath()
+{
+   QVariant value(Get("XtbGxtbPath"));
+   return value.isNull() ? QString() : value.value<QString>();
+}
+
+void XtbGxtbPath(QString const& filePath) 
+{
+   Set("XtbGxtbPath", QVariant::fromValue(filePath));
+}
+
+
+QString XtbGxtbSolvation()
+{
+   QVariant value(Get("XtbGxtbSolvation"));
+   return value.isNull() ? QString("gbe") : value.value<QString>();
+}
+
+void XtbGxtbSolvation(QString const& model) 
+{
+   Set("XtbGxtbSolvation", QVariant::fromValue(model));
+}
+
+
 QString XtbOptions()
 {
    QVariant value(Get("XtbOptions"));

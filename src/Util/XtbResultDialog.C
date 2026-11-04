@@ -23,6 +23,7 @@
 
 #include "XtbResultDialog.h"
 #include "FileDialog.h"
+#include "GxtbSetup.h"
 #include "Preferences.h"
 #include <QApplication>
 #include <QCheckBox>
@@ -142,10 +143,14 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
    m_backendCombo->addItem("Built-in library (libxtb)", "library");
    m_backendCombo->setItemData(1, "Run xtb inside IQmol, with IQmol's own geometry optimizer", 
       Qt::ToolTipRole);
-   form->addRow("Backend:", m_backendCombo);
-#else
-   m_backendCombo->hide();   // IQmol was built without libxtb
 #endif
+   // g-xTB is a development version of the xtb program with one more method; it is a backend of 
+   // its own so that the xtb program above is never replaced by it
+   m_backendCombo->addItem("g-xTB (development version)", "gxtb");
+   m_backendCombo->setItemData(m_backendCombo->count() - 1, "Run the preliminary g-xTB method with the "
+      "g-xTB build of the xtb program,\nwhich is downloaded from the g-xTB repository on request", 
+      Qt::ToolTipRole);
+   form->addRow("Backend:", m_backendCombo);
 
    // Settings of the xtb program, only shown when it is the selected backend
    auto fileRow = [this](QLineEdit*& edit, char const* slot, QString const& tip) {
@@ -165,6 +170,43 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
       "otherwise xtb is looked for in $XTB_PATH and the PATH.");
    m_programEdit->setPlaceholderText("path of the xtb executable");
    form->addRow("xtb program:", m_programRow);
+
+   // The g-xTB build of the xtb program: where it is, a button to fetch it, and its solvation model
+   m_gxtbRow = new QWidget(m_settings);
+   QHBoxLayout* gxtbLayout(new QHBoxLayout(m_gxtbRow));
+   gxtbLayout->setContentsMargins(0, 0, 0, 0);
+   m_gxtbEdit = new QLineEdit(m_gxtbRow);
+   m_gxtbEdit->setPlaceholderText("empty: the downloaded g-xTB");
+   m_gxtbEdit->setToolTip("The xtb executable of a g-xTB build.  If empty, the copy that Download fetched is used.");
+   QPushButton* gxtbBrowse(new QPushButton("Browse...", m_gxtbRow));
+   m_gxtbDownloadButton = new QPushButton("Download", m_gxtbRow);
+   gxtbLayout->addWidget(m_gxtbEdit, 1);
+   gxtbLayout->addWidget(gxtbBrowse);
+   gxtbLayout->addWidget(m_gxtbDownloadButton);
+   connect(gxtbBrowse, SIGNAL(clicked()), this, SLOT(browseForGxtb()));
+   connect(m_gxtbDownloadButton, SIGNAL(clicked()), this, SLOT(downloadGxtb()));
+   form->addRow("g-xTB program:", m_gxtbRow);
+
+   m_gxtbModelCombo = new QComboBox(m_settings);
+   m_gxtbModelCombo->addItem("GBE (generalized Born)", "gbe");
+   m_gxtbModelCombo->addItem("COSMO (ddCOSMO)", "cosmo");
+   m_gxtbModelCombo->setToolTip("The implicit solvation model that is used with g-xTB when a solvent is chosen.\n"
+      "Both are electrostatic only; a solvation model made for g-xTB is still being developed.\n"
+      "GBE can be unstable in geometry optimizations, and the COSMO gradient is not consistent.");
+   form->addRow("Solvation model:", m_gxtbModelCombo);
+
+   m_gxtbNote = new QLabel(m_settings);
+   m_gxtbNote->setWordWrap(true);
+   m_gxtbNote->setTextFormat(Qt::RichText);
+   m_gxtbNote->setTextInteractionFlags(Qt::TextBrowserInteraction);
+   m_gxtbNote->setOpenExternalLinks(true);
+   m_gxtbNote->setStyleSheet("QLabel { background: #fff3cd; color: #4d3b00; border: 1px solid #d9b94b; padding: 5px; }");
+   m_gxtbNote->setText("<b>g-xTB is a preliminary development version</b> (" + Calc::GxtbSetup::release() 
+      + ").  Results change between releases and differ from the preprint; not every xtb feature "
+      "works with it.  Please cite T. Froitzheim, M. M&uuml;ller, A. Hansen, S. Grimme, ChemRxiv 2025, "
+      "<a href=\"https://doi.org/10.26434/chemrxiv-2025-bjxvt\">doi 10.26434/chemrxiv-2025-bjxvt</a>.  "
+      "Code: <a href=\"https://github.com/grimme-lab/g-xtb\">github.com/grimme-lab/g-xtb</a>.");
+   form->addRow(m_gxtbNote);
 
    m_optionsRow = new QWidget(m_settings);
    QHBoxLayout* optionsLayout(new QHBoxLayout(m_optionsRow));
@@ -199,7 +241,7 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
       "Only with the xtb program (not the built-in library) and not for GFN-FF.\n"
       "Switch this off for very large molecules.");
    form->addRow("Orbitals:", m_orbitalsCheck);
-   for (QWidget* row : QList<QWidget*>({ m_programRow, m_optionsRow, m_workDirRow })) {
+   for (QWidget* row : QList<QWidget*>({ m_programRow, m_gxtbRow, m_optionsRow, m_workDirRow })) {
        row->setMinimumWidth(440);   // paths are long; the form would keep the fields small
    }
 
@@ -277,6 +319,8 @@ XtbResultDialog::XtbResultDialog(QWidget* parent) : QDialog(parent), m_charge(0)
    connect(m_temperatureSpin, SIGNAL(valueChanged(double)), this, SLOT(saveSettings()));
    connect(m_orbitalsCheck, SIGNAL(toggled(bool)), this, SLOT(saveSettings()));
    connect(m_programEdit, SIGNAL(editingFinished()), this, SLOT(saveSettings()));
+   connect(m_gxtbEdit, SIGNAL(editingFinished()), this, SLOT(saveSettings()));
+   connect(m_gxtbModelCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(saveSettings()));
    connect(m_optionsEdit, SIGNAL(editingFinished()), this, SLOT(saveSettings()));
    connect(m_workDirEdit, SIGNAL(editingFinished()), this, SLOT(saveSettings()));
    connect(m_backendCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(updateProgramFields()));
@@ -317,7 +361,7 @@ void XtbResultDialog::loadSettings()
 
    // do not store what is being loaded
    QList<QComboBox*> combos;
-   combos << m_jobCombo << m_methodCombo << m_solventCombo << m_backendCombo;
+   combos << m_jobCombo << m_methodCombo << m_solventCombo << m_backendCombo << m_gxtbModelCombo;
    for (QComboBox* combo : combos) combo->blockSignals(true);
    m_temperatureSpin->blockSignals(true);
    m_orbitalsCheck->blockSignals(true);
@@ -327,6 +371,8 @@ void XtbResultDialog::loadSettings()
    select(m_solventCombo, Preferences::XtbSolvent());
    select(m_backendCombo, Preferences::XtbBackend());
    m_programEdit->setText(Preferences::XtbPath());
+   select(m_gxtbModelCombo, Preferences::XtbGxtbSolvation());
+   m_gxtbEdit->setText(Preferences::XtbGxtbPath());
    m_optionsEdit->setText(Preferences::XtbOptions());
    m_workDirEdit->setText(Preferences::XtbWorkDir());
    m_temperatureSpin->setValue(Preferences::XtbElectronicTemperature());
@@ -348,6 +394,8 @@ void XtbResultDialog::saveSettings()
    Preferences::XtbElectronicTemperature(m_temperatureSpin->value());
    Preferences::XtbOrbitals(m_orbitalsCheck->isChecked());
    Preferences::XtbPath(m_programEdit->text().trimmed());
+   Preferences::XtbGxtbPath(m_gxtbEdit->text().trimmed());
+   Preferences::XtbGxtbSolvation(m_gxtbModelCombo->currentData().toString());
    Preferences::XtbOptions(m_optionsEdit->text().trimmed());
    Preferences::XtbWorkDir(m_workDirEdit->text().trimmed());
 }
@@ -356,15 +404,32 @@ void XtbResultDialog::saveSettings()
 // The program, its options and its directory only matter when the program is the backend
 void XtbResultDialog::updateProgramFields()
 {
-   bool program(m_backendCombo->currentData().toString() != "library");
+   QString backend(m_backendCombo->currentData().toString());
+   bool const gxtb(backend == "gxtb");
+   bool const program(backend == "program");
    QFormLayout* form(qobject_cast<QFormLayout*>(m_settings->layout()));
    if (!form) return;
-   QList<QWidget*> rows;
-   rows << m_programRow << m_optionsRow << m_workDirRow << m_orbitalsCheck << m_temperatureSpin;
-   for (QWidget* row : rows) {
-       row->setVisible(program);
-       if (QWidget* label = form->labelForField(row)) label->setVisible(program);
-   }
+   auto show = [form](QWidget* row, bool visible) {
+      row->setVisible(visible);
+      if (QWidget* label = form->labelForField(row)) label->setVisible(visible);
+   };
+   // the xtb program and g-xTB both run a program, with its options, directory and orbitals
+   show(m_programRow, program);
+   show(m_temperatureSpin, program);
+   show(m_optionsRow, program || gxtb);
+   show(m_workDirRow, program || gxtb);
+   show(m_orbitalsCheck, program || gxtb);
+   // g-xTB is its own method, with its own program and solvation models
+   show(m_gxtbRow, gxtb);
+   show(m_gxtbModelCombo, gxtb);
+   m_gxtbNote->setVisible(gxtb);
+   show(m_methodCombo, !gxtb);
+   m_solventCombo->setToolTip(gxtb ? "Implicit solvent (GBE or COSMO model of g-xTB)" : "Implicit solvent (ALPB model)");
+   m_gxtbDownloadButton->setToolTip("Downloads " + Calc::GxtbSetup::release() + " from github.com/grimme-lab/g-xtb ("
+      + (Calc::GxtbSetup::archiveBytes() > 0 ? "about " + QString::number(Calc::GxtbSetup::archiveBytes() / 1000000) + " MB" : QString("a few tens of MB"))
+      + ") and checks its SHA-256 sum.\nIt is kept in " + Calc::GxtbSetup::defaultFolder() + ".  Nothing is downloaded unless you press this.");
+   m_gxtbDownloadButton->setEnabled(!Calc::GxtbSetup::archiveName().isEmpty());
+   m_gxtbDownloadButton->setText(Calc::GxtbSetup::defaultExecutable().isEmpty() ? "Download" : "Download again");
 }
 
 
@@ -376,6 +441,53 @@ void XtbResultDialog::browseForProgram()
       m_programEdit->setText(path);
       saveSettings();
    }
+}
+
+
+void XtbResultDialog::browseForGxtb()
+{
+   QString start(m_gxtbEdit->text().isEmpty() ? QDir::homePath() : m_gxtbEdit->text());
+   QString path(FileDialog::getOpenFileName(this, "Select the xtb executable of a g-xTB build", start));
+   if (!path.isEmpty()) {
+      m_gxtbEdit->setText(path);
+      saveSettings();
+   }
+}
+
+
+/// Fetches the g-xTB build of the xtb program.  The output of the transfer is shown in the output
+/// area and Cancel works, like for a calculation.
+void XtbResultDialog::downloadGxtb()
+{
+   m_title->setText("Downloading g-xTB");
+   m_summary->setText("From github.com/grimme-lab/g-xtb, " + Calc::GxtbSetup::release() + ".  This can take a minute.");
+   m_output->clear();
+   setRunning(true);
+   QApplication::processEvents();
+
+   Calc::GxtbSetup setup;
+   setup.setInteractive(true);
+   setup.setProgressCallback([this](QString const& text) { appendOutput(text); });
+   QMetaObject::Connection cancelConnection(connect(this, &XtbResultDialog::cancelRequested, 
+      [&setup]() { setup.cancel(); }));
+   QString error;
+   bool ok(setup.download(error));
+   disconnect(cancelConnection);
+   setRunning(false);
+
+   if (ok) {
+      m_title->setText("g-xTB downloaded");
+      m_summary->setText("The g-xTB program is in " + Calc::GxtbSetup::defaultFolder().toHtmlEscaped() + ".");
+      m_gxtbEdit->clear();      // use the downloaded copy
+      saveSettings();
+   }else if (setup.cancelled()) {
+      m_title->setText("Download cancelled");
+      m_summary->setText("Nothing was installed.");
+   }else {
+      m_title->setText("Download failed");
+      m_summary->setText(error.toHtmlEscaped().replace("\n", "<br>"));
+   }
+   updateProgramFields();
 }
 
 
@@ -418,8 +530,8 @@ void XtbResultDialog::started(QString const& method, QString const& what,
    m_charge = charge;
    m_multiplicity = multiplicity;
    // the electronic temperature is only used by the xtb program
-   m_temperature = (m_backendCombo->currentData().toString() == "library") ? -1.0 
-      : m_temperatureSpin->value();
+   QString backend(m_backendCombo->currentData().toString());
+   m_temperature = (backend == "library" || backend == "gxtb") ? -1.0 : m_temperatureSpin->value();
    if (m_moleculeValues->isChecked()) {
       m_chargeSpin->setValue(charge);
       m_multiplicitySpin->setValue(multiplicity);

@@ -2127,6 +2127,10 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
    // xtb window says so when nothing at all was calculated.
    if (atoms.isEmpty()) return;
 
+   // g-xTB is a backend of its own (the development build of the xtb program) with one method
+   bool const gxtb(Preferences::XtbBackend() == "gxtb" && method != Calc::XtbProcess::GFNFF);
+   if (gxtb) method = Calc::XtbProcess::GXTB;
+
    Calc::Input input;
    input.charge       = totalCharge();
    input.multiplicity = multiplicity();
@@ -2138,8 +2142,12 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
    dialog->chargeAndSpin(input.charge, input.multiplicity);
 
    // Used in the window title and the energy label
-   QString label(methodName);
-   if (!input.solvent.isEmpty()) label += "/ALPB(" + input.solvent + ")";
+   QString label(gxtb ? QString("g-xTB") : methodName);
+   if (!input.solvent.isEmpty()) {
+      label += gxtb ? (Preferences::XtbGxtbSolvation() == "cosmo" ? "/COSMO(" : "/GBE(") 
+                    : "/ALPB(";
+      label += input.solvent + ")";
+   }
 
    AtomList::iterator iter;
    for (iter = atoms.begin(); iter != atoms.end(); ++iter) {
@@ -2175,9 +2183,10 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
    }
 #endif
    Calc::XtbProcess* program(0);
-   if (useLibrary) input.electronicTemperature = -1.0;   // not used by libxtb: its default
+   if (useLibrary || gxtb) input.electronicTemperature = -1.0;   // not used by libxtb or g-xTB: their default
    if (!xtb) {
-      program = new Calc::XtbProcess(Preferences::XtbPath(), method);
+      program = new Calc::XtbProcess(gxtb ? Preferences::XtbGxtbPath() : Preferences::XtbPath(), method);
+      if (gxtb) program->setSolvationModel(Preferences::XtbGxtbSolvation());
       program->setExtraArguments(QProcess::splitCommand(Preferences::XtbOptions()));
       program->setWorkingDirectory(Preferences::XtbWorkDir());
       program->setKeepTemporaryDirectory(true);   // the xtb window can save the files
@@ -2201,7 +2210,7 @@ void Molecule::runXtb(QString const& methodName, QString const& job)
    // Keep the GUI alive and show the progress in the xtb window
    QString subject(text().isEmpty() ? "the molecule" : text());
    subject += " (" + QString::number(atoms.size()) + " atoms)";
-   subject += useLibrary ? " using libxtb" : " using the xtb program";
+   subject += useLibrary ? " using libxtb" : (gxtb ? " using the g-xTB program" : " using the xtb program");
    xtb->setInteractive(true);
    xtb->setProgressCallback([dialog](QString const& chunk) { dialog->appendOutput(chunk); });
    QMetaObject::Connection cancelConnection(QObject::connect(dialog, 

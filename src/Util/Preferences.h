@@ -152,6 +152,13 @@ namespace Preferences {
    QString XtbPath();
    void    XtbPath(QString const&);
 
+   /// The xtb program of a g-xTB build (empty: the one that the window downloaded), and the
+   /// implicit solvation model used with it, "gbe" or "cosmo"
+   QString XtbGxtbPath();
+   void    XtbGxtbPath(QString const&);
+   QString XtbGxtbSolvation();
+   void    XtbGxtbSolvation(QString const&);
+
    // Extra command line options passed to the xtb program (e.g. "--etemp 500 --verbose")
    QString XtbOptions();
    void    XtbOptions(QString const&);
