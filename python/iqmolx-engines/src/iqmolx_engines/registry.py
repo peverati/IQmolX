@@ -62,11 +62,12 @@ def _entry_points():
 
 def engines():
     """Dict name -> Engine subclass.  Built-in names win over plugins (with a warning on stderr)."""
-    result = {}
-    for cls in _entry_points():
-        result[cls.name] = cls
-    for cls in _builtin():
+    # The built-in engines come first, so that an installed plugin does not become the default
+    # choice of the window; the plugins follow in the order of their names.
+    result = {cls.name: cls for cls in _builtin()}
+    for cls in sorted(_entry_points(), key=lambda c: c.name):
         if cls.name in result:
             _warn("the plugin engine '%s' is hidden by the built-in engine of that name" % cls.name)
-        result[cls.name] = cls
+        else:
+            result[cls.name] = cls
     return result

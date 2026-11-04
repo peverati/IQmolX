@@ -437,6 +437,44 @@ int main(int argc, char** argv)
       if (environment.contains(".qttest") && environment.endsWith("/python")) QDir(environment).removeRecursively();
    }
 
+   // PYDIALOG_SHOTS=<folder> saves pictures of the window for the Help pages (needs the plugin of
+   // the tutorial on PYTHONPATH): the window with the generic ASE engine and with the EMT engine, and
+   // the dialog of Install Plugin
+   QString const shots(qEnvironmentVariable("PYDIALOG_SHOTS"));
+   if (!shots.isEmpty()) {
+      Preferences::PythonEnginePath(argv[1]);
+      if (pythonEdit) pythonEdit->setText(argv[1]);
+      qputenv("IQMOLX_ENGINES_PATH", argv[2]);
+      d->refreshEngines();
+      d->showWindow();
+      auto engine = [&](QString const& name) {
+         for (QComboBox* c : d->findChildren<QComboBox*>()) {
+             int i(c->findData(name));
+             if (i >= 0) { c->setCurrentIndex(i); return true; }
+         }
+         return false;
+      };
+      auto picture = [&](QString const& file) {
+         QApplication::processEvents();
+         d->resize(d->width(), d->sizeHint().height());
+         QApplication::processEvents();
+         d->grab().save(shots + "/" + file);
+      };
+      if (engine("ase")) picture("PluginWindowAse.png");
+      if (engine("emt")) picture("PluginWindowEmt.png");
+      QTimer::singleShot(500, [&]() {
+         for (QWidget* w : QApplication::topLevelWidgets()) {
+             if (w != d && w->isVisible() && w->windowTitle().startsWith("Install an engine plugin")) {
+                for (QLineEdit* e : w->findChildren<QLineEdit*>()) e->setText("/Users/you/iqmolx-engine-emt");
+                QApplication::processEvents();
+                w->grab().save(shots + "/PluginInstall.png");
+                w->close();
+             }
+         }
+      });
+      QMetaObject::invokeMethod(d, "installPlugin", Qt::DirectConnection);
+   }
+
    std::printf("\n%s\n", s_failures ? "FAILED" : "all tests passed");
    return s_failures ? 1 : 0;
 }

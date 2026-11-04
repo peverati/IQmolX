@@ -112,6 +112,19 @@ def test_registry_adds_a_plugin(monkeypatch):
     assert registry.engines()["lj"] is LennardJonesEngine
 
 
+def test_plugins_are_listed_after_the_built_in_engines(monkeypatch):
+    class Zeta(LennardJonesEngine):
+        name = "zeta"
+
+    class Alpha(LennardJonesEngine):
+        name = "alpha"
+
+    with_plugins(monkeypatch, [FakeEntryPoint("z", Zeta), FakeEntryPoint("a", Alpha)])
+    names = list(registry.engines())
+    assert names[0] == "demo"                            # a plugin is never the first, default, engine
+    assert names[-2:] == ["alpha", "zeta"]               # after the built-in ones, by name
+
+
 def test_registry_ignores_broken_plugins_and_says_why(monkeypatch, capsys):
     class NoName(LennardJonesEngine):
         name = ""
