@@ -14,7 +14,8 @@
    energies, vibrational frequencies and molecular orbitals, with or without an
    implicit solvent.  The results are added to the molecule and can be
    examined with the usual IQMolX tools.  The force field GFN-FF is also available
-   for <a href="#gfnff">building and minimizing</a> structures.
+   for <a href="#gfnff">building and minimizing</a> structures.  A development
+   version of the newer method <a href="#gxtb">g-xTB</a> can be added as a backend of its own.
 
    <p> All settings are collected in the xtb window, which is opened with the
    <img src="images/buttons/Xtb.png"> button on the
@@ -183,48 +184,112 @@
    <br>
    <h3><a name="gxtb"></a>g-xTB (Development Version)</h3>
 
-   <p> g-xTB is a new general-purpose semiempirical method of the Grimme group that
-   approximates &omega;B97M-V/def2-TZVPPD results for the elements up to Z = 103.
-   It is a <b>preliminary version</b>: the repository
+   <h4>What it is</h4>
+
+   <p> g-xTB is a new semiempirical method of the Grimme group, the authors of GFN2-xTB.
+   Like GFN2-xTB it is fast enough to run on a laptop, but it is built to come much
+   closer to the results of a good density functional calculation
+   (&omega;B97M-V/def2-TZVPPD) for energies, geometries and charges, and it covers
+   the elements up to Z = 103.  It is a way to get a better answer than GFN2-xTB for the
+   same kind of molecule, at a higher cost, before deciding whether a calculation with
+   a real quantum chemistry program is needed.
+
+   <p> It is a <b>preliminary version</b>.  The repository
    <a href="https://github.com/grimme-lab/g-xtb">grimme-lab/g-xtb</a> says that it
-   is for testing, that results change between releases and differ from the
-   preprint, and that not every xtb feature works with it.  For this reason it
-   is a backend of its own, <i>g-xTB (development version)</i>, and the normal xtb
-   program and library are never replaced by it.
+   is released for testing, that its results change between releases and differ from
+   the preprint, and that not every xtb feature works with it.  For this reason IQMolX
+   keeps it apart: it is a backend of its own, <i>g-xTB (development version)</i>, and the
+   normal xtb program and library are never replaced by it.  Treat the numbers as
+   provisional, do not mix energies of different g-xTB releases, and do not compare
+   g-xTB energies with GFN2-xTB energies (they are on different scales).
 
-   <p> Choose the backend and press <b>Download</b>.  IQMolX then fetches the
-   g-xTB build of xtb (about 41 MB, from the repository on GitHub, one fixed
-   release) into its application data folder, checks its SHA-256 sum before it
-   unpacks it, and uses it from then on.  Nothing is downloaded unless you press
-   the button.  The program is not part of IQMolX, because the license of its
-   parameters is not stated in the repository.  If you already have a g-xTB
-   build, choose its xtb program with <b>Browse</b> instead.  The plain xtb of
-   the other backend does not have g-xTB.
+   <h4>Using it, step by step</h4>
 
-   <p> What works: single point energies, geometry optimizations, vibrational
-   frequencies with IR intensities, molecular orbitals, charge and spin
-   multiplicity, and the working directory and extra options of the xtb program.
-   What is different:
+   <p><center><img src="images/XtbGxtb.png" width="470" /></center></p>
+
+   <ol>
+      <li> In the xtb window choose <i>g-xTB (development version)</i> as the
+           <b>Backend</b>.  The window changes: there is no choice of method any more
+           (it is g-xTB), the electronic temperature is gone, and the fields for the
+           g-xTB program, its solvation model and a yellow note appear. <br>
+      <li> Press <b>Download</b>.  IQMolX fetches the g-xTB build of xtb (about 41
+           MB) from the repository on GitHub, checks its SHA-256 sum against the one it
+           was made for, unpacks it and says where it is.  This needs the internet, and
+           takes about a minute.  Nothing is downloaded unless you press the button.
+           After that the field can stay empty: the downloaded copy is used. <br>
+      <li> Choose the job (single point, optimization, frequencies, or both) and, if you
+           want, a solvent and its model, and press <b>Run</b>.  The output of the
+           program is shown in the window like for any xtb calculation, and the results
+           (the optimized geometry, the frequencies and the orbitals) are added to the
+           molecule in the same way.
+   </ol>
+
+   <p> The download goes to the application data folder of IQMolX
+   (<tt>~/Library/Application Support/IQmol/g-xtb</tt> on a Mac).  <b>Download again</b>
+   replaces it by the release that your IQMolX was made for.  To remove g-xTB, delete
+   that folder.  It is not part of the IQMolX download, because the license of its
+   parameters is not stated in the repository.
+
+   <p> If you already have a g-xTB build, choose its xtb program with <b>Browse</b>.  The
+   program that came in a browser download may be blocked by macOS the first time; run
+   <tt>xattr -dr com.apple.quarantine</tt> on its folder once in a terminal.  The plain xtb of the
+   other backends does not have g-xTB, so it cannot be used here.
+
+   <h4>What works and what is different</h4>
+
+   <p> Single point energies, geometry optimizations, vibrational frequencies with IR
+   intensities, molecular orbitals, charge and spin multiplicity, and the working
+   directory and extra options of the xtb program all work.  What is different from
+   GFN2-xTB:
    <ul>
-      <li> There is no choice of method (the window shows g-xTB only) and no
-           electronic temperature. <br>
-      <li> The implicit solvents are not the ALPB ones: choose
-           <i>GBE</i> (generalized Born) or <i>COSMO</i> (ddCOSMO) as the
-           solvation model.  Both are electrostatic only, and a solvation model made for
+      <li> <b>It is slower.</b>  On a Mac with an M-series chip, a 24-atom molecule
+           (caffeine) took 0.08 s for one energy with g-xTB and 0.03 s with GFN2-xTB, and
+           frequencies took 3.9 s against 0.5 s.  Frequencies come from a numerical
+           Hessian of analytic gradients, so they grow quickly with the size of the
+           molecule.  The macOS build of g-xTB gives wrong frequencies when this runs
+           on several threads, so IQMolX runs it on one. <br>
+      <li> <b>The solvents are not the ALPB ones.</b>  Choose <i>GBE</i> (generalized
+           Born) or <i>COSMO</i> (ddCOSMO) as the solvation model, with the same list of
+           solvents.  Both are electrostatic only, and a solvation model made for
            g-xTB is still being developed.  GBE can be unstable in geometry
            optimizations, and the COSMO gradient is not consistent with its
-           energy. <br>
-      <li> Frequencies come from a numerical Hessian of analytic gradients, so
-           they take longer than with GFN2-xTB.  The macOS build of g-xTB gives wrong frequencies when
-           this runs on several threads, so IQMolX runs it on one thread. <br>
-      <li> A closed-shell molecule is calculated restricted: IQMolX does not
-           pass <tt>--uhf 0</tt> to g-xTB, which would make it unrestricted. <br>
-      <li> The Gibbs free energy of solvation is not reported.
+           energy.  The Gibbs free energy of solvation is not reported. <br>
+      <li> <b>Closed-shell molecules are calculated restricted.</b>  IQMolX does not
+           pass <tt>--uhf 0</tt> to g-xTB, which would make it unrestricted.  Open-shell
+           molecules (radicals, triplets) are unrestricted, as always. <br>
+      <li> <b>Orbitals</b> come from the Molden file that g-xTB writes (IQMolX corrects for the
+           way that file scales its d functions) and are plotted like any others.
    </ul>
 
+   <h4>If something goes wrong</h4>
+
+   <table border="0" cellpadding="4">
+      <tr><td valign="top"><i>Unable to find the g-xTB program</i></td>
+          <td> Nothing was downloaded yet, or the path in the field is wrong.  Press
+               <b>Download</b>, or choose the program with <b>Browse</b>. </td></tr>
+      <tr><td valign="top"><i>The download failed</i></td>
+          <td> There is no internet connection, or a proxy or firewall is in the way.  The
+               message shows the answer of <tt>curl</tt>, which does the transfer.  You can
+               also download the g-xTB package yourself and choose its xtb with Browse. </td></tr>
+      <tr><td valign="top"><i>The downloaded file is not the expected one</i></td>
+          <td> The SHA-256 sum is different from the one this IQMolX knows, so the file was
+               thrown away and nothing was installed.  The repository may have changed;
+               update IQMolX, or use Browse for a build that you trust. </td></tr>
+      <tr><td valign="top"><i>The SCF did not converge</i></td>
+          <td> The calculation did not reach a self-consistent result.  Check the geometry
+               (atoms too close, or a very distorted structure) and the charge and spin
+               multiplicity. </td></tr>
+      <tr><td valign="top">Frequencies take very long</td>
+          <td> They need many gradients (see above).  For a large molecule run an optimization
+               or a single point only.  Frequencies are only meaningful at a geometry that was
+               optimized with the same method, so do not take them from another method. </td></tr>
+   </table>
+
    <p> Please cite T. Froitzheim, M. M&uuml;ller, A. Hansen, S. Grimme, ChemRxiv 2025,
-   <a href="https://doi.org/10.26434/chemrxiv-2025-bjxvt">doi 10.26434/chemrxiv-2025-bjxvt</a>.
-   Water with g-xTB gives frequencies of 1603, 3615 and 3672 cm<sup>-1</sup> and a dipole of 2.25 D.
+   <a href="https://doi.org/10.26434/chemrxiv-2025-bjxvt">doi 10.26434/chemrxiv-2025-bjxvt</a>,
+   and mention the release of g-xTB that you used (the window shows it in the yellow note).
+   As a check: water with g-xTB gives frequencies of 1603, 3615 and 3672 cm<sup>-1</sup>
+   and a dipole of 2.25 D.
 
 
    <br>

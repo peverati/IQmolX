@@ -15,6 +15,7 @@
 #include <QSpinBox>
 #include <QComboBox>
 #include <QDir>
+#include <QGroupBox>
 #include <QLabel>
 #include <QPlainTextEdit>
 #include <QPushButton>
@@ -386,7 +387,18 @@ int main(int argc, char** argv)
             if (!qEnvironmentVariable("XTB_TEST_SCREENSHOT").isEmpty()) {
                d->resize(700, d->sizeHint().height());
                QApplication::processEvents();
-               d->grab().save(qEnvironmentVariable("XTB_TEST_SCREENSHOT"));
+               QWidget* settings(0);                  // the settings only: the rest shows what earlier checks left
+               for (QWidget* w : d->findChildren<QWidget*>()) {
+                   QGroupBox* box(qobject_cast<QGroupBox*>(w));
+                   if (box && box->title() == "Calculation") settings = box;
+               }
+               QString options(optionsEdit->text()), directory(workEdit->text());
+               optionsEdit->clear();                  // what the checks above typed is not for the picture
+               workEdit->clear();
+               QApplication::processEvents();
+               (settings ? settings->grab() : d->grab()).save(qEnvironmentVariable("XTB_TEST_SCREENSHOT"));
+               optionsEdit->setText(options);
+               workEdit->setText(directory);
             }
             gxtbEdit->setText("/opt/gxtb/bin/xtb");
             gxtbEdit->editingFinished();
