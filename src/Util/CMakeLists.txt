@@ -22,6 +22,7 @@ set( SOURCES
    FileDialog.C
    GLShape.C
    GLShapeLibrary.C
+   GxtbSetup.C
    LogMessageDialog.C
    Preferences.C
    ProgressDialog.C
