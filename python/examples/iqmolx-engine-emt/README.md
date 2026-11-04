@@ -9,5 +9,5 @@ folder), or from a terminal into the environment of IQMolX:
 
     uv pip install --python "$HOME/Library/Application Support/IQmol/python/bin/python" ./iqmolx-engine-emt
 
-Then press **Find Engines**: *EMT metals (ASE, example plugin)* is in the Engine list.  `cu4.xyz`
+Then press **Refresh** (the circular arrows next to the Engine list): *EMT metals (ASE, example plugin)* is in the Engine list.  `cu4.xyz`
 is a starting geometry (File, Open, then run a geometry optimization).

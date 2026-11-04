@@ -236,7 +236,7 @@ where = ["src"]
   or, while developing, `-e ./my-plugin` so that edits are picked up. In the window, the
   **Install Plugin...** button does the same for a package name, a Git address, or a folder or
   wheel (without `-e`).
-* Press **Find Engines** in the window: a running helper notices a plugin that was installed
+* Press **Refresh** (the circular arrows next to the Engine list) in the window: a running helper notices a plugin that was installed
   after it started. **Code of a plugin that was already imported is not reloaded**: after changing
   it, restart IQMolX (the helper stops with it).
 
@@ -279,7 +279,7 @@ Built-in names (`demo`, `ase`, `torchani`) win. Pick a different name.
      '{"id":2,"type":"compute","numbers":[18,18],"coordinates":[[0,0,0],[0,0,3.8]]}' \
      | python -m iqmolx_engines
    ```
-4. **Try it in IQMolX**: *Calculation > Python Engines*, *Find Engines*, choose the engine,
+4. **Try it in IQMolX**: *Calculation > Python Engines*, *Refresh*, choose the engine,
    optimize a small molecule. A good force implementation converges in a few cycles; if the
    optimizer wanders, the forces are not the gradient of the energy (test 2 shows it).
 

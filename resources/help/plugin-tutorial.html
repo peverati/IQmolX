@@ -43,7 +43,7 @@
    A plugin is an ordinary Python package that contains such a class and announces it under
    the name <tt>iqmolx_engines</tt>.  The helper looks for these announcements every time the
    window asks for the engines, so a package that is installed while IQMolX is open is found
-   with the <b>Find Engines</b> button.
+   with the <b>Refresh</b> button (the circular arrows next to the Engine list).
 
 
    <br>
@@ -299,7 +299,7 @@ uv pip install --python "$PY" -e ./iqmolx-engine-emt</pre>
 
    <p> (<tt>uv</tt> is the installer that IQMolX uses; <tt>PY</tt> is the Python of the
    IQMolX environment.  If you chose your own Python in the window, use that one.)  Then press
-   <b>Find Engines</b>: a running helper notices a plugin that was installed after it started.
+   <b>Refresh</b> (next to the Engine list): a running helper notices a plugin that was installed after it started.
    <b>The code of a plugin that was already loaded is not read again</b>: after you edit it,
    quit and start IQMolX.
 
@@ -392,7 +392,7 @@ uv pip install --python "$PY" -e ./iqmolx-engine-emt</pre>
 
    <table border="0" cellpadding="4">
       <tr><td valign="top"><i>The engine is not in the list</i></td>
-          <td> Press <b>Find Engines</b>.  Then check that the plugin was installed into the
+          <td> Press <b>Refresh</b> (the circular arrows next to the Engine list).  Then check that the plugin was installed into the
                Python shown in the window (a plugin in another Python is not seen), and run
                the <tt>--describe</tt> command of step 9 with the same Python: the helper
                prints a line on its error output for a plugin that it cannot use, for
