@@ -18,6 +18,10 @@
 #include <QFileDialog>
 #include <QTimer>
 #include <QJsonDocument>
+#include <QGroupBox>
+#include <QPainter>
+#include <QTextBrowser>
+#include <QPixmap>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPlainTextEdit>
@@ -438,30 +442,68 @@ int main(int argc, char** argv)
    }
 
    // PYDIALOG_SHOTS=<folder> saves pictures of the window for the Help pages (needs the plugin of
-   // the tutorial on PYTHONPATH): the window with the generic ASE engine and with the EMT engine, and
-   // the dialog of Install Plugin
+   // the tutorial installed where PYTHONPATH points): the row with the Python buttons, the generic
+   // ASE engine and the EMT engine with their settings, and the dialog of Install Plugin
    QString const shots(qEnvironmentVariable("PYDIALOG_SHOTS"));
    if (!shots.isEmpty()) {
       Preferences::PythonEnginePath(argv[1]);
-      if (pythonEdit) pythonEdit->setText(argv[1]);
       qputenv("IQMOLX_ENGINES_PATH", argv[2]);
       d->refreshEngines();
       d->showWindow();
+      d->resize(760, 1100);                               // tall enough to show everything
+      QApplication::processEvents();
       auto engine = [&](QString const& name) {
          for (QComboBox* c : d->findChildren<QComboBox*>()) {
              int i(c->findData(name));
-             if (i >= 0) { c->setCurrentIndex(i); return true; }
+             if (i >= 0) { c->setCurrentIndex(i); QApplication::processEvents(); return c; }
          }
-         return false;
+         return static_cast<QComboBox*>(0);
       };
-      auto picture = [&](QString const& file) {
+      // pictures of widgets are made one by one (the window itself scrolls, so a picture of it is cut)
+      auto stack = [&](QList<QWidget*> const& widgets, QString const& file) {
          QApplication::processEvents();
-         d->resize(d->width(), d->sizeHint().height());
-         QApplication::processEvents();
-         d->grab().save(shots + "/" + file);
+         QList<QPixmap> parts;
+         int width(0), height(0);
+         for (QWidget* w : widgets) {
+             parts << w->grab();
+             width = qMax(width, parts.last().width());
+             height += parts.last().height() + 6;
+         }
+         QPixmap picture(width + 12, height + 6);
+         picture.fill(d->palette().color(QPalette::Window));
+         QPainter painter(&picture);
+         int y(6);
+         for (QPixmap const& part : parts) { painter.drawPixmap(6, y, part); y += part.height() + 6; }
+         painter.end();
+         picture.save(shots + "/" + file);
       };
-      if (engine("ase")) picture("PluginWindowAse.png");
-      if (engine("emt")) picture("PluginWindowEmt.png");
+      auto describing = [&]() -> QWidget* {          // the text with the description of the engine
+         for (QTextBrowser* t : d->findChildren<QTextBrowser*>()) if (t->toPlainText().contains("Elements:")) return t;
+         return 0;
+      };
+      QGroupBox* settings(0);
+      for (QGroupBox* g : d->findChildren<QGroupBox*>()) if (g->title() == "Engine settings") settings = g;
+      QLineEdit* python(pythonEdit);
+      QPushButton* find(button(d, "Find Engines"));
+      if (python && find) {
+         python->setText("/Users/you/Library/Application Support/IQmol/python/bin/python");
+         QWidget* row(find->parentWidget());
+         QApplication::processEvents();
+         // the row of the Python field and its buttons: the widgets side by side
+         QPixmap left(python->grab()), browse(button(d, "Browse...")->grab()), plugin(button(d, "Install Plugin...")->grab()), findPix(find->grab());
+         QPixmap picture(left.width() + browse.width() + plugin.width() + findPix.width() + 30, left.height() + 12);
+         picture.fill(d->palette().color(QPalette::Window));
+         QPainter painter(&picture);
+         int x(6);
+         for (QPixmap const* part : { &left, &browse, &plugin, &findPix }) { painter.drawPixmap(x, 6, *part); x += part->width() + 6; }
+         painter.end();
+         picture.save(shots + "/PluginButtons.png");
+         (void) row;
+         python->setText(argv[1]);
+      }
+      if (QComboBox* c = engine("ase")) if (settings && describing()) stack({ c, describing(), settings }, "PluginEngineAse.png");
+      if (QComboBox* c = engine("emt")) if (settings && describing()) stack({ c, describing(), settings }, "PluginEngineEmt.png");
+      engine("demo");
       QTimer::singleShot(500, [&]() {
          for (QWidget* w : QApplication::topLevelWidgets()) {
              if (w != d && w->isVisible() && w->windowTitle().startsWith("Install an engine plugin")) {

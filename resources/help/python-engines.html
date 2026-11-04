@@ -121,9 +121,12 @@
                the package <i>ase</i>. </td></tr>
    </table>
 
-   <p> Others can be added by anybody who writes an engine plugin; the
-   developer guide <tt>PLUGINS.md</tt> in the <tt>python</tt> folder of the IQMolX
-   source describes how.
+   <p> Others can be added by anybody who writes an engine plugin, and installed with
+   the <b>Install Plugin...</b> button next to the Python field (a package name, a Git
+   address, or a folder or wheel).  The tutorial
+   <a href="plugin-tutorial.html">Writing an Engine Plugin</a> shows how, step by step, and
+   the developer guide <tt>PLUGINS.md</tt> in the <tt>python</tt> folder of the IQMolX
+   source has the details.
 
 
    <br>
@@ -506,7 +509,7 @@
    arguments are Python objects and not text.  The UMA models of fairchem are an
    example: their calculator is made from a model that has been loaded in
    advance.  They need an engine of their own (an engine plugin, see the
-   developer guide <tt>PLUGINS.md</tt>).
+   <a href="plugin-tutorial.html">tutorial</a> and the developer guide <tt>PLUGINS.md</tt>).
 
    <p> The electronic structure of the result is not part of the ASE engine:
    there are no orbitals and no infrared intensities.  For orbitals use the

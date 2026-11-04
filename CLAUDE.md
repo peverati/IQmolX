@@ -160,6 +160,17 @@ Tests: `PythonEngineTest`, `PythonSetupTest`, `PythonDialogTest` (C++), `pytest`
 (`IQMOLX_TEST_DOWNLOADS=1` runs the TorchANI model tests).  Never run `XtbProcessTest` in a
 folder with content: it removes its working directory when xtb is not found.
 
+## Plugins: tutorial and Install Plugin
+
+`Install Plugin...` in the Python Engines window (`PythonEngineDialog::installPlugin/installPluginFrom`,
+spec checked by `pluginSpecification`: no leading dash, one line, existing paths made absolute) runs
+`uv pip install --python <window's Python> <spec>`.  The tutorial `resources/help/plugin-tutorial.html`
+is made by `scripts/make-plugin-tutorial.py` from the real files of `python/examples/iqmolx-engine-emt`
+(code blocks marked `<!-- file: PATH A-B -->`); `tests/test_tutorial.py` fails when the example and the
+page differ, then run the script again.  The window pictures of the page come from `PYDIALOG_SHOTS=<folder>`
+in `PythonDialogTest` (plugin installed with `pip install --target` and on PYTHONPATH).  The registry
+lists built-in engines first, plugins after them by name (an installed plugin must not become the default).
+
 ## g-xTB backend (development version)
 
 A third backend of the xtb window (`Preferences::XtbBackend() == "gxtb"`), added because g-xTB

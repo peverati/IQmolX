@@ -9,6 +9,10 @@ from what the engine says about itself, and the geometry optimizer and the frequ
 of IQMolX run on the forces the engine returns. So adding a method to IQMolX means writing one
 class and installing it. This guide shows how, using a complete working example.
 
+* **New to this? Start with the tutorial**, in the IQMolX Help (*Writing an Engine Plugin*, source
+  `resources/help/plugin-tutorial.html`): twenty minutes from an empty folder to a working engine
+  in the window, built on the ASE calculator `EMT`
+  ([`python/examples/iqmolx-engine-emt`](../examples/iqmolx-engine-emt)). This guide is the reference.
 * Read [PROTOCOL.md](PROTOCOL.md) for the messages between IQMolX and the helper. You do not
   need it to write an engine, the helper handles all of it.
 * The example used throughout is a real package that the tests of the helper install and run:
@@ -229,7 +233,9 @@ where = ["src"]
   uv pip install --python "$HOME/Library/Application Support/IQmol/python/bin/python" ./my-plugin
   ```
 
-  or, while developing, `-e ./my-plugin` so that edits are picked up.
+  or, while developing, `-e ./my-plugin` so that edits are picked up. In the window, the
+  **Install Plugin...** button does the same for a package name, a Git address, or a folder or
+  wheel (without `-e`).
 * Press **Find Engines** in the window: a running helper notices a plugin that was installed
   after it started. **Code of a plugin that was already imported is not reloaded**: after changing
   it, restart IQMolX (the helper stops with it).

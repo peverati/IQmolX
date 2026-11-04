@@ -9,5 +9,5 @@
 
 """Python calculator helper for IQMolX."""
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 PROTOCOL = 1

@@ -75,6 +75,7 @@
     <file>help/vibrations.html</file>
     <file>help/xtb.html</file>
     <file>help/python-engines.html</file>
+    <file>help/plugin-tutorial.html</file>
     <file>help/movies.html</file>
 
     <file>help/images/header.png</file>
@@ -82,6 +83,10 @@
     <file>help/images/VibrationsWindow.png</file>
     <file>help/images/XtbWindow.png</file>
     <file>help/images/PythonWindow.png</file>
+    <file>help/images/PluginButtons.png</file>
+    <file>help/images/PluginEngineAse.png</file>
+    <file>help/images/PluginEngineEmt.png</file>
+    <file>help/images/PluginInstall.png</file>
     <file>help/images/PythonSetup.png</file>
     <file>help/images/PythonInstall.png</file>
     <file>help/images/PythonResult.png</file>
