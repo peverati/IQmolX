@@ -31,6 +31,7 @@
 #include <QSpinBox>
 #include <QStandardPaths>
 #include <QTemporaryDir>
+#include <QToolButton>
 #include <QDir>
 #include <QFile>
 #include <cstdio>
@@ -145,6 +146,31 @@ int main(int argc, char** argv)
    d->refreshEngines();
    check(!button(d, "Run")->isEnabled(), "Run is disabled when the helper cannot start");
    check(!d->prepare(problem) && problem.contains("Python"), "prepare explains: " + problem);
+
+   // --- the refresh button is an icon next to the list of engines, not a labelled button next to the Python field ---
+   {
+      if (pythonEdit) pythonEdit->setText(argv[1]);
+      Preferences::PythonEnginePath(argv[1]);
+      d->refreshEngines();                                // a Python that works, for the engines to be listed
+      QToolButton* refresh(d->findChild<QToolButton*>("refreshEnginesButton"));
+      check(refresh != 0 && !refresh->icon().isNull(), "the refresh button has an icon");
+      check(button(d, "Find Engines") == 0, "there is no Find Engines button any more");
+      QComboBox* engines(0);
+      for (QComboBox* c : d->findChildren<QComboBox*>()) if (c->findData("demo") >= 0) engines = c;
+      if (refresh && engines) {
+         d->showWindow();
+         QApplication::processEvents();
+         QRect list(engines->mapTo(d, QPoint(0, 0)), engines->size()), icon(refresh->mapTo(d, QPoint(0, 0)), refresh->size());
+         check(icon.left() >= list.right() - 1 && icon.bottom() > list.top() && icon.top() < list.bottom(), 
+            "the refresh button is right beside the list of engines");
+      }
+      check(refresh && refresh->toolTip().startsWith("Refresh the list of engines"), "its tooltip says what it does");
+      if (refresh && engines) {
+         int before(engines->count());
+         refresh->click();
+         check(engines->count() == before && button(d, "Run") && button(d, "Run")->isEnabled(), "pressing it lists the engines again");
+      }
+   }
 
    // --- an engine with many settings (PySCF has five) must not make the window taller than the screen:
    //     the Run and Save buttons were hidden below the Dock ---
@@ -460,22 +486,23 @@ int main(int argc, char** argv)
          return static_cast<QComboBox*>(0);
       };
       // pictures of widgets are made one by one (the window itself scrolls, so a picture of it is cut)
-      auto stack = [&](QList<QWidget*> const& widgets, QString const& file) {
-         QApplication::processEvents();
-         QList<QPixmap> parts;
+      QColor const background(d->palette().color(QPalette::Window));
+      auto together = [&](QList<QPixmap> const& parts, bool sideBySide) {
          int width(0), height(0);
-         for (QWidget* w : widgets) {
-             parts << w->grab();
-             width = qMax(width, parts.last().width());
-             height += parts.last().height() + 6;
+         for (QPixmap const& part : parts) {
+             if (sideBySide) { width += part.width() + 6; height = qMax(height, part.height()); }
+             else            { width = qMax(width, part.width()); height += part.height() + 6; }
          }
-         QPixmap picture(width + 12, height + 6);
-         picture.fill(d->palette().color(QPalette::Window));
+         QPixmap picture(width + 12, height + 12);
+         picture.fill(background);
          QPainter painter(&picture);
-         int y(6);
-         for (QPixmap const& part : parts) { painter.drawPixmap(6, y, part); y += part.height() + 6; }
+         int x(6), y(6);
+         for (QPixmap const& part : parts) {
+             painter.drawPixmap(x, y, part);
+             if (sideBySide) x += part.width() + 6; else y += part.height() + 6;
+         }
          painter.end();
-         picture.save(shots + "/" + file);
+         return picture;
       };
       auto describing = [&]() -> QWidget* {          // the text with the description of the engine
          for (QTextBrowser* t : d->findChildren<QTextBrowser*>()) if (t->toPlainText().contains("Elements:")) return t;
@@ -484,25 +511,25 @@ int main(int argc, char** argv)
       QGroupBox* settings(0);
       for (QGroupBox* g : d->findChildren<QGroupBox*>()) if (g->title() == "Engine settings") settings = g;
       QLineEdit* python(pythonEdit);
-      QPushButton* find(button(d, "Find Engines"));
-      if (python && find) {
+      QPushButton* browseButton(button(d, "Browse..."));
+      QPushButton* pluginButton(button(d, "Install Plugin..."));
+      QToolButton* refreshButton(d->findChild<QToolButton*>("refreshEnginesButton"));
+      // this test program does not contain the resources of the application: take the icon from the file
+      if (refreshButton) refreshButton->setIcon(QIcon(QDir(argv[2]).absoluteFilePath("../../../resources/icons/Refresh.png")));
+      if (python && browseButton && pluginButton) {
          python->setText("/Users/you/Library/Application Support/IQmol/python/bin/python");
-         QWidget* row(find->parentWidget());
          QApplication::processEvents();
-         // the row of the Python field and its buttons: the widgets side by side
-         QPixmap left(python->grab()), browse(button(d, "Browse...")->grab()), plugin(button(d, "Install Plugin...")->grab()), findPix(find->grab());
-         QPixmap picture(left.width() + browse.width() + plugin.width() + findPix.width() + 30, left.height() + 12);
-         picture.fill(d->palette().color(QPalette::Window));
-         QPainter painter(&picture);
-         int x(6);
-         for (QPixmap const* part : { &left, &browse, &plugin, &findPix }) { painter.drawPixmap(x, 6, *part); x += part->width() + 6; }
-         painter.end();
-         picture.save(shots + "/PluginButtons.png");
-         (void) row;
+         together({ python->grab(), browseButton->grab(), pluginButton->grab() }, true).save(shots + "/PluginButtons.png");
          python->setText(argv[1]);
       }
-      if (QComboBox* c = engine("ase")) if (settings && describing()) stack({ c, describing(), settings }, "PluginEngineAse.png");
-      if (QComboBox* c = engine("emt")) if (settings && describing()) stack({ c, describing(), settings }, "PluginEngineEmt.png");
+      auto engineRow = [&](QComboBox* c) {            // the list of engines with the refresh icon next to it
+         QList<QPixmap> row;
+         row << c->grab();
+         if (refreshButton) row << refreshButton->grab();
+         return together(row, true);
+      };
+      if (QComboBox* c = engine("ase")) if (settings && describing()) together({ engineRow(c), describing()->grab(), settings->grab() }, false).save(shots + "/PluginEngineAse.png");
+      if (QComboBox* c = engine("emt")) if (settings && describing()) together({ engineRow(c), describing()->grab(), settings->grab() }, false).save(shots + "/PluginEngineEmt.png");
       engine("demo");
       QTimer::singleShot(500, [&]() {
          for (QWidget* w : QApplication::topLevelWidgets()) {

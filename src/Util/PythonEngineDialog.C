@@ -52,6 +52,8 @@
 #include <QSpinBox>
 #include <QTextBrowser>
 #include <QTextStream>
+#include <QToolButton>
+#include <QIcon>
 #include <QVBoxLayout>
 #include <limits>
 
@@ -148,14 +150,18 @@ PythonEngineDialog::PythonEngineDialog(QWidget* parent) : QDialog(parent),
    QPushButton* plugin(new QPushButton("Install Plugin...", this));
    plugin->setToolTip("Install an engine plugin (a Python package) into this Python: a package "
       "name, a folder, a wheel or a Git address");
-   QPushButton* refresh(new QPushButton("Find Engines", this));
-   refresh->setToolTip("Start the helper and list the engines it offers");
+   // next to the list of engines, which is what it refreshes
+   QToolButton* refresh(new QToolButton(this));
+   refresh->setObjectName("refreshEnginesButton");
+   refresh->setIcon(QIcon(":/icons/Refresh.png"));
+   refresh->setAccessibleName("Refresh engines");
+   refresh->setToolTip("Refresh the list of engines: asks the helper again what it offers.\n"
+      "Use it after installing a plugin or a package outside IQMolX, or to start the helper again.");
    QHBoxLayout* pythonRow(new QHBoxLayout());
    pythonRow->setContentsMargins(0, 0, 0, 0);
    pythonRow->addWidget(m_pythonEdit, 1);
    pythonRow->addWidget(browse);
    pythonRow->addWidget(plugin);
-   pythonRow->addWidget(refresh);
    form->addRow("Python:", pythonRow);
 
    m_environmentInfo = infoText(this);
@@ -177,6 +183,7 @@ PythonEngineDialog::PythonEngineDialog(QWidget* parent) : QDialog(parent),
    QHBoxLayout* engineRow(new QHBoxLayout());
    engineRow->setContentsMargins(0, 0, 0, 0);
    engineRow->addWidget(m_engineCombo, 1);
+   engineRow->addWidget(refresh);
    engineRow->addWidget(m_installButton);
    form->addRow("Engine:", engineRow);
 
