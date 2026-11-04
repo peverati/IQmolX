@@ -13,6 +13,7 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QDesktopWidget>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
 #include <QTimer>
@@ -139,6 +140,37 @@ int main(int argc, char** argv)
    d->refreshEngines();
    check(!button(d, "Run")->isEnabled(), "Run is disabled when the helper cannot start");
    check(!d->prepare(problem) && problem.contains("Python"), "prepare explains: " + problem);
+
+   // --- an engine with many settings (PySCF has five) must not make the window taller than the screen:
+   //     the Run and Save buttons were hidden below the Dock ---
+   {
+      if (pythonEdit) pythonEdit->setText(argv[1]);
+      Preferences::PythonEnginePath(argv[1]);
+      d->refreshEngines();
+      QComboBox* combo(0);
+      for (QComboBox* c : d->findChildren<QComboBox*>()) if (c->findData("pyscf") >= 0) combo = c;
+      int index(combo ? combo->findData("pyscf") : -1);
+      if (index < 0 || combo->itemText(index).contains("not available")) {
+         std::printf("SKIP: tall engine (PySCF is not available in this Python)\n");
+      }else {
+         combo->setCurrentIndex(index);
+         QRect screen(QApplication::desktop()->availableGeometry(d));
+         d->showWindow();
+         QCoreApplication::processEvents();
+         check(d->minimumSizeHint().height() <= screen.height() - 40,
+            QString("the window can be small enough for the screen: minimum height %1, screen %2")
+               .arg(d->minimumSizeHint().height()).arg(screen.height()));
+         check(screen.contains(d->frameGeometry().bottomLeft()) && d->frameGeometry().bottom() <= screen.bottom(),
+            "the whole window is on the screen");
+         QPushButton* run(button(d, "Run"));
+         check(run && screen.contains(run->mapToGlobal(run->rect().bottomRight())), 
+            "the Run button is on the screen, not behind the Dock");
+         QPushButton* saveOutput(button(d, "Save Output..."));
+         check(saveOutput && screen.contains(saveOutput->mapToGlobal(saveOutput->rect().bottomRight())),
+            "the Save Output button is on the screen");
+         combo->setCurrentIndex(combo->findData("demo"));
+      }
+   }
 
    // --- Save Output...: cancelling the file dialog must leave the window open ---
    {

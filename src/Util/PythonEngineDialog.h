@@ -128,6 +128,7 @@ namespace IQmol {
          explicit PythonEngineDialog(QWidget* parent = 0);
 
          void setRunning(bool running);
+         void fitToScreen();
          QString effectivePython() const;
          void updateEnvironmentRow();
          bool runSetup(QString const& title, 

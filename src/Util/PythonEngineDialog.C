@@ -45,6 +45,7 @@
 #include <QResizeEvent>
 #include <QPushButton>
 #include <QRegularExpression>
+#include <QScrollArea>
 #include <QScrollBar>
 #include <QStandardItemModel>
 #include <QSpinBox>
@@ -86,6 +87,30 @@ void setInfo(QTextBrowser* text, QString const& html, int width)
    text->document()->setTextWidth(width);
    text->setFixedHeight(static_cast<int>(text->document()->size().height()) + 6);
 }
+
+
+// The settings of an engine can be many (PySCF has five) and the text above them long.  In a scroll
+// area they take the room they need when there is room, and scroll when there is not, so the window
+// never has to be taller than the screen and the output and the buttons stay in view.  (QScrollArea
+// would suggest only about 24 lines of height, so the hint is the one of its contents.)
+class SettingsScroll : public QScrollArea {
+   public:
+      explicit SettingsScroll(QWidget* parent) : QScrollArea(parent) 
+      {
+         setWidgetResizable(true);
+         setFrameShape(QFrame::NoFrame);
+         setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+      }
+
+      QSize sizeHint() const override
+      {
+         QSize hint(widget() ? widget()->sizeHint() : QSize());
+         return QSize(hint.width() + verticalScrollBar()->sizeHint().width() + 2 * frameWidth(), 
+                      hint.height() + 2 * frameWidth());
+      }
+
+      QSize minimumSizeHint() const override { return QSize(300, 150); }
+};
 
 
 QString plain(QString text)
@@ -218,8 +243,11 @@ PythonEngineDialog::PythonEngineDialog(QWidget* parent) : QDialog(parent),
    buttons->addWidget(m_saveButton);
    buttons->addWidget(m_closeButton);
 
+   SettingsScroll* settingsScroll(new SettingsScroll(this));
+   settingsScroll->setWidget(m_settings);
+
    QVBoxLayout* layout(new QVBoxLayout(this));
-   layout->addWidget(m_settings);
+   layout->addWidget(settingsScroll);
    layout->addWidget(m_title);
    layout->addWidget(m_summary);
    layout->addWidget(m_progress);
@@ -733,8 +761,27 @@ void PythonEngineDialog::started(QString const& method, QString const& what,
    setModal(true);   // blocks edits to the molecule while the calculation runs
    if (active && active != this) move(active->frameGeometry().center() - rect().center());
    show();
+   fitToScreen();
    raise();
    activateWindow();
+}
+
+
+/// Keeps the window on the part of the screen that is free of the menu bar and the Dock
+void PythonEngineDialog::fitToScreen()
+{
+   QRect screen(QApplication::desktop()->availableGeometry(this));
+   int decoration(frameGeometry().height() - height());          // the title bar, once the window is shown
+   if (decoration <= 0) decoration = 30;
+   if (height() + decoration > screen.height()) resize(width(), screen.height() - decoration);
+
+   QRect frame(frameGeometry());
+   int x(frame.left()), y(frame.top());
+   if (frame.bottom() > screen.bottom()) y = screen.bottom() - frame.height() + 1;
+   if (frame.right() > screen.right()) x = screen.right() - frame.width() + 1;
+   x = qMax(x, screen.left());
+   y = qMax(y, screen.top());
+   if (x != frame.left() || y != frame.top()) move(x, y);
 }
 
 
@@ -749,6 +796,7 @@ void PythonEngineDialog::showWindow()
    updateEnvironmentRow();
    setWindowState(windowState() & ~Qt::WindowMinimized);
    showNormal();
+   fitToScreen();
    raise();
    activateWindow();
    if (!m_listed) refreshEngines();
