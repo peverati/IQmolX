@@ -129,6 +129,10 @@ An **option** describes one setting in the window:
   until a required text field is filled in, and the helper refuses a `load` or `compute` with an
   empty required value (error `bad_option`, whatever the engine) before the engine runs.
 * `placeholder` (text): a hint shown in an empty text field, for example an example value.
+* `show_if` (object): the option is only shown, and only required, when other options have given
+  values: `{"method": "other"}` or `{"method": ["a", "b"]}` (any of the listed values). All the
+  conditions must hold. A hidden option keeps its value but is never required; the window shows and
+  hides it as the other option changes.
 
 ### `load`
 

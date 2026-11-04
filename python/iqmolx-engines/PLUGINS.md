@@ -110,6 +110,10 @@ makes a widget for each: `bool` a check box, `int` and `float` a spin box (with 
   `required=True` and a `placeholder="an example value"`: the window then shows the hint in the
   empty field and keeps *Run* off until it is filled in, and the helper refuses an empty value for you
   (`bad_option`, "'Title' is required"). The ASE adapter does this for its calculator class.
+* An option that only makes sense for some values of another (an "Other" entry of a menu that opens a text
+  field for the name, a grid setting that only matters for one kind of method) gets
+  `show_if={"method": "other"}` (or a list of values): the window then shows it only then, and it is
+  required only then. The PySCF engine uses this for its "Other" functional.
 
 ## `load` and `compute`
 

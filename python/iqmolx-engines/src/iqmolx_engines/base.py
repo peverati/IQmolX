@@ -49,7 +49,9 @@ class Context:
 def option(name, title, type, default, scope="load", **extra):
     """Build an option description for the capabilities.  `extra` may hold min, max, choices,
     description, `required=True` (the option must not be empty: the window keeps Run off until it
-    is filled in) and `placeholder` (a hint shown in an empty text field)."""
+    is filled in), `placeholder` (a hint shown in an empty text field) and `show_if` (the option is
+    only shown, and only required, when other options have certain values: a dict of option name to
+    a value or a list of values, all of which must match)."""
     d = {"name": name, "title": title, "type": type, "default": default, "scope": scope}
     d.update(extra)
     return d
@@ -168,9 +170,19 @@ def resolve_options(engine_cls, given, scope):
               for n, o in known.items()}
     for n, o in known.items():
         value = values[n]
-        if o.get("required") and (value is None or (isinstance(value, str) and not value.strip())):
+        if (o.get("required") and option_is_shown(o, values)
+                and (value is None or (isinstance(value, str) and not value.strip()))):
             raise EngineError("bad_option", "'%s' is required" % o.get("title", n))
     return values
+
+
+def option_is_shown(opt, values):
+    """False if the option has a `show_if` that the current values of the other options do not meet."""
+    for name, wanted in (opt.get("show_if") or {}).items():
+        allowed = wanted if isinstance(wanted, list) else [wanted]
+        if values.get(name) not in allowed:
+            return False
+    return True
 
 
 def as_system(numbers, coordinates):

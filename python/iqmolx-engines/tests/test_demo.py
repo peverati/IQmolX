@@ -106,3 +106,25 @@ def test_required_option_rules():
         resolve_options(Needy, {}, "load")
     assert e.value.code == "bad_option" and "Model path" in e.value.message
     assert resolve_options(Needy, {"path": "x"}, "load") == {"path": "x", "level": 0}
+
+
+def test_options_that_are_shown_only_for_some_values():
+    from iqmolx_engines.base import Engine, option, option_is_shown
+
+    class Picky(Engine):
+        name = "picky"
+        options = (option("method", "Method", "choice", "a", choices=["a", "b", "other"]),
+                   option("custom", "Custom name", "string", "", required=True, show_if={"method": "other"}),
+                   option("grid", "Grid", "int", 1, show_if={"method": ["b", "other"]}))
+
+    opts = {o["name"]: o for o in Picky.options}
+    assert option_is_shown(opts["custom"], {"method": "other"}) and not option_is_shown(opts["custom"], {"method": "a"})
+    assert option_is_shown(opts["grid"], {"method": "b"}) and option_is_shown(opts["grid"], {"method": "other"})
+    assert not option_is_shown(opts["grid"], {"method": "a"})
+    assert resolve_options(Picky, {}, "load")["custom"] == ""                  # hidden: not required
+    assert resolve_options(Picky, {"method": "b"}, "load")["method"] == "b"
+    for given in ({"method": "other"}, {"method": "other", "custom": "  "}):  # shown: required
+        with pytest.raises(EngineError) as e:
+            resolve_options(Picky, given, "load")
+        assert e.value.code == "bad_option" and "Custom name" in e.value.message
+    assert resolve_options(Picky, {"method": "other", "custom": "x"}, "load")["custom"] == "x"
