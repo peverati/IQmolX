@@ -165,6 +165,8 @@ void MainWindow::createConnections()
    connect(&m_toolBar, SIGNAL(addHydrogens()),    &m_viewerModel, SLOT(addHydrogens()));
    connect(&m_toolBar, SIGNAL(minimizeEnergy()),  &m_viewerModel, SLOT(minimizeEnergy()));
    connect(&m_toolBar, SIGNAL(xtbSetup()), XtbResultDialog::instance(), SLOT(showWindow()));
+   connect(&m_toolBar, SIGNAL(pythonSetup()), PythonEngineDialog::instance(), SLOT(showWindow()));
+   connect(&m_toolBar, SIGNAL(qchemSetup()), this, SLOT(showQChemUI()));
    connect(XtbResultDialog::instance(), SIGNAL(runRequested()), &m_viewerModel, SLOT(runXtb()));
    connect(PythonEngineDialog::instance(), SIGNAL(runRequested()), &m_viewerModel, SLOT(runPython()));
    connect(&m_toolBar, SIGNAL(deleteSelection()), &m_viewerModel, SLOT(deleteSelection()));

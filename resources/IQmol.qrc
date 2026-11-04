@@ -21,6 +21,10 @@
     <file>icons/Minimize.png</file>
     <file>icons/Xtb.png</file>
     <file>icons/Xtb@2x.png</file>
+    <file>icons/Py.png</file>
+    <file>icons/Py@2x.png</file>
+    <file>icons/QChem.png</file>
+    <file>icons/QChem@2x.png</file>
     <file>icons/Favourites.png</file>
     <file>icons/Film.png</file>
     <file>icons/Forward.png</file>
@@ -110,6 +114,8 @@
     <file>help/images/buttons/Open.png</file>
     <file>help/images/buttons/Minimize.png</file>
     <file>help/images/buttons/Xtb.png</file>
+    <file>help/images/buttons/Py.png</file>
+    <file>help/images/buttons/QChem.png</file>
     <file>help/images/buttons/MagicWand.png</file>
     <file>help/images/buttons/NewDocument.png</file>
     <file>help/images/buttons/Movie.png</file>

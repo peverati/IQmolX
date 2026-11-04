@@ -349,29 +349,6 @@ QToolTip {
     </widget>
    </item>
    <item>
-    <widget class="QToolButton" name="xtbButton">
-     <property name="toolTip">
-      <string>xtb Setup (Ctrl+Shift+X)</string>
-     </property>
-     <property name="styleSheet">
-      <string/>
-     </property>
-     <property name="text">
-      <string>xtb</string>
-     </property>
-     <property name="icon">
-      <iconset resource="../../resources/IQmol.qrc">
-       <normaloff>:/icons/Xtb.png</normaloff>:/icons/Xtb.png</iconset>
-     </property>
-     <property name="iconSize">
-      <size>
-       <width>24</width>
-       <height>24</height>
-      </size>
-     </property>
-    </widget>
-   </item>
-   <item>
     <widget class="Line" name="line_2">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -508,6 +485,82 @@ QToolTip {
    </item>
    <item>
     <widget class="Line" name="line_5">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QToolButton" name="xtbButton">
+     <property name="toolTip">
+      <string>xtb Setup (Ctrl+Shift+X)</string>
+     </property>
+     <property name="styleSheet">
+      <string/>
+     </property>
+     <property name="text">
+      <string>xtb</string>
+     </property>
+     <property name="icon">
+      <iconset resource="../../resources/IQmol.qrc">
+       <normaloff>:/icons/Xtb.png</normaloff>:/icons/Xtb.png</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>24</width>
+       <height>24</height>
+      </size>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QToolButton" name="pythonButton">
+     <property name="toolTip">
+      <string>Python Engines (Ctrl+Shift+E)</string>
+     </property>
+     <property name="styleSheet">
+      <string/>
+     </property>
+     <property name="text">
+      <string>py</string>
+     </property>
+     <property name="icon">
+      <iconset resource="../../resources/IQmol.qrc">
+       <normaloff>:/icons/Py.png</normaloff>:/icons/Py.png</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>24</width>
+       <height>24</height>
+      </size>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QToolButton" name="qchemButton">
+     <property name="toolTip">
+      <string>Q-Chem Setup (Ctrl+U)</string>
+     </property>
+     <property name="styleSheet">
+      <string/>
+     </property>
+     <property name="text">
+      <string>Q</string>
+     </property>
+     <property name="icon">
+      <iconset resource="../../resources/IQmol.qrc">
+       <normaloff>:/icons/QChem.png</normaloff>:/icons/QChem.png</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>24</width>
+       <height>24</height>
+      </size>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="Line" name="line_6">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>

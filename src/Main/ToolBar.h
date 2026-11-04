@@ -53,6 +53,8 @@ namespace IQmol {
          void addHydrogens();
          void minimizeEnergy();
          void xtbSetup();
+         void pythonSetup();
+         void qchemSetup();
          void deleteSelection();
          void takeSnapshot();
          void record(bool const);
@@ -82,6 +84,8 @@ namespace IQmol {
          void on_addHydrogensButton_clicked(bool)     { addHydrogens(); }
          void on_minimizeEnergyButton_clicked(bool)   { minimizeEnergy(); }
          void on_xtbButton_clicked(bool)              { xtbSetup(); }
+         void on_pythonButton_clicked(bool)           { pythonSetup(); }
+         void on_qchemButton_clicked(bool)            { qchemSetup(); }
          void on_selectButton_clicked(bool);
          void on_deleteSelectionButton_clicked(bool)  { deleteSelection(); }
          void on_takeSnapshotButton_clicked(bool)     { takeSnapshot(); }
