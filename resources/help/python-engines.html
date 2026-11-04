@@ -325,7 +325,15 @@
    <ul>
       <li> <i>Method</i>: <tt>hf</tt>, <tt>b3lyp</tt> (the default), <tt>pbe0</tt>,
            <tt>pbe</tt>, <tt>bp86</tt>, <tt>tpss</tt>, <tt>m06-2x</tt>,
-           <tt>wb97x</tt> or <tt>r2scan</tt>.  <br>
+           <tt>wb97x</tt>, <tt>r2scan</tt>, <tt>wb97m-v</tt> or <b>other</b>.  With
+           <i>other</i> a <i>Functional</i> field appears, in which you type the name of
+           any functional that PySCF knows (it knows almost a thousand names of
+           the libxc library), for example <tt>cam-b3lyp</tt>, <tt>wb97x-v</tt>,
+           <tt>scan</tt> or <tt>pbe0</tt>; <tt>hf</tt> also works.  A name that PySCF
+           does not know is refused with a message.  The functionals in the menu
+           were all checked; the ones you type were not, but the engine takes the
+           same care with them (see the Hessian below).  Names that end in
+           <tt>-d3bj</tt> need the extra package <i>pyscf-dispersion</i>.  <br>
       <li> <i>Basis set</i>, which must be filled in: the name of any basis set of
            PySCF, for example <tt>sto-3g</tt>, <tt>6-31g*</tt>, <tt>def2-svp</tt>
            (the default), <tt>def2-tzvp</tt>, <tt>cc-pvdz</tt> or
@@ -334,7 +342,13 @@
       <li> <i>Density fitting</i> (on by default) speeds the calculation up with a
            small error, about 0.1 mE<sub>h</sub> for water. <br>
       <li> <i>Integration grid</i> of the density functionals, and the maximum
-           number of SCF cycles.
+           number of SCF cycles. <br>
+      <li> <i>Grid of the VV10 part</i>, shown for <tt>wb97m-v</tt> and <i>other</i>:
+           functionals with a nonlocal VV10 term, such as wB97M-V, need a second
+           integration grid.  The default, level 1, gives energies within 1
+           microhartree of the finer level 3 that PySCF uses by default and is about
+           eight times faster (for water, with wB97M-V, the SCF takes 1.4 s instead
+           of 12 s on an Apple Silicon Mac); level 0 is faster still, level 2 finer.
    </ul>
 
    <p> How slow is it?  On an Apple Silicon Mac a water molecule takes about a
@@ -342,15 +356,19 @@
    seconds.  The cost grows quickly with the size of the molecule and of the basis
    set, so this engine is for small molecules; a geometry optimization needs one
    calculation per step and frequencies need the second derivatives.  For the
-   <tt>tpss</tt>, <tt>m06-2x</tt> and <tt>r2scan</tt> functionals the Hessian is
-   built from differences of forces (the analytic one of the PySCF version
-   used here is not accurate for them), which takes about 6N calculations.
+   meta-GGA functionals (<tt>tpss</tt>, <tt>m06-2x</tt>, <tt>r2scan</tt>,
+   <tt>wb97m-v</tt>, and any such functional that you type) the Hessian is
+   built from differences of forces, because the analytic one of the PySCF version
+   used here is not accurate for them; that takes about 6N calculations, for
+   example about half a minute for water with wB97M-V.  PySCF itself tells the
+   engine which functionals are meta-GGAs.
 
-   <p> Some functionals of PySCF are not offered: wB97M-V takes minutes for a
-   water molecule, wB97X-D is not implemented, and the dispersion-corrected
-   variants (such as b97-d3bj) need the extra package <i>pyscf-dispersion</i>.  If
-   the SCF does not converge the engine says so; a smaller basis set or no density
-   fitting can help.
+   <p> wB97X-D is not implemented in PySCF.  If the SCF does not converge the
+   engine says so; a smaller basis set or no density fitting can help.
+
+   <p> wB97M-V is the slowest functional of the menu but not unreasonably so: the
+   energy and forces of water with def2-SVP take about two seconds with the
+   default VV10 grid.  Frequencies take 6N times that.
 
    <p> It was checked against the textbook Hartree-Fock energy of H<sub>2</sub> in
    the STO-3G basis (&minus;1.116759 E<sub>h</sub> at 0.74 &Aring;), against finite
