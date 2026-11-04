@@ -365,7 +365,7 @@ int main(int argc, char** argv)
          pyproject.open(QIODevice::WriteOnly);
          pyproject.write("[project]\nname = \"iqmolx-engines\"\nversion = \"99.0.0\"\n");
          pyproject.close();
-         QFile::link(argv[2], newer.path() + "/src");          // the package itself still says 0.1.0
+         QFile::link(QDir(argv[2]).absolutePath(), newer.path() + "/src");   // absolute: argv[2] may be relative          // the package itself still says 0.1.0
          qputenv("IQMOLX_ENGINES_PATH", QString(newer.path() + "/src").toLocal8Bit());
          d->refreshEngines();
          QPushButton* update(button(d, "Update Helper"));
