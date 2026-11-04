@@ -111,6 +111,7 @@ namespace IQmol {
          void browseForPython();
          void setUpEnvironment();
          void installPackages();
+         void updateHelper();
          void updateRunButton();
          void save();
 
@@ -132,6 +133,7 @@ namespace IQmol {
          void sizeTo(int width, int height);
          QString effectivePython() const;
          void updateEnvironmentRow();
+         void updateHelperButton();       ///< offers the helper update when this IQMolX brings a newer one
          bool runSetup(QString const& title, 
             std::function<bool(Calc::PythonSetup&, QString&)> job);
          void showEngine();
@@ -153,6 +155,7 @@ namespace IQmol {
          QString        m_shownPython;   // the Python path the settings on view were made for
          QTextBrowser*  m_environmentInfo;
          QPushButton*   m_setupButton;
+         QPushButton*   m_updateButton;
          QPushButton*   m_installButton;
          QComboBox*     m_engineCombo;
          QTextBrowser*  m_engineInfo;

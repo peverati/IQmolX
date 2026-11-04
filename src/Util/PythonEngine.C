@@ -127,6 +127,7 @@ class PythonHelper {
          fields["protocol"] = 1;
          fields["client"] = "IQMolX";
          if (!request("hello", fields, result, failure, 0, 0, interactive)) { stop(); return false; }
+         m_version = result.value("helper").toString();
          return true;
       }
 
@@ -199,6 +200,9 @@ class PythonHelper {
 
       QString stderrTail() const { return m_stderr.right(3000).trimmed(); }
 
+      /// The version of the iqmolx-engines package that answered hello
+      QString version() const { return m_version; }
+
    private:
       void send(QJsonObject const& message)
       {
@@ -240,6 +244,7 @@ class PythonHelper {
          return Nothing;
       }
 
+      QString m_version;
       QProcess* m_process;
       int       m_nextId;
       QString   m_stderr;
@@ -336,6 +341,12 @@ QJsonArray PythonEngine::listEngines(QString* error)
       if (value.toObject().value("name").toString() == m_engine) m_descriptor = value.toObject();
    }
    return m_engines;
+}
+
+
+QString PythonEngine::helperVersion() const
+{
+   return m_helper->running() ? m_helper->version() : QString();
 }
 
 

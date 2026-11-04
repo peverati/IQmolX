@@ -34,6 +34,7 @@
 #include <QFileInfo>
 #include <QFontDatabase>
 #include <QFormLayout>
+#include <QVersionNumber>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QJsonDocument>
@@ -161,6 +162,9 @@ PythonEngineDialog::PythonEngineDialog(QWidget* parent) : QDialog(parent),
    environmentRow->setContentsMargins(0, 0, 0, 0);
    environmentRow->addWidget(m_environmentInfo, 1);
    environmentRow->addWidget(m_setupButton);
+   m_updateButton = new QPushButton("Update Helper", this);
+   m_updateButton->hide();
+   environmentRow->addWidget(m_updateButton);
    form->addRow(QString(), environmentRow);
 
    m_engineCombo = new QComboBox(this);
@@ -268,6 +272,7 @@ PythonEngineDialog::PythonEngineDialog(QWidget* parent) : QDialog(parent),
    connect(refresh, SIGNAL(clicked()), this, SLOT(refreshEngines()));
    connect(m_setupButton, SIGNAL(clicked()), this, SLOT(setUpEnvironment()));
    connect(m_installButton, SIGNAL(clicked()), this, SLOT(installPackages()));
+   connect(m_updateButton, SIGNAL(clicked()), this, SLOT(updateHelper()));
    connect(m_pythonEdit, SIGNAL(editingFinished()), this, SLOT(saveSettings()));
    connect(m_pythonEdit, &QLineEdit::editingFinished, [this]() {
       updateEnvironmentRow();
@@ -397,6 +402,7 @@ void PythonEngineDialog::refreshEngines()
       m_title->setText("The Python helper is not available");
    }
    engineChanged();
+   updateHelperButton();
 }
 
 
@@ -773,6 +779,39 @@ void PythonEngineDialog::setUpEnvironment()
    saveSettings();
    updateEnvironmentRow();
    refreshEngines();
+}
+
+
+/// The environment that IQMolX made keeps the helper it was made with; after an update of the
+/// application it may be older than the one the application brings
+void PythonEngineDialog::updateHelperButton()
+{
+   QString environment(Calc::PythonSetup::defaultEnvironment());
+   QString python(Calc::PythonSetup::pythonIn(environment));
+   QString running(m_engine.helperVersion());
+   QString brought(Calc::PythonSetup::sourceVersion(Calc::PythonSetup::helperSource()));
+   bool newer(!running.isEmpty() && !brought.isEmpty() && python == effectivePython()
+      && QVersionNumber::fromString(brought) > QVersionNumber::fromString(running));
+   m_updateButton->setVisible(newer);
+   if (!newer) return;
+   m_updateButton->setEnabled(!Calc::PythonSetup::findUv().isEmpty());
+   m_updateButton->setToolTip("The helper in the IQMolX environment is version " + running 
+      + ", this IQMolX brings " + brought + " (new engines and fixes).  Everything else in the "
+      "environment is kept.");
+   setInfo(m_environmentInfo, "<small>IQMolX Python environment: " + plain(environment)
+      + "<br>A newer helper (" + plain(brought) + ", installed: " + plain(running) 
+      + ") is available: press Update Helper.</small>", 415);
+}
+
+
+void PythonEngineDialog::updateHelper()
+{
+   QString python(Calc::PythonSetup::pythonIn(Calc::PythonSetup::defaultEnvironment()));
+   bool ok(runSetup("Python helper update", [python](Calc::PythonSetup& setup, QString& error) {
+      return setup.updateHelper(python, error);
+   }));
+   updateEnvironmentRow();
+   if (ok) refreshEngines();
 }
 
 

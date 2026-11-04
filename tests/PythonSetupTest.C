@@ -108,6 +108,25 @@ int main(int argc, char** argv)
          "the commands and the output are shown");
    }
 
+   // The version of the helper source: from the name of a wheel, from the pyproject.toml of a folder
+   check(PythonSetup::sourceVersion(root + "/res/iqmolx_engines-0.2.0-py3-none-any.whl") == "0.2.0", 
+      "the version is read from the name of a wheel");
+   QDir().mkpath(root + "/ver");
+   writeFile(root + "/ver/pyproject.toml", "[project]\nname = \"iqmolx-engines\"\nversion = \"1.4.2\"\n");
+   check(PythonSetup::sourceVersion(root + "/ver") == "1.4.2", "the version is read from pyproject.toml");
+   check(PythonSetup::sourceVersion(root + "/nothing").isEmpty(), "no source, no version");
+
+   // Updating the helper: only the helper is reinstalled
+   {
+      QFile::remove(log);
+      PythonSetup setup;
+      setup.setUv(fake);
+      QString error;
+      check(setup.updateHelper("/some/env/bin/python", error), "updateHelper succeeds " + error);
+      check(readFile(log).trimmed() == "pip install --python /some/env/bin/python --reinstall-package iqmolx-engines " 
+         + QDir::cleanPath(root + "/pkg"), "uv reinstalls the helper only: " + readFile(log).trimmed());
+   }
+
    // Installing requirements
    {
       QFile::remove(log);

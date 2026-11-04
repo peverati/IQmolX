@@ -122,8 +122,11 @@ folders.  `package-macos.sh` now bundles uv (from `UV_BIN`, with its license tex
 as a wheel in `Resources/python` (installing from a folder would write into the signed app); the
 workflow installs a pinned uv from PyPI for that.  A packaged app was checked in a real run: with
 no environment variables it built its environment from the bundled uv and wheel.  The CI workflow
-changes themselves have not run yet.  Not done: updating the helper in an existing environment
-after an app update (the environment keeps the version it was made with).  TorchANI/ANI-2x was run for real (torch 2.13, TorchANI 2.9; its weights
+changes themselves have not run yet.  Updating the helper after an app update: the window shows "Update Helper"
+(`PythonSetup::updateHelper`, uv `--reinstall-package`) when the bundled helper's version is higher
+than the running one (`hello` -> `helper`); only for the IQMolX-made environment.  **So bump
+`__version__` in `iqmolx_engines/__init__.py` and `version` in `pyproject.toml` together whenever
+the helper changes in a way users should get** (new engine, fix); without the bump the button never appears.  TorchANI/ANI-2x was run for real (torch 2.13, TorchANI 2.9; its weights
 are downloaded from Hugging Face on first use, MIT), not frequencies in the app window.  The
 ASE adapter and the "Install ..." button were checked with real uv outside the window's click.
 **Guides.**  The developer guide `python/iqmolx-engines/PLUGINS.md` is written, with the sample

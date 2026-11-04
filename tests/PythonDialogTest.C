@@ -357,6 +357,31 @@ int main(int argc, char** argv)
       check(button(d, "Run") && button(d, "Run")->isEnabled(), "the engines are found in the new environment");
       if (!button(d, "Run")) return 1;
 
+      // A newer helper in this IQMolX than in the environment: the window offers the update
+      {
+         check(!button(d, "Update Helper") || button(d, "Update Helper")->isHidden(), "no update when the helper is current");
+         QTemporaryDir newer;
+         QFile pyproject(newer.path() + "/pyproject.toml");
+         pyproject.open(QIODevice::WriteOnly);
+         pyproject.write("[project]\nname = \"iqmolx-engines\"\nversion = \"99.0.0\"\n");
+         pyproject.close();
+         QFile::link(argv[2], newer.path() + "/src");          // the package itself still says 0.1.0
+         qputenv("IQMOLX_ENGINES_PATH", QString(newer.path() + "/src").toLocal8Bit());
+         d->refreshEngines();
+         QPushButton* update(button(d, "Update Helper"));
+         check(update && !update->isHidden() && update->isEnabled(), "Update Helper is offered for a newer helper");
+         if (update) {
+            update->click();
+            logFile.close();
+            logFile.open(QIODevice::ReadOnly);
+            check(QString::fromLocal8Bit(logFile.readAll()).contains("--reinstall-package iqmolx-engines"), 
+               "uv was asked to reinstall the helper");
+         }
+         qputenv("IQMOLX_ENGINES_PATH", argv[2]);
+         d->refreshEngines();
+         check(!button(d, "Update Helper") || button(d, "Update Helper")->isHidden(), "the button goes away when the helper is current");
+      }
+
       // An engine whose packages are missing: selectable, with an install button
       QComboBox* combo(0);
       for (QComboBox* c : d->findChildren<QComboBox*>()) if (c->findData("ase") >= 0) combo = c;

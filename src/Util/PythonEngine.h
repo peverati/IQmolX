@@ -85,6 +85,9 @@ namespace Calc {
          /// 'error'.
          QJsonArray listEngines(QString* error = 0);
 
+         /// The version of the helper package that is running, empty if it is not running
+         QString helperVersion() const;
+
          /// The descriptor of the selected engine, empty if it is not (yet) known
          QJsonObject engineInfo() const { return m_descriptor; }
 

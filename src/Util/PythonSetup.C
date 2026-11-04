@@ -92,6 +92,23 @@ QString PythonSetup::wheelIn(QString const& directory)
 }
 
 
+QString PythonSetup::sourceVersion(QString const& source)
+{
+   QFileInfo info(source);
+   if (info.isFile()) {                       // iqmolx_engines-0.1.0-py3-none-any.whl
+      QStringList parts(info.fileName().split('-'));
+      return parts.size() > 1 ? parts[1] : QString();
+   }
+   QFile file(source + "/pyproject.toml");
+   if (!file.open(QIODevice::ReadOnly)) return QString();
+   for (QString const& line : QString::fromUtf8(file.readAll()).split('\n')) {
+       QString text(line.trimmed());
+       if (text.startsWith("version") && text.contains('"')) return text.section('"', 1, 1);
+   }
+   return QString();
+}
+
+
 QString PythonSetup::helperSource()
 {
    // A source folder given by the developer comes first
@@ -196,6 +213,22 @@ bool PythonSetup::createEnvironment(QString const& environment, QString& error)
    if (!run(pip, error)) return false;
 
    if (m_progress) m_progress("\nThe Python environment is ready: " + environment + "\n");
+   return true;
+}
+
+
+bool PythonSetup::updateHelper(QString const& python, QString& error)
+{
+   m_cancelled = false;
+   QString source(helperSource());
+   if (source.isEmpty()) {
+      error = "The iqmolx-engines package of this application was not found.";
+      return false;
+   }
+   QStringList pip;
+   pip << "pip" << "install" << "--python" << python << "--reinstall-package" << "iqmolx-engines" << source;
+   if (!run(pip, error)) return false;
+   if (m_progress) m_progress("\nThe helper is up to date.\n");
    return true;
 }
 

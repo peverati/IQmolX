@@ -66,6 +66,10 @@ namespace Calc {
          /// happen inside a signed application.  Empty if there is nothing.
          static QString helperSource();
 
+         /// The version of the helper that helperSource() returns: from the name of a wheel, or
+         /// from the pyproject.toml of a folder.  Empty if it cannot be told.
+         static QString sourceVersion(QString const& source);
+
          /// The iqmolx_engines wheel in a folder, empty if there is none
          static QString wheelIn(QString const& directory);
 
@@ -80,6 +84,10 @@ namespace Calc {
          /// Makes the environment (a Python that uv downloads if necessary) and installs the
          /// helper into it.  Returns false and the reason in 'error' on failure.
          bool createEnvironment(QString const& environment, QString& error);
+
+         /// Replaces the helper in the environment of an interpreter by the one that this
+         /// application brings (helperSource()), keeping everything else that is installed
+         bool updateHelper(QString const& python, QString& error);
 
          /// Installs pip requirements (such as "torch") into the environment of an interpreter
          bool install(QString const& python, QStringList const& requirements, QString& error);
