@@ -23,17 +23,16 @@ HARTREE_TO_EV = 27.211386245988
 BOHR_IN_ANGSTROM = 0.529177210903
 DEBYE_TO_E_ANGSTROM = 0.20819434          # 1 debye in e*Angstrom
 
-# Functionals that were run through energy, gradient and Hessian with PySCF 2.14.  Not offered:
-# wB97M-V (works but takes minutes for water), wB97X-D (not implemented) and the -D3 variants (need
-# the extra package pyscf-dispersion).
-METHODS = ["hf", "b3lyp", "pbe0", "pbe", "bp86", "tpss", "m06-2x", "wb97x", "r2scan"]
+# The menu: functionals that were run through energy, gradient and Hessian with PySCF 2.14, and
+# "other", which opens a field for the name of any functional PySCF (libxc) knows.  wB97X-D is not
+# implemented in PySCF and the -D3 variants need the extra package pyscf-dispersion.
+METHODS = ["hf", "b3lyp", "pbe0", "pbe", "bp86", "tpss", "m06-2x", "wb97x", "r2scan", "wb97m-v", "other"]
 
-# For these (meta-GGA) functionals the analytic Hessian of PySCF 2.14 is not accurate (errors of 0.6 to
-# 6 eV/Angstrom^2 for water, against 0.05 for the others), so the Hessian is built from differences of
-# the analytic gradients instead: slower (6N gradients), but correct.
-META_GGA = ("tpss", "m06-2x", "r2scan")
+# For meta-GGA functionals the analytic Hessian of PySCF 2.14 is not accurate (errors of 0.6 to 6
+# eV/Angstrom^2 for water, against 0.05 for the others), so the Hessian is built from differences of
+# the analytic gradients instead: slower (6N gradients), but correct.  PySCF itself says which
+# functionals are meta-GGAs (libxc.is_meta_gga), so this also holds for a functional typed in "other".
 STEP = 0.005                                  # Angstrom, for those finite differences
-
 
 class PySCFEngine(Engine):
     name = "pyscf"
@@ -41,8 +40,8 @@ class PySCFEngine(Engine):
     description = ("Hartree-Fock and density functional theory with PySCF: analytic energies, forces and "
                    "Hessians for any charge and spin multiplicity, with the Gaussian basis set of your "
                    "choice. An ab initio method, much slower than a neural network potential: practical "
-                   "for small molecules. The Hessian of the meta-GGA functionals (tpss, m06-2x, r2scan) is "
-                   "built from differences of forces, which takes about 6N times as long.")
+                   "for small molecules. For meta-GGA functionals (tpss, m06-2x, r2scan, wb97m-v and others) the "
+                   "Hessian is built from differences of forces, which takes about 6N times as long.")
     license = "Apache-2.0 (PySCF)"
     citation = ("Sun et al., J. Chem. Phys. 153, 024109 (2020); "
                 "Sun, WIREs Comput. Mol. Sci. 8, e1340 (2018)")
@@ -53,7 +52,14 @@ class PySCFEngine(Engine):
     requirements = ("pyscf",)
     options = (
         option("method", "Method", "choice", "b3lyp", choices=METHODS,
-               description="Hartree-Fock (hf) or a density functional."),
+               description="Hartree-Fock (hf) or a density functional. wb97m-v is accurate and "
+                           "slower (it has a nonlocal VV10 part); other lets you type the name of "
+                           "any functional that PySCF knows."),
+        option("method_other", "Functional", "string", "", required=True, placeholder="cam-b3lyp",
+               show_if={"method": "other"},
+               description="The name of a functional of PySCF (libxc), for example cam-b3lyp, wb97x-v, "
+                           "scan or pbe0, or hf. Names that end in -d3bj need the package "
+                           "pyscf-dispersion."),
         option("basis", "Basis set", "string", "def2-svp", required=True, placeholder="def2-svp",
                description="Any basis set of PySCF, for example sto-3g, 6-31g*, def2-svp, def2-tzvp, "
                            "cc-pvdz, aug-cc-pvdz."),
@@ -62,6 +68,11 @@ class PySCFEngine(Engine):
         option("grid_level", "Integration grid (DFT)", "int", 3, min=0, max=9,
                description="Level of the numerical integration grid of the density functionals; "
                            "3 is the PySCF default, higher is finer and slower."),
+        option("nlc_grid_level", "Grid of the VV10 part", "int", 1, min=0, max=9,
+               show_if={"method": ["wb97m-v", "other"]},
+               description="Level of the grid of the nonlocal (VV10) term of functionals such as "
+                           "wb97m-v. Level 1 gives energies within 1e-6 Hartree of level 3 (the "
+                           "PySCF default) and is about 8 times faster; 0 is faster still, 2 is finer."),
         option("max_cycle", "Maximum SCF cycles", "int", 100, min=10, max=1000),
     )
 
@@ -73,12 +84,26 @@ class PySCFEngine(Engine):
 
     def load(self, options, ctx):
         import pyscf
+        from pyscf.dft import libxc
 
         self.settings = dict(options)
+        method = options["method_other"] if options["method"] == "other" else options["method"]
+        self.xc = method.strip().lower()
+        if self.xc != "hf":
+            try:
+                libxc.parse_xc(self.xc)
+            except Exception as exc:
+                raise EngineError("bad_option", "PySCF does not know the functional '%s'" % method.strip(),
+                                  detail="%s\nUse a name of libxc, for example cam-b3lyp, wb97x-v, scan." % exc) from None
+        self.meta_gga = self.xc != "hf" and bool(libxc.is_meta_gga(self.xc))
+        self.nonlocal_term = self.xc != "hf" and bool(libxc.nlc_coeff(self.xc))
         self.last_key = None          # the system of the last calculation, and its density
         self.last_density = None
-        return {"method": options["method"], "basis": options["basis"],
-                "density_fit": options["density_fit"], "pyscf": pyscf.__version__}
+        info = {"method": self.xc, "basis": options["basis"], "density_fit": options["density_fit"],
+                "pyscf": pyscf.__version__}
+        if self.meta_gga:
+            info["hessian"] = "from differences of forces (meta-GGA)"
+        return info
 
     # -- helpers -------------------------------------------------------------------------------
 
@@ -117,12 +142,14 @@ class PySCFEngine(Engine):
         from pyscf import dft, scf
         s = self.settings
         open_shell = mol.spin != 0
-        if s["method"] == "hf":
+        if self.xc == "hf":
             mf = scf.UHF(mol) if open_shell else scf.RHF(mol)
         else:
             mf = dft.UKS(mol) if open_shell else dft.RKS(mol)
-            mf.xc = s["method"]
+            mf.xc = self.xc
             mf.grids.level = s["grid_level"]
+            if self.nonlocal_term:
+                mf.nlcgrids.level = s["nlc_grid_level"]
         if s["density_fit"]:
             mf = mf.density_fit()
         mf.max_cycle = s["max_cycle"]
@@ -153,7 +180,7 @@ class PySCFEngine(Engine):
     def forces_of(self, mf):
         """Forces in eV/Angstrom."""
         method = mf.nuc_grad_method()
-        if self.settings["method"] != "hf":
+        if self.xc != "hf":
             method.grid_response = True            # the integration grid moves with the atoms: more accurate
         return -np.asarray(method.kernel()) * HARTREE_TO_EV / BOHR_IN_ANGSTROM       # kernel: Hartree/Bohr
 
@@ -193,7 +220,7 @@ class PySCFEngine(Engine):
             result["charges"] = np.asarray(mf.mulliken_pop(verbose=0)[1])
         if "hessian" in want:
             ctx.check_cancel()
-            if self.settings["method"] in META_GGA:
+            if self.meta_gga:
                 h = self.numerical_hessian(numbers, coordinates, charge, multiplicity, ctx)
             else:
                 h = self.analytic_hessian(mf, n)

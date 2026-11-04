@@ -17,8 +17,21 @@ def test_descriptor():
     basis = [o for o in d["options"] if o["name"] == "basis"][0]
     assert basis["required"] is True and basis["default"] == "def2-svp"
     method = [o for o in d["options"] if o["name"] == "method"][0]
-    assert "hf" in method["choices"] and "wb97m-v" not in method["choices"]      # too slow, not offered
+    assert method["choices"][0] == "hf" and "wb97m-v" in method["choices"] and method["choices"][-1] == "other"
+    other = [o for o in d["options"] if o["name"] == "method_other"][0]
+    assert other["required"] is True and other["show_if"] == {"method": "other"}
+    nlc = [o for o in d["options"] if o["name"] == "nlc_grid_level"][0]
+    assert nlc["default"] == 1 and nlc["show_if"] == {"method": ["wb97m-v", "other"]}
     assert d["available"] == (d["unavailable_reason"] == "")
+
+
+def test_the_name_of_an_other_functional_is_required_only_when_other_is_chosen():
+    assert resolve_options(PySCFEngine, {}, "load")["method"] == "b3lyp"                # hidden, not required
+    for given in ({"method": "other"}, {"method": "other", "method_other": "  "}):
+        with pytest.raises(EngineError) as e:
+            resolve_options(PySCFEngine, given, "load")
+        assert e.value.code == "bad_option" and "Functional" in e.value.message
+    assert resolve_options(PySCFEngine, {"method": "other", "method_other": "cam-b3lyp"}, "load")
 
 
 def test_an_empty_basis_is_refused_by_the_helper_rules():
@@ -119,9 +132,54 @@ def test_a_heavy_atom_with_a_pseudopotential_works():
 
 
 def test_the_numerical_hessian_agrees_with_the_analytic_one():
-    from iqmolx_engines.engines import pyscf_engine
     eng = make(method="b3lyp", basis="6-31g*")
     analytic = run(eng, WATER_Z, WATER_XYZ, ["hessian"])["hessian"]
     numerical = eng.numerical_hessian(WATER_Z, WATER_XYZ, 0, 1, Context())
     assert np.abs(analytic - numerical).max() < 0.1
-    assert "tpss" in pyscf_engine.META_GGA and "b3lyp" not in pyscf_engine.META_GGA
+    assert not eng.meta_gga and make(method="tpss").meta_gga and make(method="wb97m-v").meta_gga
+
+
+def test_wb97m_v_in_the_menu_gives_the_expected_energy_and_forces():
+    eng = make(method="wb97m-v", basis="def2-svp")            # nonlocal grid level 1 (the default of this setting)
+    res = run(eng, WATER_Z, WATER_XYZ, ["energy", "forces"])
+    assert res["energy"] / HARTREE == pytest.approx(-76.32554, abs=2e-6)     # PySCF at its own finer VV10 grid
+    h = 2e-3
+    for a, k in ((0, 2), (1, 1)):
+        p, m = WATER_XYZ.copy(), WATER_XYZ.copy()
+        p[a, k] += h
+        m[a, k] -= h
+        fd = -(run(eng, WATER_Z, p)["energy"] - run(eng, WATER_Z, m)["energy"]) / (2 * h)
+        assert res["forces"][a, k] == pytest.approx(fd, abs=2e-3)
+    finer = run(make(method="wb97m-v", basis="def2-svp", nlc_grid_level=2), WATER_Z, WATER_XYZ)["energy"]
+    assert abs(finer - res["energy"]) / HARTREE < 1e-6          # the default VV10 grid is converged
+
+
+def test_wb97m_v_hessian_is_numerical_and_consistent():
+    eng = make(method="wb97m-v", basis="def2-svp", density_fit=True)
+    assert eng.meta_gga and eng.nonlocal_term
+    h2 = [[0, 0, 0], [0, 0, 0.74]]
+    hess = run(eng, [1, 1], h2, ["hessian"])["hessian"]
+    assert hess.shape == (6, 6) and np.allclose(hess, hess.T, atol=1e-6)
+    assert hess[2, 2] > 10.0 and hess[5, 5] > 10.0              # the H-H stretch, a stiff bond (eV/A^2)
+
+
+def test_other_functionals():
+    cam = make(method="other", method_other="  CAM-B3LYP ", basis="def2-svp")        # case and spaces do not matter
+    assert cam.xc == "cam-b3lyp" and not cam.meta_gga
+    e_cam = run(cam, WATER_Z, WATER_XYZ)["energy"]
+    e_b3 = run(make(method="b3lyp", basis="def2-svp"), WATER_Z, WATER_XYZ)["energy"]
+    assert abs(e_cam - e_b3) / HARTREE > 1e-3 and -76.5 < e_cam / HARTREE < -76.2     # another functional
+    same = make(method="other", method_other="b3lyp", basis="def2-svp")
+    assert run(same, WATER_Z, WATER_XYZ)["energy"] == pytest.approx(e_b3, abs=1e-9)
+    hf = make(method="other", method_other="hf", basis="sto-3g", density_fit=False)    # hf also works as typed
+    assert run(hf, [1, 1], [[0, 0, 0], [0, 0, 0.74]])["energy"] / HARTREE == pytest.approx(-1.116759, abs=2e-6)
+    scan = make(method="other", method_other="scan", basis="sto-3g")                  # a meta-GGA: the numerical Hessian
+    assert scan.meta_gga
+    assert run(scan, [1, 1], [[0, 0, 0], [0, 0, 0.74]], ["hessian"])["hessian"].shape == (6, 6)
+
+
+def test_an_unknown_functional_is_a_clear_error():
+    eng = PySCFEngine()
+    with pytest.raises(EngineError) as e:
+        eng.load(resolve_options(PySCFEngine, {"method": "other", "method_other": "not-a-functional"}, "load"), Context())
+    assert e.value.code == "bad_option" and "not-a-functional" in e.value.message
