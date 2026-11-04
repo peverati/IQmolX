@@ -68,8 +68,8 @@ class PySCFEngine(Engine):
         option("grid_level", "Integration grid (DFT)", "int", 3, min=0, max=9,
                description="Level of the numerical integration grid of the density functionals; "
                            "3 is the PySCF default, higher is finer and slower."),
-        option("nlc_grid_level", "Grid of the VV10 part", "int", 1, min=0, max=9,
-               show_if={"method": ["wb97m-v", "other"]},
+        option("nlc_grid_level", "Grid for the VV10 part", "int", 1, min=0, max=9,
+               show_if={"method": "wb97m-v"},
                description="Level of the grid of the nonlocal (VV10) term of functionals such as "
                            "wb97m-v. Level 1 gives energies within 1e-6 Hartree of level 3 (the "
                            "PySCF default) and is about 8 times faster; 0 is faster still, 2 is finer."),

@@ -220,7 +220,7 @@ int main(int argc, char** argv)
             return 0;
          };
          auto gridSpin = [&]() -> QSpinBox* {
-            for (QLabel* l : d->findChildren<QLabel*>()) if (l->text().startsWith("Grid of the VV10 part")) {
+            for (QLabel* l : d->findChildren<QLabel*>()) if (l->text().startsWith("Grid for the VV10 part")) {
                for (QSpinBox* s : d->findChildren<QSpinBox*>()) if (s->toolTip().contains("nonlocal (VV10)")) return s;
             }
             return 0;
@@ -234,7 +234,7 @@ int main(int argc, char** argv)
          method->setCurrentText("other");
          name = field("cam-b3lyp");
          check(name != 0 && name->isVisibleTo(d), "the Functional field appears when other is chosen");
-         check(gridSpin() && gridSpin()->isVisibleTo(d), "the VV10 grid is shown for other too");
+         check(gridSpin() && !gridSpin()->isVisibleTo(d), "the VV10 grid stays hidden for other");
          check(!button(d, "Run")->isEnabled(), "Run waits for the name");
          QString hint;
          for (QLabel* l : d->findChildren<QLabel*>()) if (l->text().contains("Fill in")) hint = l->text();

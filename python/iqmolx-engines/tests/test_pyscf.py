@@ -21,7 +21,7 @@ def test_descriptor():
     other = [o for o in d["options"] if o["name"] == "method_other"][0]
     assert other["required"] is True and other["show_if"] == {"method": "other"}
     nlc = [o for o in d["options"] if o["name"] == "nlc_grid_level"][0]
-    assert nlc["default"] == 1 and nlc["show_if"] == {"method": ["wb97m-v", "other"]}
+    assert nlc["default"] == 1 and nlc["show_if"] == {"method": "wb97m-v"}
     assert d["available"] == (d["unavailable_reason"] == "")
 
 
