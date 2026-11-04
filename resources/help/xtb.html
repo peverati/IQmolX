@@ -31,25 +31,71 @@
    <br>
    <h3><a name="backends"></a>Backends</h3>
 
-   <p> The calculation is carried out either by
+   <p> The <b>Backend</b> menu of the window says what carries out the calculation.
+   There are three:
+
    <ul>
       <li> the <b>built-in library</b> (libxtb), which runs inside IQMolX and is
            the default.  This choice only appears if IQMolX was built with libxtb.
            The geometry optimization uses IQMolX's own optimizer with the xtb
-           convergence criteria, or <br>
+           convergence criteria; <br>
       <li> the <b>xtb program</b>, an executable that IQMolX runs in the
-           background (it must be installed separately, see
-           <a href="#installation">Installation</a>), or <br>
+           background.  The macOS application has a copy inside; otherwise it must
+           be installed separately, see <a href="#installation">Installation</a>; <br>
       <li> <b>g-xTB (development version)</b>, a separate build of the xtb program
-           with the new g-xTB method, see <a href="#gxtb">g-xTB</a>.
+           with the new, preliminary g-xTB method, which IQMolX downloads when you
+           ask for it, see <a href="#gxtb">g-xTB</a>.
    </ul>
 
-   <p> Both give the same energies and frequencies (the frequencies differ by
-   about 0.05%).  The program is the more flexible of the two, as it offers the
-   options described under <a href="#program">xtb Program</a>.  The library
-   does not provide the basis set of the orbitals or read the electronic
-   temperature, so these are only available with the xtb program; choosing the
-   program adds their settings to the window.
+   <p> What each of them offers:
+
+   <table border="1" cellpadding="4" cellspacing="0">
+      <tr><td></td>
+          <td><b>Built-in library</b></td>
+          <td><b>xtb program</b></td>
+          <td><b>g-xTB (development)</b></td></tr>
+      <tr><td><b>Method</b></td>
+          <td>GFN2-xTB, GFN1-xTB</td>
+          <td>GFN2-xTB, GFN1-xTB</td>
+          <td>g-xTB only</td></tr>
+      <tr><td><b>Solvents</b></td>
+          <td>ALPB</td>
+          <td>ALPB</td>
+          <td>GBE or COSMO</td></tr>
+      <tr><td><b>Geometry optimizer</b></td>
+          <td>IQMolX's own</td>
+          <td>that of xtb</td>
+          <td>that of xtb</td></tr>
+      <tr><td><b>Electronic temperature</b></td>
+          <td>fixed, 300 K</td>
+          <td>can be set</td>
+          <td>not available</td></tr>
+      <tr><td><b>Molecular orbitals</b></td>
+          <td>no</td>
+          <td>yes</td>
+          <td>yes</td></tr>
+      <tr><td><b>Extra options, working directory</b></td>
+          <td>no</td>
+          <td>yes</td>
+          <td>yes</td></tr>
+      <tr><td><b>Comes from</b></td>
+          <td>inside IQMolX</td>
+          <td>inside the macOS app, or installed by you</td>
+          <td>Download button (about 41 MB)</td></tr>
+      <tr><td><b>Status</b></td>
+          <td>released</td>
+          <td>released</td>
+          <td>preliminary, changes between releases</td></tr>
+   </table>
+
+   <p> The library and the program give the same energies and frequencies (the
+   frequencies differ by about 0.05%).  The library is the simplest to use; the program is
+   the more flexible of the two, as it offers the options described under
+   <a href="#program">xtb Program</a>.  The library does not provide the basis set of
+   the orbitals or read the electronic temperature, so these need the xtb program (or
+   g-xTB, which is a program too); choosing one of them adds their settings to the
+   window.  g-xTB is a different method, so its energies cannot be compared with
+   those of GFN2-xTB or GFN1-xTB.
 
 
    <br>
@@ -58,7 +104,8 @@
    <p> Each session starts with the same defaults: a geometry optimization with
    GFN2-xTB in the gas phase, the charge and spin of the molecule, the built-in
    library (the xtb program if IQMolX was built without it) and, for the program,
-   an electronic temperature of 300 K.  Changes are kept until IQMolX is closed.
+   an electronic temperature of 300 K.  The g-xTB backend is never the default: you choose
+   it each time.  Changes are kept until IQMolX is closed.
    Only the location of the xtb program, the extra options and the working
    directory are remembered from one session to the next.
 
@@ -70,12 +117,13 @@
           optimization and frequencies</i>.</td></tr>
 
       <tr><td valign="top"><b>Method</b></td>
-          <td> GFN2-xTB or GFN1-xTB.</td></tr>
+          <td> GFN2-xTB or GFN1-xTB.  Not shown for the g-xTB backend, which has one method.</td></tr>
 
       <tr><td valign="top"><b>Solvent</b></td>
           <td> Gas phase, or one of the implicit solvents of the ALPB model
           (water, methanol, acetonitrile, ...).  The solvation free energy
-          is reported with the result.</td></tr>
+          is reported with the result.  With the g-xTB backend the same solvents are
+          used with the GBE or COSMO model instead, see <a href="#gxtb">g-xTB</a>.</td></tr>
 
       <tr><td valign="top"><b>Charge, spin</b></td>
           <td> By default the charge and spin multiplicity of the molecule are
@@ -93,7 +141,7 @@
       <tr><td valign="top"><b>Orbitals</b></td>
           <td> Also calculate the molecular orbitals, see
           <a href="#orbitals">Molecular Orbitals</a>.  Only shown for the xtb
-          program.  Switch this off for very large molecules.</td></tr>
+          program and g-xTB.  Switch this off for very large molecules.</td></tr>
    </table>
 
    <p> Pressing <b>Run</b> starts the calculation.  The window shows the output
@@ -106,7 +154,10 @@
 
    <p> When the xtb program is the backend, further settings appear at the bottom
    of the window: its location, extra options and a working directory (below), the
-   electronic temperature and the option to calculate the orbitals (see above).
+   electronic temperature and the option to calculate the orbitals (see above).  The
+   extra options, the working directory and the orbitals are also there for the g-xTB
+   backend, which has its own program field with a Download button instead of the
+   location of the xtb program.
 
    <p><center><img src="images/XtbProgram.png" width="470" /></center></p>
 
