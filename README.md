@@ -76,15 +76,14 @@ had little testing on real Windows computers, so please report problems.
    **More info**, then **Run anyway**.
 3. Start with Calculation → xtb Setup, or the xtb button on the tool bar.
 
-### Python engines (macOS; needs the internet the first time)
-
-The Windows build does not include the Python engines yet.
+### Python engines (needs the internet the first time)
 
 xtb works right away.  The Python engines need a Python environment, which is not part of the
 download (PyTorch alone is hundreds of megabytes).  Open Calculation → Python Engines and press
 **Set Up Environment**: the program `uv` that is inside the app downloads its own Python and
-makes an environment in `~/Library/Application Support/IQmol/python`; no Python has to be
-installed.  An engine that needs more packages (TorchANI, Egret, PySCF) has an **Install**
+makes an environment in your user data folder (on a Mac `~/Library/Application Support/IQmol/python`;
+the window shows the place); no Python has to be installed.  On Windows the TorchANI and Egret
+engines work the same way; PySCF has no official Windows package, so that engine may not install.  An engine that needs more packages (TorchANI, Egret, PySCF) has an **Install**
 button, and the model weights of an engine are downloaded the first time it is used.  You can
 also point the window at your own Python or conda environment.  Delete the folder above to
 remove everything.  Step by step, with the licenses of the engines: Help → Show Help →

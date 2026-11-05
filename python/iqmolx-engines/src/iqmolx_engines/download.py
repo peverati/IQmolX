@@ -23,12 +23,15 @@ CHUNK = 1 << 20
 
 def cache_dir():
     """Where downloaded model files are kept: $IQMOLX_ENGINES_CACHE, else the cache folder of the
-    system (~/Library/Caches/IQMolX/engines on a Mac)."""
+    system (~/Library/Caches/IQMolX/engines on a Mac, %LOCALAPPDATA%\\IQMolX\\engines on Windows)."""
     given = os.environ.get("IQMOLX_ENGINES_CACHE")
     if given:
         return given
     if sys.platform == "darwin":
         return os.path.expanduser("~/Library/Caches/IQMolX/engines")
+    if sys.platform == "win32":
+        base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~\\AppData\\Local")
+        return os.path.join(base, "IQMolX", "engines")
     base = os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache")
     return os.path.join(base, "iqmolx-engines")
 

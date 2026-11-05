@@ -14,6 +14,7 @@ small molecules.  PySCF is imported only when a calculation runs."""
 
 import importlib.util
 import math
+import sys
 
 import numpy as np
 
@@ -79,6 +80,10 @@ class PySCFEngine(Engine):
     @classmethod
     def unavailable_reason(cls):
         if importlib.util.find_spec("pyscf") is None:
+            if sys.platform == "win32":
+                return ("pyscf not installed. The PySCF project does not support native Windows "
+                        "(it advises the Windows Subsystem for Linux); 'pip install pyscf' may "
+                        "work in a Python of your own")
             return "pyscf not installed (pip install pyscf)"
         return ""
 

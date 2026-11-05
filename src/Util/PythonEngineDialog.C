@@ -58,6 +58,14 @@
 #include <limits>
 
 
+#ifdef Q_OS_WIN
+#define UV_INSTALL_HINT "winget install astral-sh.uv"
+#define PYTHON_DEFAULT_TEXT "python (the first one on the PATH)"
+#else
+#define UV_INSTALL_HINT "brew install uv"
+#define PYTHON_DEFAULT_TEXT "python3 (the first one on the PATH)"
+#endif
+
 namespace IQmol {
 
 namespace {
@@ -143,7 +151,7 @@ PythonEngineDialog::PythonEngineDialog(QWidget* parent) : QDialog(parent),
    form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
 
    m_pythonEdit = new QLineEdit(this);
-   m_pythonEdit->setPlaceholderText("python3 (the first one on the PATH)");
+   m_pythonEdit->setPlaceholderText(PYTHON_DEFAULT_TEXT);
    m_pythonEdit->setToolTip("The Python interpreter, or environment, in which iqmolx-engines is "
       "installed.\nThe engines and their models live there, not in IQmol.");
    QPushButton* browse(new QPushButton("Browse...", this));
@@ -723,7 +731,7 @@ void PythonEngineDialog::updateEnvironmentRow()
    bool const uv(!Calc::PythonSetup::findUv().isEmpty());
 
    m_pythonEdit->setPlaceholderText(have ? "the IQMolX environment" 
-      : "python3 (the first one on the PATH)");
+      : PYTHON_DEFAULT_TEXT);
    m_setupButton->setVisible(!have);
    m_setupButton->setEnabled(uv);
    if (have) {
@@ -734,7 +742,7 @@ void PythonEngineDialog::updateEnvironmentRow()
          "helper.  Or choose a Python that has iqmolx-engines.</small>", 255);
    }else {
       setInfo(m_environmentInfo, "<small>There is no IQMolX Python environment, and uv, which makes "
-         "it, was not found.  Install uv (for example <tt>brew install uv</tt>) or choose a Python "
+         "it, was not found.  Install uv (for example <tt>" UV_INSTALL_HINT "</tt>) or choose a Python "
          "that has iqmolx-engines.</small>", 255);
    }
 }

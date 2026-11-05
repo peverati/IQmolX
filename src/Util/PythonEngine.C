@@ -89,7 +89,16 @@ class PythonHelper {
          }
          m_process->setProcessEnvironment(env);
 
+#ifdef Q_OS_WIN
+         // Python on Windows reads and writes text in the code page of the system unless told
+         // otherwise; the helper's protocol is UTF-8
+         env.insert("PYTHONIOENCODING", "utf-8");
+         env.insert("PYTHONUTF8", "1");
+         m_process->setProcessEnvironment(env);
+         QString program(python.isEmpty() ? QString("python") : python);
+#else
          QString program(python.isEmpty() ? QString("python3") : python);
+#endif
          m_process->start(program, QStringList() << "-u" << "-m" << "iqmolx_engines");
          if (!m_process->waitForStarted(10000)) {
             failure.set("helper", "Unable to start the Python interpreter '" + program + "'",

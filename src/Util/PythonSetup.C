@@ -53,6 +53,16 @@ QString PythonSetup::findUv(QString const& hint)
    QString fromEnvironment(qEnvironmentVariable("IQMOLX_UV"));
    if (!fromEnvironment.isEmpty()) candidates << fromEnvironment;
 
+#ifdef Q_OS_WIN
+   // IQMolX\bin\IQMolX.exe, with uv.exe next to it
+   QString appDir(QCoreApplication::applicationDirPath());
+   if (!appDir.isEmpty()) candidates << appDir + "/uv.exe";
+
+   for (QString const& dir : qEnvironmentVariable("PATH").split(QDir::listSeparator(), Qt::SkipEmptyParts)) {
+       candidates << dir + "/uv.exe";
+   }
+   candidates << QDir::homePath() + "/.local/bin/uv.exe";
+#else
    // IQmol.app/Contents/MacOS/IQmol, with uv in Contents/Resources/bin
    QString appDir(QCoreApplication::applicationDirPath());
    if (!appDir.isEmpty()) candidates << appDir + "/../Resources/bin/uv";
@@ -61,6 +71,7 @@ QString PythonSetup::findUv(QString const& hint)
        candidates << dir + "/uv";
    }
    candidates << QDir::homePath() + "/.local/bin/uv" << "/opt/homebrew/bin/uv" << "/usr/local/bin/uv";
+#endif
 
    for (QString const& path : candidates) {
        QString found(executableIn(path));
@@ -80,7 +91,11 @@ QString PythonSetup::defaultEnvironment()
 
 QString PythonSetup::pythonIn(QString const& environment)
 {
+#ifdef Q_OS_WIN
+   return executableIn(environment + "/Scripts/python.exe");     // where a Windows environment keeps it
+#else
    return executableIn(environment + "/bin/python");
+#endif
 }
 
 
@@ -119,9 +134,14 @@ QString PythonSetup::helperSource()
    }
 
    // IQmol.app/Contents/MacOS/IQmol, with the helper in Contents/Resources/python
+   // (Windows: IQMolX\bin\IQMolX.exe, with the wheel in IQMolX\python)
    QString appDir(QCoreApplication::applicationDirPath());
    if (!appDir.isEmpty()) {
+#ifdef Q_OS_WIN
+      QString resources(appDir + "/../python");
+#else
       QString resources(appDir + "/../Resources/python");
+#endif
       QString wheel(wheelIn(resources));
       if (!wheel.isEmpty()) return wheel;
       QFileInfo info(resources + "/iqmolx-engines/pyproject.toml");
@@ -136,8 +156,13 @@ bool PythonSetup::run(QStringList const& arguments, QString& error)
 {
    if (m_uv.isEmpty()) m_uv = findUv();
    if (m_uv.isEmpty()) {
+#ifdef Q_OS_WIN
+      error = "uv was not found.  It is the tool that makes the Python environment; install "
+              "it (for example with 'winget install astral-sh.uv') or give its location in %IQMOLX_UV%.";
+#else
       error = "uv was not found.  It is the tool that makes the Python environment; install "
               "it (for example with 'brew install uv') or give its location in $IQMOLX_UV.";
+#endif
       return false;
    }
 

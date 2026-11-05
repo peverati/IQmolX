@@ -11,6 +11,9 @@
 #   build-dir   default: build
 #   version     default: from git
 #   XTB_ROOT=<xtb install dir>   where xtb.exe and libxtb come from
+#   UV_BIN=<path to uv.exe>      uv, bundled to make the Python environment of the Python
+#                                engines (default: uv from the PATH; pip install uv gives one)
+#   UV_LICENSE_DIR=<folder>      its license files (default: those of the pip package of uv)
 #
 # Result:  dist/IQMolX-<version>-windows-x64.zip  with  IQMolX/bin/IQMolX.exe  and  IQMolX/share
 
@@ -45,6 +48,42 @@ if [ -f "$XTB_ROOT/bin/xtb.exe" ]; then
    cp "$XTB_ROOT"/lib/*.dll "$OUT/bin/" 2>/dev/null || true
 else
    echo "Warning: no xtb.exe in $XTB_ROOT/bin, it will not be part of the package"
+fi
+
+# The Python engines (Calculation > Python Engines): the helper as a wheel, and uv, which makes
+# the Python environment for it when the user asks for that.  Weights and PyTorch are never part
+# of the package.  Building the wheel needs the internet (setuptools from PyPI).
+UV_BIN=${UV_BIN:-$(command -v uv || command -v uv.exe || true)}
+if [ -n "$UV_BIN" ] && [ -f "$UV_BIN" ]; then
+   mkdir -p "$OUT/python" "$OUT/licenses/uv"
+   cp "$UV_BIN" "$OUT/bin/uv.exe"
+
+   # Built from a copy: building writes build/ and *.egg-info next to the sources
+   HELPER=$(mktemp -d)/helper-src
+   mkdir -p "$HELPER"
+   (cd "$TOPDIR/python/iqmolx-engines" && tar --exclude=build --exclude='*.egg-info' --exclude=__pycache__ \
+      --exclude=.pytest_cache --exclude=tests -cf - .) | (cd "$HELPER" && tar -xf -)
+   "$UV_BIN" build --wheel --out-dir "$OUT/python" "$(cygpath -w "$HELPER" 2>/dev/null || echo "$HELPER")"
+   rm -f "$OUT/python/.gitignore"
+   ls "$OUT"/python/iqmolx_engines-*.whl > /dev/null
+
+   # uv is MIT or Apache-2.0 licensed: its license texts travel with it
+   UV_LICENSES=${UV_LICENSE_DIR:-}
+   if [ -z "$UV_LICENSES" ]; then
+      for d in "$(dirname "$UV_BIN")"/../Lib/site-packages/uv-*.dist-info/licenses \
+               "$(dirname "$UV_BIN")"/../lib/python*/site-packages/uv-*.dist-info/licenses; do
+         [ -d "$d" ] && { UV_LICENSES=$d; break; }
+      done
+   fi
+   if [ -z "$UV_LICENSES" ] || [ ! -d "$UV_LICENSES" ]; then
+      echo "uv is bundled but its license files were not found; set UV_LICENSE_DIR to a folder with them"
+      exit 1
+   fi
+   cp -R "$UV_LICENSES"/. "$OUT/licenses/uv/"
+   echo "uv $("$UV_BIN" --version | awk '{print $2}') from https://github.com/astral-sh/uv" > "$OUT/licenses/uv/SOURCE.txt"
+   cp "$TOPDIR/LICENSE" "$OUT/licenses/iqmolx-engines-LICENSE"
+else
+   echo "Warning: no uv found (set UV_BIN), the Python engines cannot set up their environment"
 fi
 
 # Qt plugins that a Widgets program needs, and a qt.conf that points at them

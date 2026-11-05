@@ -57,7 +57,8 @@
    environment and lists the engines.  This is only done once.
 
    <p> The environment is kept in the folder
-   <tt>~/Library/Application Support/IQmol/python</tt>.  See
+   <tt>~/Library/Application Support/IQmol/python</tt> (on Windows in the application
+   data folder of your account; the window shows the exact place).  See
    <a href="#remove">Where Things Are Kept</a> to find out how to remove it.
 
    <p> <i>After you update IQMolX</i> the environment keeps the helper it was made
@@ -67,7 +68,8 @@
    offered for the environment that IQMolX made, not for a Python of your own.
 
    <p> <i>If IQMolX was built from the source</i> it does not contain uv; install
-   it first, for example with <tt>brew install uv</tt>, and the button will work.
+   it first, for example with <tt>brew install uv</tt> (Windows: <tt>winget install
+   astral-sh.uv</tt>), and the button will work.
    The window says when uv cannot be found.
 
    <br>
@@ -78,7 +80,8 @@
    <b>Browse...</b>) and press the <b>Refresh</b> button (the circular arrows next to the
    Engine list).  That Python needs the
    iqmolx-engines package: it is the file <tt>iqmolx_engines-*.whl</tt> in
-   <tt>IQMolX.app/Contents/Resources/python</tt>, which you install with
+   <tt>IQMolX.app/Contents/Resources/python</tt> (Windows: the folder <tt>python</tt> next
+   to the folder <tt>bin</tt> of the program), which you install with
    <tt>pip install</tt> and the path of the file.  The <b>Install</b> buttons
    described below only work for environments made with Set Up Environment (or
    another virtual environment) and need uv.  With the field empty IQMolX uses its
@@ -309,7 +312,8 @@
    <p> The model file is downloaded the first time a model is used, from a fixed
    version of the Egret repository on GitHub, and checked against the hash that
    GitHub lists for the file.  It is kept in
-   <tt>~/Library/Caches/IQMolX/engines</tt>, which can be deleted at any time.
+   <tt>~/Library/Caches/IQMolX/engines</tt> (Windows: <tt>%LOCALAPPDATA%\IQMolX\engines</tt>),
+   which can be deleted at any time.
    The package <i>mace-torch</i> is needed (it needs Python 3.11 or newer, which the
    IQMolX environment has) and is installed with the <b>Install</b> button.
 
@@ -556,7 +560,7 @@
                <b>Set Up Environment</b>, or choose another Python. </td></tr>
       <tr><td valign="top"><i>uv was not found</i></td>
           <td> Only for IQMolX built from the source: install uv
-               (<tt>brew install uv</tt>). </td></tr>
+               (<tt>brew install uv</tt>, on Windows <tt>winget install astral-sh.uv</tt>). </td></tr>
       <tr><td valign="top"><i>uv failed</i> while setting up or installing</td>
           <td> The last lines of its output are shown.  Most often there is no
                internet connection, or a network that needs a proxy: uv uses the
@@ -607,7 +611,8 @@
    </table>
 
    <p> To remove the Python environment of IQMolX, quit IQMolX and move the folder
-   <tt>~/Library/Application Support/IQmol/python</tt> to the Trash; the next time
+   <tt>~/Library/Application Support/IQmol/python</tt> to the Trash (Windows: delete the
+   <tt>python</tt> folder in the application data folder that the window shows); the next time
    the window is opened it offers to set it up again.  The folders of uv and of the
    model parameters are only caches and can be removed too, but uv is shared with
    anything else on your computer that uses it, so leave them if you do.
