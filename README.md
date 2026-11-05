@@ -48,11 +48,14 @@ The xtb help page is part of the built-in help (Help → Show Help).  The change
 top of IQmol 3.2.x; internally the program, its settings and its source folders keep the
 name IQmol.
 
-## Download (macOS, Apple Silicon)
+## Download
 
 Ready-made apps are on the [Releases page](https://github.com/peverati/IQmolX/releases).
-They need a Mac with Apple Silicon (M1 or later) and macOS 15 or newer.  Intel Macs, Windows
-and Linux have no download yet: build from source (below).
+Intel Macs and Linux have no download yet: build from source (below).
+
+### macOS (Apple Silicon)
+
+Needs a Mac with Apple Silicon (M1 or later) and macOS 15 or newer.
 
 1. Download the `IQMolX-...-macOS-arm64.dmg` file of the latest release, open it and drag
    IQMolX to the Applications folder.  Everything it needs is inside, including xtb.
@@ -62,7 +65,20 @@ and Linux have no download yet: build from source (below).
    `xattr -dr com.apple.quarantine /Applications/IQMolX.app`
 3. Start with Calculation → xtb Setup, or the xtb button on the tool bar.
 
-### Python engines (needs the internet the first time)
+### Windows (64-bit Intel/AMD, experimental)
+
+Needs Windows 10 or 11.  This build compiles and starts in the automatic tests, but it has
+had little testing on real Windows computers, so please report problems.
+
+1. Download the `IQMolX-...-windows-x64.zip` file of the latest release and unzip it
+   (right-click, Extract All).  Everything it needs is inside, including xtb.
+2. Run `IQMolX\bin\IQMolX.exe`.  Windows will warn about an unknown publisher: choose
+   **More info**, then **Run anyway**.
+3. Start with Calculation → xtb Setup, or the xtb button on the tool bar.
+
+### Python engines (macOS; needs the internet the first time)
+
+The Windows build does not include the Python engines yet.
 
 xtb works right away.  The Python engines need a Python environment, which is not part of the
 download (PyTorch alone is hundreds of megabytes).  Open Calculation → Python Engines and press
