@@ -1,6 +1,6 @@
-# Builds IQMolX for Apple Silicon on GitHub's macOS 14 runner and, for a version tag, publishes
+# Builds IQMolX for Apple Silicon on GitHub's macOS 15 runner and, for a version tag, publishes
 # the disk image as a release.  Because the libraries come from Homebrew on that runner, the
-# app runs on macOS 14 (Sonoma) and later.
+# app runs on macOS 15 (Sequoia) and later.
 #
 # Run by hand:  Actions > "macOS release" > Run workflow
 # Release:      git tag v0.1.0 && git push origin v0.1.0
@@ -20,11 +20,11 @@ permissions:
 
 jobs:
   build:
-    name: Build and package (Apple Silicon, macOS 14)
-    runs-on: macos-14
+    name: Build and package (Apple Silicon, macOS 15)
+    runs-on: macos-15
     timeout-minutes: 150
     env:
-      MACOSX_DEPLOYMENT_TARGET: '14.0'
+      MACOSX_DEPLOYMENT_TARGET: '15.0'
     steps:
 
       - name: Checkout (with submodules)
@@ -106,7 +106,7 @@ jobs:
           done
           hdiutil detach "$MNT" -quiet
           echo "Highest minimum macOS in the package: $WORST ($WHICH)"
-          [ "$WORST" -le 14 ] || { echo "Needs macOS $WORST, more than 14"; exit 1; }
+          [ "$WORST" -le 15 ] || { echo "Needs macOS $WORST, more than 15"; exit 1; }
 
       - name: Keep the disk image
         uses: actions/upload-artifact@v4

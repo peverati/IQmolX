@@ -51,7 +51,7 @@ name IQmol.
 ## Download (macOS, Apple Silicon)
 
 Ready-made apps are on the [Releases page](https://github.com/peverati/IQmolX/releases).
-They need a Mac with Apple Silicon (M1 or later) and macOS 14 or newer.  Intel Macs, Windows
+They need a Mac with Apple Silicon (M1 or later) and macOS 15 or newer.  Intel Macs, Windows
 and Linux have no download yet: build from source (below).
 
 1. Download the `IQMolX-...-macOS-arm64.dmg` file of the latest release, open it and drag
