@@ -108,7 +108,11 @@ jobs:
         run: |
           cmake --build build --target OptimizerTest VibrationsTest XtbProcessTest XtbBackendTest
           XTB="$GITHUB_WORKSPACE/xtb-install/bin/xtb.exe"
-          export PATH="$GITHUB_WORKSPACE/xtb-install/bin:$PATH"
+          # The tests need the DLLs of xtb on the PATH, but not xtb.exe itself: one of them checks
+          # that the library finds no program (and so no orbitals) when there is none to find
+          mkdir -p "$RUNNER_TEMP/xtb-dlls"
+          cp "$GITHUB_WORKSPACE"/xtb-install/bin/*.dll "$GITHUB_WORKSPACE"/xtb-install/lib/*.dll "$RUNNER_TEMP/xtb-dlls/" 2>/dev/null || true
+          export PATH="$RUNNER_TEMP/xtb-dlls:$PATH"
           build/bin/OptimizerTest
           build/bin/VibrationsTest
           build/bin/XtbProcessTest "$XTB"
