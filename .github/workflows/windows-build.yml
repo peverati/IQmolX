@@ -1,12 +1,13 @@
 # Builds IQMolX for Windows (64-bit Intel/AMD) with MSYS2 (MinGW-w64, UCRT) on a GitHub
 # runner and keeps the result as a zip file.  Work in progress: it is run on pushes to the
-# windows-port branch, or by hand (the manual button only shows once the file is on the
-# default branch).  It does not touch the macOS release.
+# windows-port branch, to the windows-merge branch (the main line with the Windows changes:
+# git push origin ml-engines:windows-merge), or by hand (the manual button only shows once the
+# file is on the default branch).  It does not touch the macOS release.
 name: Windows build
 
 on:
   push:
-    branches: [ windows-port ]
+    branches: [ windows-port, windows-merge ]
   workflow_dispatch:
     inputs:
       version:
