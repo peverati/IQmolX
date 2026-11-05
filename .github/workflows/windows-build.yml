@@ -1,0 +1,134 @@
+# Builds IQMolX for Windows (64-bit Intel/AMD) with MSYS2 (MinGW-w64, UCRT) on a GitHub
+# runner and keeps the result as a zip file.  Work in progress: it is run on pushes to the
+# windows-port branch, or by hand (the manual button only shows once the file is on the
+# default branch).  It does not touch the macOS release.
+name: Windows build
+
+on:
+  push:
+    branches: [ windows-port ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version for the file name (default: the branch or tag)'
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and package (Windows x64, MSYS2 UCRT64)
+    runs-on: windows-2022
+    timeout-minutes: 150
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: MSYS2 and packages
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            git zip patch make
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-gcc-fortran
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-qt5-base
+            mingw-w64-ucrt-x86_64-openblas
+            mingw-w64-ucrt-x86_64-boost
+            mingw-w64-ucrt-x86_64-openssl
+            mingw-w64-ucrt-x86_64-zlib
+            mingw-w64-ucrt-x86_64-zstd
+
+      - name: Cache xtb
+        id: xtb-cache
+        uses: actions/cache@v4
+        with:
+          path: xtb-install
+          key: xtb-install-windows-${{ hashFiles('.github/workflows/windows-build.yml') }}
+
+      - name: Build xtb (program and library)
+        if: steps.xtb-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone https://github.com/grimme-lab/xtb "$RUNNER_TEMP/xtb"
+          cd "$RUNNER_TEMP/xtb"
+          git checkout 920a35fb512642ca7e93dac340513ea3e6267223   # the version IQmol is tested with
+          cmake -B build -G Ninja \
+             -DBLA_VENDOR=OpenBLAS \
+             -DCMAKE_BUILD_TYPE=Release \
+             -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/xtb-install" \
+             -DWITH_TESTS=OFF \
+             -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake --build build
+          cmake --install build
+          ls "$GITHUB_WORKSPACE/xtb-install/bin" "$GITHUB_WORKSPACE/xtb-install/lib"
+
+      - name: Configure IQMolX
+        # -include cstdint: the newest GCC no longer pulls in <cstdint> by itself, which older
+        # code such as yaml-cpp relies on
+        run: |
+          # OpenBabel asks for the old behaviour of a macOS-only policy, which CMake 4 refuses
+          sed -i 's/CMP0042 OLD/CMP0042 NEW/' modules/openbabel/CMakeLists.txt
+          # OpenBabel makes some headers by starting a Perl script directly, which Windows cannot do,
+          # and then writes an empty header when it fails; run it through perl instead
+          sed -i 's|COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/bin2hex.pl|COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/bin2hex.pl|' modules/openbabel/data/CMakeLists.txt
+          grep -n "bin2hex" modules/openbabel/data/CMakeLists.txt
+          cmake -B build -G Ninja \
+             -DBUILD_SHARED=OFF -DQARCHIVE=OFF -DCMAKE_BUILD_TYPE=Release \
+             -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+             -DCMAKE_CXX_FLAGS="-include cstdint" \
+             -DOPENSSL_ROOT_DIR="$MSYSTEM_PREFIX" \
+             -DXTB_ROOT="$GITHUB_WORKSPACE/xtb-install"
+
+      - name: Build IQMolX
+        # Some parts include files that other parts generate without saying so (for example
+        # Layer needs the header that Grid makes).  Make orders that right by luck, Ninja's
+        # parallel build does not, so keep going after a failure and go round again: the files
+        # exist by the second pass.  The last pass reports any real error.
+        run: |
+          ninja -C build -k 0 IQmol || true
+          ninja -C build -k 0 IQmol || true
+          ninja -C build IQmol
+
+      - name: Tests
+        continue-on-error: true
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          cmake --build build --target OptimizerTest VibrationsTest XtbProcessTest XtbBackendTest
+          XTB="$GITHUB_WORKSPACE/xtb-install/bin/xtb.exe"
+          export PATH="$GITHUB_WORKSPACE/xtb-install/bin:$PATH"
+          build/bin/OptimizerTest
+          build/bin/VibrationsTest
+          build/bin/XtbProcessTest "$XTB"
+          build/bin/XtbBackendTest "$XTB" tests/data
+
+      - name: Package
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          [ -n "$VERSION" ] || VERSION="${GITHUB_REF_NAME}"
+          XTB_ROOT="$GITHUB_WORKSPACE/xtb-install" ./package-windows.sh build "$VERSION"
+
+      - name: Start the packaged program
+        run: |
+          cd dist/*/IQMolX/bin
+          export QT_QPA_PLATFORM=offscreen
+          timeout 15 ./IQMolX.exe || RC=$?
+          echo "exit code: ${RC:-0} (124 means it was still running when stopped)"
+          [ "${RC:-0}" = "124" ]
+
+      - name: Keep the zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: IQMolX-windows-x64
+          path: dist/*.zip
