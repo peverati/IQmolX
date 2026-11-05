@@ -91,10 +91,16 @@ int main(int argc, char** argv)
 
    // Cancellation, using a stand-in for xtb that just sleeps
    QTemporaryDir dir;
+#ifdef Q_OS_WIN
+   QString fake(dir.filePath("xtb.bat"));      // Windows cannot start a shell script
+   char const* sleeper("@echo off\r\nping -n 30 127.0.0.1 > nul\r\n");
+#else
    QString fake(dir.filePath("xtb"));
+   char const* sleeper("#!/bin/sh\nsleep 30\n");
+#endif
    QFile script(fake);
    if (script.open(QIODevice::WriteOnly)) {
-      script.write("#!/bin/sh\nsleep 30\n");
+      script.write(sleeper);
       script.close();
       script.setPermissions(QFile::permissions(fake) | QFile::ExeOwner);
    }
