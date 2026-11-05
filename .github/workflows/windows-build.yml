@@ -1,13 +1,13 @@
 # Builds IQMolX for Windows (64-bit Intel/AMD) with MSYS2 (MinGW-w64, UCRT) on a GitHub
-# runner and keeps the result as a zip file.  Work in progress: it is run on pushes to the
-# windows-port branch, to the windows-merge branch (the main line with the Windows changes:
-# git push origin ml-engines:windows-merge), or by hand (the manual button only shows once the
-# file is on the default branch).  It does not touch the macOS release.
+# runner and keeps the result as a zip file.  For a version tag it also adds the zip to the
+# release of that tag (the macOS workflow adds its disk image to the same release).
+# Run by hand:  Actions > "Windows build" > Run workflow
+# Release:      git tag v0.2 && git push origin v0.2
 name: Windows build
 
 on:
   push:
-    branches: [ windows-port, windows-merge ]
+    tags: [ 'v*' ]
   workflow_dispatch:
     inputs:
       version:
@@ -15,7 +15,7 @@ on:
         required: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -137,3 +137,16 @@ jobs:
         with:
           name: IQMolX-windows-x64
           path: dist/*.zip
+
+      - name: Add the zip to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The macOS workflow adds its disk image to the same release; whichever finishes first creates it
+          gh release create "$GITHUB_REF_NAME" \
+            --title "IQMolX $GITHUB_REF_NAME" \
+            --generate-notes \
+            --notes-file .github/release-notes.md || true
+          gh release upload "$GITHUB_REF_NAME" dist/*.zip --clobber

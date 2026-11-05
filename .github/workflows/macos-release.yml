@@ -119,7 +119,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/*.dmg \
+          # The Windows build adds its file to the same release; whichever finishes first creates it
+          gh release create "$GITHUB_REF_NAME" \
             --title "IQMolX $GITHUB_REF_NAME" \
             --generate-notes \
-            --notes "Apple Silicon Macs, macOS 14 or later.  Open the disk image and drag IQMolX to Applications.  The app is not notarized by Apple: on first start right-click it and choose Open, or run: xattr -dr com.apple.quarantine /Applications/IQMolX.app"
+            --notes-file .github/release-notes.md || true
+          gh release upload "$GITHUB_REF_NAME" dist/*.dmg --clobber
