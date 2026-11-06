@@ -363,7 +363,13 @@ Result XtbProcess::run(Input const& input, Task task)
    process.setWorkingDirectory(workPath);
    process.setProcessChannelMode(QProcess::MergedChannels);
    QProcessEnvironment env(QProcessEnvironment::systemEnvironment());
+#ifdef Q_OS_WIN
+   // Windows reserves every thread's stack: 1G times the threads of a 12-thread laptop with 8 GB
+   // of memory fails with "libgomp: Thread creation failed"
+   env.insert("OMP_STACKSIZE", "256M");
+#else
    env.insert("OMP_STACKSIZE", "1G");
+#endif
    // The numerical Hessian of the macOS build of g-xTB is wrong when it runs on several threads
    // (absurd frequencies, and it is slow), as its README warns
    if (m_method == GXTB && task == Hessian) env.insert("OMP_NUM_THREADS", "1");
