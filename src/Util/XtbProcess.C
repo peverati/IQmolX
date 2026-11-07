@@ -28,6 +28,7 @@
 #include <QDir>
 #include <QElapsedTimer>
 #include <QEventLoop>
+#include <QThread>
 #include <QTimer>
 #include <QFile>
 #include <QFileInfo>
@@ -367,6 +368,11 @@ Result XtbProcess::run(Input const& input, Task task)
    // Windows reserves every thread's stack: 1G times the threads of a 12-thread laptop with 8 GB
    // of memory fails with "libgomp: Thread creation failed"
    env.insert("OMP_STACKSIZE", "256M");
+   // The numerical Hessian of xtb opens parallel regions inside parallel regions: the threads
+   // multiply (12 x 12 on a 12-thread laptop) and creation fails again.  One level, and never
+   // more threads in all than the machine has
+   env.insert("OMP_MAX_ACTIVE_LEVELS", "1");
+   env.insert("OMP_THREAD_LIMIT", QString::number(QThread::idealThreadCount()));
 #else
    env.insert("OMP_STACKSIZE", "1G");
 #endif
