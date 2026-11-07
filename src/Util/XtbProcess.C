@@ -373,6 +373,12 @@ Result XtbProcess::run(Input const& input, Task task)
    // more threads in all than the machine has
    env.insert("OMP_MAX_ACTIVE_LEVELS", "1");
    env.insert("OMP_THREAD_LIMIT", QString::number(QThread::idealThreadCount()));
+   // Both were not enough for the Hessian on the laptop of the tester (8 GB, 12 threads): it runs
+   // on one thread, which creates none (slower for large molecules, but it works)
+   if (task == Hessian) {
+      env.insert("OMP_NUM_THREADS", "1");
+      env.insert("OPENBLAS_NUM_THREADS", "1");
+   }
 #else
    env.insert("OMP_STACKSIZE", "1G");
 #endif
