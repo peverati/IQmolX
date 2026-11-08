@@ -107,6 +107,7 @@ namespace Calc {
          int     m_timeout;
          bool    m_interactive;
          bool    m_cancelled;
+         bool    m_oneThread;   // Windows: repeat on one thread after 'Thread creation failed'
          QProcess* m_process;
          std::function<void(QString const&)> m_progress;
    };

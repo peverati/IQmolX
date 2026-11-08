@@ -161,7 +161,7 @@ XtbProcess::XtbProcess(QString const& executable, Method method)
  : m_executable(executable), m_method(method), m_solvationModel("gbe"), m_timeout(600), 
    m_interactive(false),
    m_keepTemporary(false),
-   m_cancelled(false), m_process(0)
+   m_cancelled(false), m_oneThread(false), m_process(0)
 {
 }
 
@@ -375,7 +375,7 @@ Result XtbProcess::run(Input const& input, Task task)
    env.insert("OMP_THREAD_LIMIT", QString::number(QThread::idealThreadCount()));
    // Both were not enough for the Hessian on the laptop of the tester (8 GB, 12 threads): it runs
    // on one thread, which creates none (slower for large molecules, but it works)
-   if (task == Hessian) {
+   if (task == Hessian || m_oneThread) {
       env.insert("OMP_NUM_THREADS", "1");
       env.insert("OPENBLAS_NUM_THREADS", "1");
    }
@@ -450,6 +450,18 @@ Result XtbProcess::run(Input const& input, Task task)
       result.message = "Calculation cancelled";
       return result;
    }
+
+#ifdef Q_OS_WIN
+   // Windows commits the whole stack of every OpenMP thread, so a laptop that is short of memory
+   // can fail to start the threads, at the start of any run.  Repeat once on one thread.
+   if (!m_oneThread && output.contains("Thread creation failed")) {
+      m_oneThread = true;
+      if (m_progress) m_progress("\nNot enough memory to start the OpenMP threads: repeating on one thread.\n\n");
+      Result again(run(input, task));
+      m_oneThread = false;
+      return again;
+   }
+#endif
 
    if (timedOut) {
       result.message = "xtb timed out after " + QString::number(m_timeout) + " seconds";
