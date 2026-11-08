@@ -632,13 +632,6 @@ QToolButton:checked {
                     </property>
                    </widget>
                   </item>
-                  <item row="4" column="2" colspan="2">
-                   <widget class="QCheckBox" name="internal_stability">
-                    <property name="text">
-                     <string>Stability Analysis</string>
-                    </property>
-                   </widget>
-                  </item>
                   <item row="3" column="0" colspan="2">
                    <widget class="QCheckBox" name="unrestricted">
                     <property name="text">
@@ -1820,47 +1813,54 @@ QToolButton:checked {
            <layout class="QVBoxLayout" name="verticalLayout_6">
             <item>
              <layout class="QGridLayout" name="gridLayout_7">
-              <item row="2" column="1">
+              <item row="0" column="0" colspan="3">
+               <widget class="QCheckBox" name="internal_stability">
+                <property name="text">
+                 <string>Turn on internal stability analysis</string>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="1">
                <widget class="QSpinBox" name="internal_stability_conv"/>
               </item>
-              <item row="2" column="0">
+              <item row="3" column="0">
                <widget class="QLabel" name="label_67">
                 <property name="text">
                  <string>Convergence</string>
                 </property>
                </widget>
               </item>
-              <item row="3" column="1">
+              <item row="4" column="1">
                <widget class="QSpinBox" name="internal_stability_roots"/>
               </item>
-              <item row="1" column="0">
+              <item row="2" column="0">
                <widget class="QLabel" name="label_61">
                 <property name="text">
                  <string>Davidson Iterations</string>
                 </property>
                </widget>
               </item>
-              <item row="0" column="1">
+              <item row="1" column="1">
                <widget class="QSpinBox" name="internal_stability_iter"/>
               </item>
-              <item row="0" column="0">
+              <item row="1" column="0">
                <widget class="QLabel" name="label_57">
                 <property name="text">
                  <string>Max SCFs</string>
                 </property>
                </widget>
               </item>
-              <item row="1" column="1">
+              <item row="2" column="1">
                <widget class="QSpinBox" name="internal_stability_davidson_iter"/>
               </item>
-              <item row="3" column="0">
+              <item row="4" column="0">
                <widget class="QLabel" name="label_69">
                 <property name="text">
                  <string>Number of Roots</string>
                 </property>
                </widget>
               </item>
-              <item row="0" column="2">
+              <item row="1" column="2">
                <spacer name="horizontalSpacer_5">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
@@ -1873,8 +1873,8 @@ QToolButton:checked {
                 </property>
                </spacer>
               </item>
-              <item row="4" column="0" colspan="3">
-               <widget class="QRadioButton" name="fd_mat_vec_prod">
+              <item row="5" column="0" colspan="3">
+               <widget class="QCheckBox" name="fd_mat_vec_prod">
                 <property name="text">
                  <string>Compute Vec-Mat Poduct By FD</string>
                 </property>
