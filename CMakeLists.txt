@@ -198,6 +198,7 @@ if (APPLE)
       MACOSX_BUNDLE_ICON_FILE            "IQmol.icns"
       MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
       MACOSX_BUNDLE_BUNDLE_VERSION       "${PROJECT_VERSION}"
+      MACOSX_BUNDLE_INFO_PLIST           "${CMAKE_SOURCE_DIR}/resources/Info.plist.in"
    )
    file(COPY ${ICON_PATH} DESTINATION "bin/${targetName}.app/Contents/Resources")
    file(COPY resources/crtimgseq.py DESTINATION "bin/${targetName}.app/Contents/Resources")
