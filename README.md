@@ -60,8 +60,11 @@ Needs a Mac with Apple Silicon (M1 or later) and macOS 15 or newer.
 1. Download the `IQMolX-...-macOS-arm64.dmg` file of the latest release, open it and drag
    IQMolX to the Applications folder.  Everything it needs is inside, including xtb.
 2. The first time, macOS will say it cannot check the app, because it is not notarized by
-   Apple.  Right-click (or Control-click) IQMolX in Applications, choose **Open**, and
-   confirm with **Open**.  If that does not work, run this once in a terminal:
+   Apple.  On recent macOS versions (Sequoia and later) right-click → Open no longer works.
+   Instead: double-click IQMolX and close the message (**Done**), open **System Settings →
+   Privacy & Security**, scroll down to the Security section, click **Open Anyway** next to
+   the message about IQMolX, and confirm with your password or Touch ID.  The button is shown
+   for about an hour after the failed start.  If you prefer the terminal, run this once:
    `xattr -dr com.apple.quarantine /Applications/IQMolX.app`
 3. Start with Calculation → xtb Setup, or the xtb button on the tool bar.
 
